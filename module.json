@@ -1,0 +1,9 @@
+{
+    "appName": "payroll.aragonpm.test",
+    "version": "1.0.0",
+    "roles": [
+        { "name": "Owner write", "id": "EMPLOYER_ROLE" },
+        { "name": "Oracle", "id": "ORACLE_ROLE" }
+    ],
+    "path": "contracts/Payroll.sol"
+}
