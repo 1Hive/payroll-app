@@ -33,7 +33,7 @@ contract KitBase is APMNamehash, EVMScriptRegistryConstants {
     ENS public ens;
     DAOFactory public fac;
 
-    event DeployInstance(address dao);
+    event DeployDao(address dao);
     event InstalledApp(address appProxy, bytes32 appId);
 
     constructor(DAOFactory _fac, ENS _ens) public {
@@ -121,7 +121,7 @@ contract PayrollKit is KitBase {
         cleanupPermission(acl, root, payroll, payroll.MANAGE_ALLOWED_TOKENS_ROLE());
         cleanupPermission(acl, root, payroll, payroll.ADD_EMPLOYEE_ROLE());
 
-        emit DeployInstance(dao);
+        emit DeployDao(dao);
     }
 
     function installBaseApps(Kernel dao, ACL acl, address root) internal returns (Vault, Finance) {
