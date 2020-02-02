@@ -16,8 +16,10 @@
     "Sebastián Galiano <sebastian.galiano@altoros.com>"
   ],
   "scripts": {
+    "prepare": "cd app && npm install && cd ..",
     "compile": "truffle compile",
-    "build": "cd app && npm run build",
+    "start:app": "cd app && npm start && cd ..",
+    "build": "cd app && npm run build && cd ..",
     "apm:prepublish": "npm run compile",
     "apm:publish:major": "aragon apm publish major --files app/build/ --prepublish-script apm:prepublish",
     "apm:publish:minor": "aragon apm publish minor --files app/build/ --prepublish-script apm:prepublish",
@@ -34,7 +36,6 @@
     "coverage": "SOLIDITY_COVERAGE=true npm run ganache-cli:test",
     "truffle:dev": "truffle dev",
     "ganache-cli:test": "./node_modules/@aragon/test-helpers/ganache-cli.sh",
-    "prepare": "npx apps-shared-scripts-prepare",
     "install:frontend": "cd app && npm install",
     "abi:extract": "truffle-extract --output abi/ --keys abi",
     "prepublishOnly": "truffle compile --all && npm run abi:extract -- --no-compile"
@@ -54,18 +55,17 @@
   "devDependencies": {
     "@aragon/apps-shared-migrations": "1.0.0",
     "@aragon/apps-shared-minime": "1.0.0",
-    "@aragon/apps-shared-scripts": "^1.0.0",
     "@aragon/apps-token-manager": "2.0.0",
     "@aragon/apps-vault": "4.0.0",
-    "@aragon/cli": "^6.0.0",
+    "@aragon/cli": "^7.0.0",
     "@aragon/test-helpers": "^2.1.0",
-    "@aragon/truffle-config-v4": "^1.0.1",
+    "@aragon/truffle-config-v5": "^1.0.1",
     "eth-gas-reporter": "^0.2.0",
     "ethereumjs-testrpc-sc": "^6.5.1-sc.0",
     "ganache-cli": "^6.4.3",
     "solidity-coverage": "0.6.2",
     "solium": "^1.2.3",
-    "truffle": "4.1.14",
+    "truffle": "^5.0.0",
     "truffle-extract": "^1.2.1"
   }
 }
