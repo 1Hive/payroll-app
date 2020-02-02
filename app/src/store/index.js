@@ -1,4 +1,4 @@
-import { of } from '../rxjs'
+import { of } from 'rxjs'
 
 import app from './app'
 import Event from './events'

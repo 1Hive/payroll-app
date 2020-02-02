@@ -2,11 +2,11 @@ import React from 'react'
 import styled from 'styled-components'
 import { Spring, config } from 'react-spring'
 import { subYears, isWithinInterval } from 'date-fns'
+import { zip } from 'rxjs'
 import { theme, Text } from '@aragon/ui'
 import vaultAbi from '../../abi/vault-balance'
 import priceFeedAbi from '../../abi/price-feed'
 import { connect } from '../../context/AragonContext'
-import { zip } from '../../rxjs'
 import { formatCurrency, SECONDS_IN_A_YEAR } from '../../utils/formatting'
 
 class YearlySalarySummary extends React.Component {
