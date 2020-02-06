@@ -3,6 +3,7 @@
     [
       "@babel/preset-env",
       {
+        "modules": false,
         "targets": {
           "browsers": [
             "> 1%",
@@ -12,14 +13,17 @@
             "android >= 4.2"
           ]
         },
-        "useBuiltIns": 'entry',
-        "core-js": 3
+        "useBuiltIns": false
       }
-    ],
-    "@babel/preset-react"
+    ]
   ],
   "plugins": [
-    ["styled-components", { "displayName": true }],
-    "@babel/plugin-proposal-class-properties"
+    "@babel/plugin-proposal-class-properties",
+    [
+      "styled-components",
+      {
+        "displayName": true
+      }
+    ]
   ]
 }

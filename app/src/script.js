@@ -1,23 +1,28 @@
+import 'core-js/stable'
+import 'regenerator-runtime/runtime'
+import { first } from 'rxjs/operators'
+
 import app from './store/app'
 import initialize from './store'
 import financeAbi from './abi/finance-vault'
 
 retryEvery(async retry => {
-  const financeAddress = await app
+  app
     .call('finance')
-    .first()
+    .pipe(first())
     .toPromise()
-
-  const vaultAddress = await app
-    .external(financeAddress, financeAbi)
-    .vault()
-    .first()
-    .toPromise()
-
-  initialize(financeAddress, vaultAddress).catch(err => {
-    console.error('Could not start background script execution due:', err)
-    retry()
-  })
+    .then(financeAddress => app.external(financeAddress, financeAbi))
+    .then(finance =>
+      finance
+        .vault()
+        .pipe(first())
+        .toPromise()
+    )
+    .then(initialize)
+    .catch(err => {
+      console.error('Could not start background script execution due:', err)
+      retry()
+    })
 })
 
 /*
