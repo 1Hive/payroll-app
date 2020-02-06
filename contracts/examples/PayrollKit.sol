@@ -152,7 +152,7 @@ contract PayrollKit is KitBase {
         internal
         returns (Payroll)
     {
-        bytes32 payrollAppId = apmNamehash("payroll");
+        bytes32 payrollAppId = keccak256(abi.encodePacked(apmNamehash("open"), keccak256("payroll")));
 
         Payroll payroll = Payroll(dao.newAppInstance(payrollAppId, latestVersionAppBase(payrollAppId)));
         emit InstalledApp(payroll, payrollAppId);
