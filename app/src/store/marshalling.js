@@ -12,49 +12,69 @@ export function date(epoch) {
 }
 
 export function employee(data) {
+  const {
+    id,
+    employeeId,
+    accountAddress,
+    name,
+    denominationSalary,
+    accruedValue,
+    lastPayroll,
+    startDate,
+    endDate,
+    terminated,
+    role,
+  } = data
   const result = {
-    id: data.id || data.employeeId,
-    accountAddress: data.accountAddress,
-    name: data.name,
-    salary: currency(data.denominationSalary),
-    accruedValue: currency(data.accruedValue),
-    lastPayroll: date(data.lastPayroll),
-    startDate: date(data.startDate),
-    endDate: date(data.endDate),
-    terminated: !!data.terminated,
-    role: data.role,
+    id: id || employeeId,
+    accountAddress: accountAddress,
+    name: name,
+    salary: currency(denominationSalary),
+    accruedValue: currency(accruedValue),
+    lastPayroll: date(lastPayroll),
+    startDate: date(startDate),
+    endDate: date(endDate),
+    terminated: !!terminated,
+    role: role,
   }
 
   return result
 }
 
 export function tokenAllocation(data) {
+  const { address, symbol, allocation } = data
   return {
-    address: data.address,
-    symbol: data.symbol,
-    allocation: parseInt(data.allocation) || 0,
+    address: address,
+    symbol: symbol,
+    allocation: parseInt(allocation) || 0,
   }
 }
 
 export function payment(data) {
-  const exchanged = data.returnValues.amount / data.returnValues.exchangeRate
+  const {
+    returnValues: { amount, exchangeRate, paymentDate },
+    token,
+    transactionHash,
+    employee,
+  } = data
+  const exchanged = amount / exchangeRate
   return {
-    accountAddress: data.returnValues.employee,
+    accountAddress: employee,
     amount: {
-      amount: data.returnValues.amount,
+      amount: amount,
       isIncoming: true, // FIXME: Assumption: all salaries are incoming - sgobotta
       displaySign: true, // FIXME: The send payroll event should provide the displaysign option
       token: {
-        address: data.token.address,
-        symbol: data.token.symbol,
-        decimals: data.token.decimals,
+        address: token.address,
+        symbol: token.symbol,
+        decimals: token.decimals,
       },
     },
-    transactionAddress: data.transactionHash,
-    date: date(data.returnValues.paymentDate),
+    transactionAddress: transactionHash,
+    date: date(paymentDate),
     status: 'Complete', // FIXME: Find out how the status is calculated - - sgobotta
     exchangeRate: {
-      amount: data.returnValues.exchangeRate,
+      amount: exchangeRate,
     },
     exchanged,
   }

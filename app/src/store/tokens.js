@@ -1,14 +1,15 @@
 import app from './app'
 import tokenDecimalsAbi from '../abi/token-decimals'
 import tokenSymbolAbi from '../abi/token-symbol'
+import { first, map } from 'rxjs/operators'
 
 const tokenCache = new Map()
 
 export function getDenominationToken() {
   return app
     .call('denominationToken')
-    .first()
-    .map(getToken)
+    .pipe(first())
+    .pipe(map(getToken))
     .toPromise()
 }
 
@@ -29,8 +30,8 @@ function loadTokenDecimals(address) {
   return app
     .external(address, tokenDecimalsAbi)
     .decimals()
-    .first()
-    .map(value => parseInt(value))
+    .pipe(first())
+    .pipe(map(value => parseInt(value)))
     .toPromise()
 }
 
@@ -38,6 +39,6 @@ function loadTokenSymbol(address) {
   return app
     .external(address, tokenSymbolAbi)
     .symbol()
-    .first()
+    .pipe(first())
     .toPromise()
 }

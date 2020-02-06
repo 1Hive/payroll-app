@@ -1,19 +1,20 @@
 import app from './app'
 import { employee, tokenAllocation } from './marshalling'
+import { first, map } from 'rxjs/operators'
 
 export function getEmployeeById(id) {
   return app
     .call('getEmployee', id)
-    .first()
-    .map(data => employee({ id, ...data, role: 'Employee' }))
+    .pipe(first())
+    .pipe(map(data => employee({ id, ...data, role: 'Employee' })))
     .toPromise()
 }
 
 export function getEmployeeIdByAddress(accountAddress) {
   return app
     .call('getEmployeeIdByAddress', accountAddress)
-    .first()
-    .map(data => employee({ accountAddress, ...data, role: 'Employee' }))
+    .pipe(first())
+    .pipe(map(data => employee({ accountAddress, ...data, role: 'Employee' })))
     .toPromise()
 }
 
@@ -22,8 +23,8 @@ export async function getSalaryAllocation(employeeId, tokens) {
     tokens.map(token =>
       app
         .call('getAllocation', employeeId, token.address)
-        .first()
-        .map(allocation => tokenAllocation({ ...token, allocation }))
+        .pipe(first())
+        .pipe(map(allocation => tokenAllocation({ ...token, allocation })))
         .toPromise()
     )
   )
