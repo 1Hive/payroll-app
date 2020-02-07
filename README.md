@@ -1,8 +1,27 @@
-# [Payroll](https://github.com/aragon/aragon-apps/tree/master/future-apps/payroll)
+# Payroll <img align="right" src="https://github.com/1Hive/website/blob/master/website/static/img/bee.png" height="80px" />
 
-_**Code in Github:**_ [aragon-apps/apps/payroll](https://github.com/aragon/aragon-apps/tree/master/future-apps/payroll)
+_**Original code:**_ [aragon-apps/apps/payroll](https://github.com/aragon/aragon-apps/tree/master/future-apps/payroll)
 
-The purpose of the Payroll app is to implement a Payroll system in multiple currencies.
+The purpose of the Payroll app is to implement a Payroll system ~~in multiple currencies~~.
+
+#### 🐲 Project Stage: development
+
+The Payroll app is still in development. If you are interested in contributing please see our [open issues](https://github.com/1hive/payroll-app).
+
+#### 🚨 Security Review Status: pre-audit
+
+The code in this repository has not been audited.
+
+## How to run Payroll app locally
+
+To use this Aragon application, set it up using a token and a vault using:
+
+```sh
+npm install
+npm start # It actually starts `npm run start:ipfs:template`
+```
+
+If everything is working correctly, your new DAO will be deployed and your browser will open http://localhost:3000/#/YOUR-DAO-ADDRESS.
 
 ### Initialization
 
@@ -69,3 +88,11 @@ Employees can change their own address.
 - If an employee requests payroll having allocated an allowed token which doesn't have an exchange rate, the transaction will fail. In other words, exchange rates must be set before employees try to use those tokens for their payrolls.
 - Exchange rate is not updated automatically. So it could happen that rates are outated when payrolls are requested. An external mechanism for updating rates often should be implemented.
 - If there are not enough funds for a given token, `payday` will fail. There's no automatic token conversion yet.
+
+## Contributing
+
+We welcome community contributions!
+
+Please check out our [open Issues](https://github.com/1Hive/conviction-voting-app/issues) to get started.
+
+If you discover something that could potentially impact security, please notify us immediately. The quickest way to reach us is via the #conviction-voting channel in our [team Keybase chat](https://1hive.org/contribute/keybase). Just say hi and that you discovered a potential security vulnerability and we'll DM you to discuss details.
