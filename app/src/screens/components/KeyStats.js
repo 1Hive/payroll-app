@@ -1,21 +1,14 @@
 import React from 'react'
-import styled from 'styled-components'
 
+import { Box } from '@aragon/ui'
 import PaidSalaries from './PaidSalaries'
 import YearlySalarySummary from './YearlySalarySummary'
-import Section from '../../components/Layout/Section'
 
 const KeyStats = () => (
-  <Container>
-    <Section.SideBarTitle>Key Stats</Section.SideBarTitle>
+  <Box heading="Key Stats">
     <PaidSalaries />
     <YearlySalarySummary />
-  </Container>
+  </Box>
 )
-
-const Container = styled.section`
-  display: flex;
-  flex-direction: column;
-`
 
 export default KeyStats

@@ -22,7 +22,7 @@ const RoleFilter = ({ active, onChange, roles }) => {
     <InlineField label="Role Type:">
       <DropDown
         items={options.map(opt => opt.label)}
-        active={activeIndex || 0}
+        selected={activeIndex || 0}
         onChange={index => {
           if (typeof onChange === 'function') {
             onChange(options[index])

@@ -1,125 +1,83 @@
-import React from 'react'
-import styled from 'styled-components'
-import { AppBar, AppView, AragonApp, Button, TabBar, theme } from '@aragon/ui'
+import React, { useState } from 'react'
+import {
+  Button,
+  Header,
+  IconPlus,
+  Main,
+  Tabs,
+  SyncIndicator,
+  useLayout,
+} from '@aragon/ui'
+import { useGuiStyle } from '@aragon/api-react'
+import { AppLogicProvider, useAppLogic } from './app-logic'
+import { IdentityProvider } from './identity-manager'
 
 import { MyPayroll, TeamPayroll } from './screens'
-import { AddEmployee, RequestSalary } from './panels'
+import { AddEmployee } from './panels'
 
-const appBarTitle = 'Payroll'
-const tabTitles = ['My payroll', 'Team payroll']
-const tabNames = ['my-payroll', 'team-payroll']
+const SCREENS = [
+  { id: 'my-payroll', label: 'My payroll' },
+  { id: 'team-payroll', label: 'Team payroll' },
+]
 
-const [MY_PAYROLL, TEAM_PAYROLL] = tabNames
-const activeTab = MY_PAYROLL
-const selectedTab = 0
+const App = React.memo(function App() {
+  const { actions, isSyncing, addEmployeePanel } = useAppLogic()
+  const { appearance } = useGuiStyle()
+  const { layoutName } = useLayout()
+  const compactMode = layoutName === 'small'
+  const [screen, changeScreen] = useState('my-payroll')
 
-export default class App extends React.Component {
-  state = {
-    activeTab,
-    selectedTab,
-    showAddEmployeePanel: false,
-    showRequestSalaryPanel: false,
-  }
-
-  componentDidMount() {
-    // If using Parcel, reload instead of using HMR.
-    // HMR makes the app disconnect from the wrapper and the state is empty until a reload
-    // See: https://github.com/parcel-bundler/parcel/issues/289
-    if (module.hot) {
-      module.hot.dispose(() => {
-        window.location.reload()
-      })
-    }
-  }
-
-  showAddEmployeePanel = () => {
-    this.setState({ showAddEmployeePanel: true })
-  }
-
-  showRequestSalaryPanel = () => {
-    this.setState({ showRequestSalaryPanel: true })
-  }
-
-  hideAddEmployeePanel = () => {
-    this.setState({ showAddEmployeePanel: false })
-  }
-
-  hideRequestSalaryPanel = () => {
-    this.setState({ showRequestSalaryPanel: false })
-  }
-
-  renderActionButtons() {
-    switch (this.state.activeTab) {
-      case MY_PAYROLL:
-        return (
-          <Button mode="strong" onClick={this.showRequestSalaryPanel}>
-            Request salary
-          </Button>
-        )
-
-      case TEAM_PAYROLL:
-        return (
-          <Button mode="strong" onClick={this.showAddEmployeePanel}>
-            Add new employee
-          </Button>
-        )
-
-      default:
-        return null
-    }
-  }
-
-  render() {
-    const header = (
-      <React.Fragment>
-        <AppBar
-          title={appBarTitle}
-          endContent={this.renderActionButtons()}
-          data-testid="app-bar"
+  return (
+    <Main theme={appearance} assetsUrl="./aragon-ui">
+      <>
+        <SyncIndicator visible={isSyncing} />
+        <Header
+          primary="Payroll"
+          secondary={
+            (screen === 'my-payroll' && (
+              <Button
+                mode="strong"
+                onClick={actions.requestSalary}
+                label="Request salary"
+                icon={<IconPlus />}
+                display={compactMode ? 'icon' : 'label'}
+              />
+            )) ||
+            (screen === 'team-payroll' && (
+              <Button
+                mode="strong"
+                onClick={addEmployeePanel.requestOpen}
+                label="Add new employee"
+                icon={<IconPlus />}
+                display={compactMode ? 'icon' : 'label'}
+              />
+            ))
+          }
         />
-
-        <TabContainer>
-          <TabBar
-            items={tabTitles}
-            selected={this.state.selectedTab}
-            onSelect={index => {
-              const activeTab = tabNames[index]
-
-              this.setState({
-                activeTab,
-                selectedTab: index,
-              })
-            }}
+        {
+          <Tabs
+            items={SCREENS.map(screen => screen.label)}
+            selected={SCREENS.findIndex(s => s.id === screen)}
+            onChange={i => changeScreen(SCREENS[i].id)}
           />
-        </TabContainer>
-      </React.Fragment>
-    )
+        }
+        {screen === 'my-payroll' && <MyPayroll />}
+        {screen === 'team-payroll' && <TeamPayroll />}
+      </>
+      <AddEmployee
+        onAddEmployee={actions.addEmployee}
+        panelState={addEmployeePanel}
+      />
+    </Main>
+  )
+})
 
-    return (
-      <AragonApp publicUrl="./aragon-ui/">
-        <AppView appBar={header}>
-          {this.state.activeTab === MY_PAYROLL && <MyPayroll />}
-
-          {this.state.activeTab === TEAM_PAYROLL && <TeamPayroll />}
-        </AppView>
-
-        <AddEmployee
-          opened={this.state.showAddEmployeePanel}
-          onClose={this.hideAddEmployeePanel}
-        />
-
-        <RequestSalary
-          opened={this.state.showRequestSalaryPanel}
-          onClose={this.hideRequestSalaryPanel}
-        />
-      </AragonApp>
-    )
-  }
+export default function Payroll() {
+  return (
+    <AppLogicProvider>
+      <IdentityProvider>
+        <App />
+      </IdentityProvider>
+    </AppLogicProvider>
+  )
 }
-
-const TabContainer = styled.div.attrs({ 'data-testid': 'tab-container' })`
-  margin: 0;
-  list-style-type: none;
-  background: ${theme.contentBackground};
-  margin-top: -1px; // Overlap AppBar border
-`

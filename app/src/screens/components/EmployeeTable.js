@@ -4,13 +4,15 @@ import PropTypes from 'prop-types'
 import Table from '../../components/Table'
 import { employeeType } from '../../types'
 import { formatDate } from '../../utils/formatting'
+import { IdentityBadge } from '@aragon/ui'
 
 const initializeColumns = (data, formatSalary, formatCurrency) => {
   return [
     {
-      name: 'name',
-      title: 'Name',
-      value: data => data.name,
+      name: 'employee',
+      title: 'Employee',
+      value: data => data.accountAddress,
+      formatter: address => <IdentityBadge entity={address} />,
     },
     {
       name: 'start-date',
@@ -18,13 +20,13 @@ const initializeColumns = (data, formatSalary, formatCurrency) => {
       value: data => data.startDate,
       formatter: formatDate,
     },
-    {
-      name: 'end-date',
-      title: 'End Date',
-      value: data => data.endDate,
-      formatter: formatDate,
-      defaultValue: 'Active',
-    },
+    // {
+    //   name: 'end-date',
+    //   title: 'End Date',
+    //   value: data => data.endDate,
+    //   formatter: formatDate,
+    //   defaultValue: 'Active',
+    // },
     {
       name: 'role',
       title: 'Role',

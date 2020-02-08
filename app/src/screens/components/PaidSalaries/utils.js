@@ -5,9 +5,9 @@ export const CHART_TYPES = ['Monthly', 'Quarterly', 'Yearly']
 const [MONTHLY, QUARTERLY, YEARLY] = CHART_TYPES
 
 const HISTORY_FORMAT = {
-  [MONTHLY]: 'YYYYMM',
-  [QUARTERLY]: 'YYYYQ',
-  [YEARLY]: 'YYYY',
+  [MONTHLY]: 'yyyyMM',
+  [QUARTERLY]: 'yyyyQ',
+  [YEARLY]: 'yyyy',
 }
 
 const MAX_PROPORTION = 4 / 5
@@ -45,7 +45,7 @@ const getInitialHistory = {
     const toDay = new Date()
     return quartes.reduce((acc, ago) => {
       const monthAgo = subQuarters(toDay, ago)
-      const year = format(monthAgo, 'YY', { awareOfUnicodeTokens: true })
+      const year = format(monthAgo, 'yy', { awareOfUnicodeTokens: true })
       const quarter = format(monthAgo, 'Q')
       acc[getHistoryKey(monthAgo, QUARTERLY)] = {
         label: `${year} Q${quarter}`,
@@ -92,7 +92,7 @@ const groupPayments = {
     return { max, history }
   },
   [YEARLY]: payments => {
-    let history = getInitialHistory[YEARLY]()
+    const history = getInitialHistory[YEARLY]()
     let max = 0
 
     payments.forEach(payment => {
