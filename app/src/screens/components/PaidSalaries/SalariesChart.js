@@ -1,49 +1,39 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import PropTypes from 'prop-types'
 import styled from 'styled-components'
 
-import { connect } from '../../../context/AragonContext'
-import { LineChart } from '../../../components/LineChart'
+import { useAppState } from '@aragon/api-react'
+
+import { LineChart } from '@aragon/ui'
 
 import { CHART_TYPES, chartSettings, getDurationSlices } from './utils'
 
-class SalariesChart extends React.Component {
-  state = {
-    settings: [],
-    labels: [],
+function SalariesChart({ type }) {
+  const { payments = [] } = useAppState()
+  const [lines, setLines] = useState([])
+  const [labels, setLabels] = useState([])
+  const total = getDurationSlices[type](labels)
+
+  const setSettingsAndLabels = ({ settings, labels }) => {
+    setLines(settings)
+    setLabels(labels)
   }
 
-  componentDidUpdate(prevProps) {
-    const { type, payments } = this.props
-    const { payments: prevPayments, type: prevType } = prevProps
+  useEffect(() => {
+    setSettingsAndLabels(chartSettings(type, payments))
+  }, [payments.length, type])
 
-    if (
-      (payments &&
-        payments.length &&
-        (!prevPayments || prevPayments.length !== payments.length)) ||
-      prevType !== type
-    ) {
-      this.setState(() => chartSettings(type, payments))
-    }
-  }
-
-  render() {
-    const { type } = this.props
-    const { settings, labels } = this.state
-    const durationSlices = getDurationSlices[type](labels)
-
-    return (
-      <ChartWrapper>
-        <LineChart
-          settings={settings}
-          durationSlices={durationSlices}
-          labels={labels}
-          captionsHeight={50}
-          reset
-        />
-      </ChartWrapper>
-    )
-  }
+  return (
+    <ChartWrapper>
+      <LineChart
+        lines={lines}
+        total={total}
+        label={i => labels[i]}
+        width={200}
+        reset
+      />
+    </ChartWrapper>
+  )
 }
 
 SalariesChart.propTypes = {
@@ -52,13 +42,7 @@ SalariesChart.propTypes = {
 
 const ChartWrapper = styled.div`
   padding: 20px 0;
-  dispplay: flex:
+  display: flex:
 `
 
-function mapStateToProps({ payments = [] }) {
-  return {
-    payments,
-  }
-}
-
-export default connect(mapStateToProps)(SalariesChart)
+export default SalariesChart

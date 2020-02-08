@@ -18,7 +18,7 @@ const StatusFilter = ({ active, onChange }) => {
     <InlineField label="Status:">
       <DropDown
         items={options.map(opt => opt.label)}
-        active={activeIndex || 0}
+        selected={activeIndex || 0}
         onChange={index => {
           if (typeof onChange === 'function') {
             onChange(options[index])

@@ -17,7 +17,7 @@ class TokenFilter extends React.Component {
       <InlineField label="Token:">
         <DropDown
           items={_options.map(opt => opt.label)}
-          active={activeIndex || 0}
+          selected={activeIndex || 0}
           onChange={index => {
             if (typeof onChange === 'function') {
               onChange(_options[index])

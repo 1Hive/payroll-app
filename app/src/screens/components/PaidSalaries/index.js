@@ -1,33 +1,25 @@
-import React from 'react'
+import React, { useState } from 'react'
 import styled from 'styled-components'
 import { Text, DropDown } from '@aragon/ui'
 import SalariesChart from './SalariesChart'
 import { CHART_TYPES } from './utils'
 
-class PaidSalaries extends React.Component {
-  state = {
-    activeFilter: 0,
-  }
+function PaidSalaries() {
+  const [activeFilter, setActiveFilter] = useState(0)
 
-  render() {
-    const { activeFilter } = this.state
-
-    return (
-      <React.Fragment>
-        <FilteWrapper>
-          <FilterLabel>Paid Salaries</FilterLabel>
-          <DropDown
-            items={CHART_TYPES}
-            active={activeFilter}
-            onChange={activeFilter => {
-              this.setState({ activeFilter })
-            }}
-          />
-        </FilteWrapper>
-        <SalariesChart type={CHART_TYPES[activeFilter]} />
-      </React.Fragment>
-    )
-  }
+  return (
+    <>
+      <FilteWrapper>
+        <FilterLabel>Paid Salaries</FilterLabel>
+        <DropDown
+          items={CHART_TYPES}
+          selected={activeFilter}
+          onChange={setActiveFilter}
+        />
+      </FilteWrapper>
+      <SalariesChart type={CHART_TYPES[activeFilter]} />
+    </>
+  )
 }
 
 export default PaidSalaries

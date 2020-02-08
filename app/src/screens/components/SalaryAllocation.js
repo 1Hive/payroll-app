@@ -1,58 +1,37 @@
-import React from 'react'
+import React, { useState } from 'react'
 import styled from 'styled-components'
-import { Button } from '@aragon/ui'
+import { Button, Box, PartitionBar } from '@aragon/ui'
 
-import { connect } from '../../context/AragonContext'
-import PartitionBar from '../../components/Bar/PartitionBar'
-import Section from '../../components/Layout/Section'
-import { EditSalaryAllocation } from '../../panels'
+//import PartitionBar from '../../components/Bar/PartitionBar'
+//import { EditSalaryAllocation } from '../../panels'
 
-const Container = styled.section`
-  display: flex;
-  flex-direction: column;
-`
+const EditSalaryAllocation = ()=> <div/>
+
 
 const EditButton = styled(Button).attrs({ mode: 'secondary' })`
   align-self: flex-end;
 `
 
-class SalaryAllocation extends React.PureComponent {
-  state = {
-    isEditing: false,
+const SalaryAllocation = ({ salaryAllocation }) => {
+  const [isEditing, setIsEditing] = useState(false)
+
+  const startEditing = () => {
+    setIsEditing(true)
   }
 
-  startEditing = () => {
-    this.setState({ isEditing: true })
+  const endEditing = () => {
+    setIsEditing(false)
   }
 
-  endEditing = () => {
-    this.setState({ isEditing: false })
-  }
+  return (
+    <Box heading="Salary allocation">
+      {salaryAllocation && <PartitionBar data={salaryAllocation} />}
 
-  render() {
-    const { salaryAllocation } = this.props
-    const { isEditing } = this.state
+      <EditButton onClick={startEditing}>Edit salary allocation</EditButton>
 
-    return (
-      <Container>
-        <Section.Title>Salary allocation</Section.Title>
-
-        {salaryAllocation && <PartitionBar data={salaryAllocation} />}
-
-        <EditButton onClick={this.startEditing}>
-          Edit salary allocation
-        </EditButton>
-
-        <EditSalaryAllocation opened={isEditing} onClose={this.endEditing} />
-      </Container>
-    )
-  }
+      <EditSalaryAllocation opened={isEditing} onClose={endEditing} />
+    </Box>
+  )
 }
 
-function mapStateToProps({ salaryAllocation }) {
-  return {
-    salaryAllocation,
-  }
-}
-
-export default connect(mapStateToProps)(SalaryAllocation)
+export default SalaryAllocation

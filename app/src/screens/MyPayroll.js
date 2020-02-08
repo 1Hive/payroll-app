@@ -1,20 +1,24 @@
 import React from 'react'
 
-import Section from '../components/Layout/Section'
+import { Split } from '@aragon/ui'
 import SalaryAllocation from './components/SalaryAllocation'
 import PreviousSalary from './components/PreviousSalary'
 import AvailableSalary from './components/AvailableSalary'
 
 const MyPayroll = () => (
-  <Section data-testid="my-payroll-section">
-    <Section.Left>
-      <AvailableSalary />
-      <PreviousSalary />
-    </Section.Left>
-    <Section.Right>
-      <SalaryAllocation />
-    </Section.Right>
-  </Section>
+  <Split
+    primary={
+      <>
+        <AvailableSalary />
+        <PreviousSalary />
+      </>
+    }
+    secondary={
+      <>
+        <SalaryAllocation />
+      </>
+    }
+  />
 )
 
 export default MyPayroll

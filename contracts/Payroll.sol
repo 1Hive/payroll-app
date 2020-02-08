@@ -113,7 +113,8 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
         address indexed token,
         uint256 amount,
         uint256 exchangeRate,
-        string paymentReference
+        string paymentReference,
+        uint64 paymentDate
     );
     event SetAllowedToken(address indexed token, bool allowed);
     event SetPriceFeed(address indexed feed);
@@ -617,7 +618,7 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
 
                 // Finance reverts if the payment wasn't possible
                 finance.newImmediatePayment(token, employeeAddress, tokenAmount, paymentReference);
-                emit SendPayment(_employeeId, employeeAddress, token, tokenAmount, exchangeRate, paymentReference);
+                emit SendPayment(_employeeId, employeeAddress, token, tokenAmount, exchangeRate, paymentReference, getTimestamp64());
                 somethingPaid = true;
             }
         }
