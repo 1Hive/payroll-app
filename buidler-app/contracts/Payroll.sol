@@ -29,17 +29,21 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
     bytes32 constant public SET_EMPLOYEE_SALARY_ROLE = 0xea9ac65018da2421cf419ee2152371440c08267a193a33ccc1e39545d197e44d;
     bytes32 constant public MANAGE_ALLOWED_TOKENS_ROLE = 0x0be34987c45700ee3fae8c55e270418ba903337decc6bacb1879504be9331c06;
 
+    uint64 public constant PCT_BASE = 10 ** 18; // 0% = 0; 1% = 10^16; 100% = 10^18
+
     uint256 internal constant MAX_ALLOWED_TOKENS = 2; // prevent OOG issues with `payday()`
 
     uint256 internal constant MAX_UINT256 = uint256(-1);
     uint64 internal constant MAX_UINT64 = uint64(-1);
 
+    string internal constant PAYMENT_REFERENCE = "Employee salary";
+
     string private constant ERROR_EMPLOYEE_DOESNT_EXIST = "PAYROLL_EMPLOYEE_DOESNT_EXIST";
     string private constant ERROR_NON_ACTIVE_EMPLOYEE = "PAYROLL_NON_ACTIVE_EMPLOYEE";
     string private constant ERROR_SENDER_DOES_NOT_MATCH = "PAYROLL_SENDER_DOES_NOT_MATCH";
     string private constant ERROR_FINANCE_NOT_CONTRACT = "PAYROLL_FINANCE_NOT_CONTRACT";
-    string private constant ERROR_TOKENMANAGER_NOT_CONTRACT = "PAYROLL_TOKENMANAGER_NOT_CONTRACT";
-    string private constant ERROR_DENOMINATIONTOKEN_NOT_CONTRACT = "PAYROLL_DENOMINATIONTOKEN_NOT_CONTRACT";
+    string private constant ERROR_TOKEN_MANAGER_NOT_CONTRACT = "PAYROLL_TOKEN_MANAGER_NOT_CONTRACT";
+    string private constant ERROR_DENOMINATION_TOKEN_NOT_CONTRACT = "PAYROLL_DENOMINATION_TOKEN_NOT_CONTRACT";
     string private constant ERROR_TOKEN_ALREADY_SET = "PAYROLL_TOKEN_ALREADY_SET";
     string private constant ERROR_MAX_ALLOWED_TOKENS = "PAYROLL_MAX_ALLOWED_TOKENS";
     string private constant ERROR_TOKEN_ALLOCATION_MISMATCH = "PAYROLL_TOKEN_ALLOCATION_MISMATCH";
@@ -66,9 +70,9 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
     }
 
     Finance public finance;
-    TokenManager public tokenManager;
+    TokenManager public equityTokenManager;
     address public denominationToken;
-    uint8 equityMultiplier;
+    uint64 public equityMultiplier;
 
     // Employees start at index 1, to allow us to use employees[0] to check for non-existent employees
     uint256 public nextEmployee;
@@ -122,14 +126,14 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
      * @param _denominationToken Address of the denomination token used for salary accounting
      * @param _equityMultiplier The multiplier used to pay when the employee wants to get paid with the org token
      */
-    function initialize(Finance _finance, TokenManager _tokenManager, address _denominationToken, uint8 _equityMultiplier) external onlyInit {
+    function initialize(Finance _finance, TokenManager _tokenManager, address _denominationToken, uint64 _equityMultiplier) external onlyInit {
         initialized();
 
         require(isContract(_finance), ERROR_FINANCE_NOT_CONTRACT);
-        require(isContract(_tokenManager), ERROR_TOKENMANAGER_NOT_CONTRACT);
-        require(isContract(_denominationToken), ERROR_DENOMINATIONTOKEN_NOT_CONTRACT);
+        require(isContract(_tokenManager), ERROR_TOKEN_MANAGER_NOT_CONTRACT);
+        require(isContract(_denominationToken), ERROR_DENOMINATION_TOKEN_NOT_CONTRACT);
         finance = _finance;
-        tokenManager = _tokenManager;
+        equityTokenManager = _tokenManager;
         denominationToken = _denominationToken;
         equityMultiplier = _equityMultiplier;
 
@@ -440,7 +444,6 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
 
         Employee storage employee = employees[_employeeId];
         address employeeAddress = employee.accountAddress;
-        string memory paymentReference = "Employee salary";
 
         address[] storage allocationTokenAddresses = employee.allocationTokenAddresses;
         for (uint256 i = 0; i < allocationTokenAddresses.length; i++) {
@@ -451,15 +454,15 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
                 uint256 tokenAmount = _totalAmount.mul(tokenAllocation).div(100);
 
                 //Check if the token is the equity token and apply equity multiplier
-                if (token == address(tokenManager)) {
+                if (token == address(equityTokenManager)) {
                     tokenAmount = tokenAmount.mul(equityMultiplier);
-                    tokenManager.mint(employeeAddress, tokenAmount);
+                    equityTokenManager.mint(employeeAddress, tokenAmount);
                 } else {
                       // Finance reverts if the payment wasn't possible
-                    finance.newImmediatePayment(token, employeeAddress, tokenAmount, paymentReference);
+                    finance.newImmediatePayment(token, employeeAddress, tokenAmount, PAYMENT_REFERENCE);
                 }
 
-                emit SendPayment(_employeeId, employeeAddress, token, tokenAmount, paymentReference, getTimestamp64());
+                emit SendPayment(_employeeId, employeeAddress, token, tokenAmount, PAYMENT_REFERENCE, getTimestamp64());
                 somethingPaid = true;
             }
         }
@@ -474,7 +477,7 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
 
         if (
             employee.lastPayroll == employee.endDate &&
-            (employee.accruedSalary == 0)
+            employee.accruedSalary == 0
         ) {
             delete employeeIds[employee.accountAddress];
             delete employees[_employeeId];
