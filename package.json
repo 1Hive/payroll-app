@@ -40,7 +40,7 @@
   },
   "dependencies": {
     "@aragon/apps-finance": "3.0.0",
-    "@aragon/apps-token-manager": "3.0.0",
+    "@aragon/apps-token-manager": "2.1.0",
     "@aragon/os": "4.3.0",
     "@aragon/ppf-contracts": "1.2.0"
   },
