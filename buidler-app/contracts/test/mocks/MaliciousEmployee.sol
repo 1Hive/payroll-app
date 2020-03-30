@@ -21,7 +21,7 @@ contract MaliciousEmployee {
     }
 
     function payday() public {
-        payroll.payday(Payroll.PaymentType.Payroll, 0, new uint256[](0));
+        payroll.payday(0);
     }
 
     function determineAllocation(address[] _tokens, uint256[] _distribution) public {
@@ -36,7 +36,7 @@ contract MaliciousEmployee {
         counter++;
 
         if (action == Action.Payday) {
-            payroll.payday(Payroll.PaymentType.Payroll, 0, new uint256[](0));
+            payroll.payday(0);
         } else if (action == Action.ChangeAddress) {
             payroll.changeAddressByEmployee(msg.sender);
         } else if (action == Action.SetAllocation) {
