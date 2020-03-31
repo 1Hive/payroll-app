@@ -9,10 +9,6 @@ import "@aragon/os/contracts/lib/math/SafeMath64.sol";
 import "@aragon/apps-finance/contracts/Finance.sol";
 import "@aragon/apps-token-manager/contracts/TokenManager.sol";
 
-
-/**
- * @title Payroll
- */
 contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
     using SafeMath for uint256;
     using SafeMath64 for uint64;
@@ -21,17 +17,17 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
     * bytes32 constant public ADD_EMPLOYEE_ROLE = keccak256("ADD_EMPLOYEE_ROLE");
     * bytes32 constant public TERMINATE_EMPLOYEE_ROLE = keccak256("TERMINATE_EMPLOYEE_ROLE");
     * bytes32 constant public SET_EMPLOYEE_SALARY_ROLE = keccak256("SET_EMPLOYEE_SALARY_ROLE");
-    * bytes32 constant public MANAGE_ALLOWED_TOKENS_ROLE = keccak256("MANAGE_ALLOWED_TOKENS_ROLE");
     */
-
     bytes32 constant public ADD_EMPLOYEE_ROLE = 0x9ecdc3c63716b45d0756eece5fe1614cae1889ec5a1ce62b3127c1f1f1615d6e;
     bytes32 constant public TERMINATE_EMPLOYEE_ROLE = 0x69c67f914d12b6440e7ddf01961214818d9158fbcb19211e0ff42800fdea9242;
     bytes32 constant public SET_EMPLOYEE_SALARY_ROLE = 0xea9ac65018da2421cf419ee2152371440c08267a193a33ccc1e39545d197e44d;
-    bytes32 constant public MANAGE_ALLOWED_TOKENS_ROLE = 0x0be34987c45700ee3fae8c55e270418ba903337decc6bacb1879504be9331c06;
+    bytes32 constant public SET_FINANCE_ROLE = keccak256("SET_FINANCE_ROLE");
+    bytes32 constant public SET_DENOMINATION_TOKEN_ROLE = keccak256("SET_DENOMINATION_TOKEN_ROLE");
+    bytes32 constant public SET_TOKEN_MANAGER_ROLE = keccak256("SET_TOKEN_MANAGER_ROLE");
+    bytes32 constant public SET_EQUITY_MULTIPLIER_ROLE = keccak256("SET_EQUITY_MULTIPLIER_ROLE");
+    bytes32 constant public SET_VESTING_SETTINGS_ROLE = keccak256("SET_VESTING_SETTINGS_ROLE");
 
     uint64 public constant PCT_BASE = 10 ** 18; // 0% = 0; 1% = 10^16; 100% = 10^18
-
-    uint256 internal constant MAX_ALLOWED_TOKENS = 2; // prevent OOG issues with `payday()`
 
     uint256 internal constant MAX_UINT256 = uint256(-1);
     uint64 internal constant MAX_UINT64 = uint64(-1);
@@ -41,14 +37,11 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
     string private constant ERROR_EMPLOYEE_DOESNT_EXIST = "PAYROLL_EMPLOYEE_DOESNT_EXIST";
     string private constant ERROR_NON_ACTIVE_EMPLOYEE = "PAYROLL_NON_ACTIVE_EMPLOYEE";
     string private constant ERROR_SENDER_DOES_NOT_MATCH = "PAYROLL_SENDER_DOES_NOT_MATCH";
+    string private constant ERROR_CLIFF_PERIOD_TOO_HIGH = "PAYROLL_CLIFF_PERIOD_TOO_HIGH";
     string private constant ERROR_FINANCE_NOT_CONTRACT = "PAYROLL_FINANCE_NOT_CONTRACT";
     string private constant ERROR_TOKEN_MANAGER_NOT_CONTRACT = "PAYROLL_TOKEN_MANAGER_NOT_CONTRACT";
     string private constant ERROR_DENOMINATION_TOKEN_NOT_CONTRACT = "PAYROLL_DENOMINATION_TOKEN_NOT_CONTRACT";
-    string private constant ERROR_TOKEN_ALREADY_SET = "PAYROLL_TOKEN_ALREADY_SET";
-    string private constant ERROR_MAX_ALLOWED_TOKENS = "PAYROLL_MAX_ALLOWED_TOKENS";
-    string private constant ERROR_TOKEN_ALLOCATION_MISMATCH = "PAYROLL_TOKEN_ALLOCATION_MISMATCH";
-    string private constant ERROR_NOT_ALLOWED_TOKEN = "PAYROLL_NOT_ALLOWED_TOKEN";
-    string private constant ERROR_DISTRIBUTION_NOT_FULL = "PAYROLL_DISTRIBUTION_NOT_FULL";
+    string private constant ERROR_DENOMINATION_TOKEN_TOO_HIGH = "PAYROLL_DENOMINATION_TOKEN_TOO_HIGH";
     string private constant ERROR_NOTHING_PAID = "PAYROLL_NOTHING_PAID";
     string private constant ERROR_CAN_NOT_FORWARD = "PAYROLL_CAN_NOT_FORWARD";
     string private constant ERROR_EMPLOYEE_NULL_ADDRESS = "PAYROLL_EMPLOYEE_NULL_ADDRESS";
@@ -57,22 +50,22 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
     string private constant ERROR_LAST_PAYROLL_DATE_TOO_BIG = "PAYROLL_LAST_DATE_TOO_BIG";
     string private constant ERROR_INVALID_REQUESTED_AMOUNT = "PAYROLL_INVALID_REQUESTED_AMT";
 
-    enum PaymentType { Payroll, Reimbursement, Bonus }
-
     struct Employee {
         address accountAddress; // unique, but can be changed over time
         uint256 denominationTokenSalary; // salary per second in denomination Token
+        uint256 denominationTokenAllocation; // allocation paid in denomination token (the rest is in equity)
         uint256 accruedSalary; // keep track of any leftover accrued salary when changing salaries
         uint64 lastPayroll;
         uint64 endDate;
-        address[] allocationTokenAddresses;
-        mapping(address => uint256) allocationTokens;
     }
 
     Finance public finance;
-    TokenManager public equityTokenManager;
     address public denominationToken;
+    TokenManager public equityTokenManager;
     uint64 public equityMultiplier;
+    uint64 public vestingLength;
+    uint64 public vestingCliffLength;
+    bool public vestingRevokable;
 
     // Employees start at index 1, to allow us to use employees[0] to check for non-existent employees
     uint256 public nextEmployee;
@@ -90,14 +83,13 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
     event SetEmployeeSalary(uint256 indexed employeeId, uint256 denominationSalary);
     event AddEmployeeAccruedSalary(uint256 indexed employeeId, uint256 amount);
     event ChangeAddressByEmployee(uint256 indexed employeeId, address indexed newAccountAddress, address indexed oldAccountAddress);
-    event DetermineAllocation(uint256 indexed employeeId);
+    event DetermineAllocation(uint256 indexed employeeId, uint256 denominationTokenAllocation);
     event SendPayment(
         uint256 indexed employeeId,
         address indexed accountAddress,
         address indexed token,
-        uint256 amount,
-        string paymentReference,
-        uint64 paymentDate
+        uint256 denominationAmount,
+        uint256 equityAmount
     );
 
     // Check employee exists by ID
@@ -120,25 +112,96 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
     }
 
     /**
-     * @notice Initialize Payroll app for Finance at `_finance` , TokenManager at `_tokenManager`, setting denomination token to `_token` and equity multiplier at `_equityMultiplier``
+     * @notice Initialize Payroll app for Finance at `_finance` , TokenManager at `_equityTokenManager`, setting denomination token to `_token` and equity multiplier at `_equityMultiplier``
      * @param _finance Address of the Finance app this Payroll app will rely on for payments (non-changeable)
-     * @param _tokenManager Address of the Token Manager app this Payroll app will rely on for equity payments
      * @param _denominationToken Address of the denomination token used for salary accounting
-     * @param _equityMultiplier The multiplier used to pay when the employee wants to get paid with the org token
+     * @param _equityTokenManager Address of the Token Manager app this Payroll app will rely on for equity payments
+     * @param _equityMultiplier Used to determine equity earnings
+     * @param _vestingLength The length of vestings in seconds, the time when vestings can be completely claimed. Set to 0 to disable vestings
+     * @param _vestingCliffLength The vesting cliff in seconds, the time until which vestings cannot be claimed
+     * @param _vestingRevokable Whether vestings can be revoked
      */
-    function initialize(Finance _finance, TokenManager _tokenManager, address _denominationToken, uint64 _equityMultiplier) external onlyInit {
+    function initialize(
+        Finance _finance,
+        address _denominationToken,
+        TokenManager _equityTokenManager,
+        uint64 _equityMultiplier,
+        uint64 _vestingLength,
+        uint64 _vestingCliffLength,
+        bool _vestingRevokable
+    )
+        external
+        onlyInit
+    {
         initialized();
 
         require(isContract(_finance), ERROR_FINANCE_NOT_CONTRACT);
-        require(isContract(_tokenManager), ERROR_TOKEN_MANAGER_NOT_CONTRACT);
         require(isContract(_denominationToken), ERROR_DENOMINATION_TOKEN_NOT_CONTRACT);
+        require(isContract(_equityTokenManager), ERROR_TOKEN_MANAGER_NOT_CONTRACT);
+        require(_vestingCliffLength <= _vestingLength, ERROR_CLIFF_PERIOD_TOO_HIGH);
+
         finance = _finance;
-        equityTokenManager = _tokenManager;
         denominationToken = _denominationToken;
+        equityTokenManager = _equityTokenManager;
         equityMultiplier = _equityMultiplier;
+        vestingLength = _vestingLength;
+        vestingCliffLength = _vestingCliffLength;
+        vestingRevokable = _vestingRevokable;
 
         // Employees start at index 1, to allow us to use employees[0] to check for non-existent employees
         nextEmployee = 1;
+    }
+
+    /**
+     * @notice Set the Finance app to `_finance`
+     * @param _finance The new finance app address
+     */
+    function setFinance(Finance _finance) external auth(SET_FINANCE_ROLE) {
+        require(isContract(_finance), ERROR_FINANCE_NOT_CONTRACT);
+        finance = _finance;
+    }
+
+    /**
+     * @notice Set the denomination token to `_denominationToken`
+     * @param _denominationToken The new denomination token address
+     */
+    function setDenominationToken(address _denominationToken) external auth(SET_DENOMINATION_TOKEN_ROLE) {
+        require(isContract(_denominationToken), ERROR_DENOMINATION_TOKEN_NOT_CONTRACT);
+        denominationToken = _denominationToken;
+    }
+
+    /**
+     * @notice Set the Equity Token Manager app to `_equityTokenManager`
+     * @param _equityTokenManager The new equity token manager app address
+     */
+    function setEquityTokenManager(TokenManager _equityTokenManager) external auth(SET_TOKEN_MANAGER_ROLE) {
+        require(isContract(_equityTokenManager), ERROR_TOKEN_MANAGER_NOT_CONTRACT);
+        equityTokenManager = _equityTokenManager;
+    }
+
+    /**
+     * @notice Set the equity multiplier to `_equityMultiplier`
+     * @param _equityMultiplier The new equity multiplier represented as a multiple of 10^18. 0.5x = 5^18; 1x = 10^18; 2x = 20^18
+     */
+    function setEquityMultiplier(uint64 _equityMultiplier) external auth(SET_EQUITY_MULTIPLIER_ROLE) {
+        equityMultiplier = _equityMultiplier;
+    }
+
+    /**
+     * @notice Set the vesting settings to length: `_vestingLength`, cliff: `_vestingCliff`, revokable: `_vestingRevokable`
+     * @param _vestingLength The length of vestings in seconds, the time when vestings can be completely claimed. Set to 0 to disable vestings
+     * @param _vestingCliffLength The vesting cliff in seconds, the time until which vestings cannot be claimed
+     * @param _vestingRevokable Whether vestings can be revoked
+     */
+    function setVestingSettings(uint64 _vestingLength, uint64 _vestingCliffLength, bool _vestingRevokable)
+        external
+        auth(SET_VESTING_SETTINGS_ROLE)
+    {
+        require(_vestingCliffLength <= _vestingLength, ERROR_CLIFF_PERIOD_TOO_HIGH);
+
+        vestingLength = _vestingLength;
+        vestingCliffLength = _vestingCliffLength;
+        vestingRevokable = _vestingRevokable;
     }
 
     /**
@@ -217,31 +280,18 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
      * @dev Initialization check is implicitly provided by `employeeMatches` as new employees can
      *      only be added via `addEmployee(),` which requires initialization.
      *      As the employee is allowed to call this, we enforce non-reentrancy.
-     * @param _tokens Array of token addresses; they must belong to the list of allowed tokens
-     * @param _distribution Array with each token's corresponding proportions (must be integers summing to 100)
+     * @param _denominationTokenAllocation The percent of payment expected in the denomination token, the rest is
+            expected in the equity token. 0% = 0; 1% = 10^16; 100% = 10^18
      */
-    function determineAllocation(address[] _tokens, uint256[] _distribution) external employeeMatches nonReentrant {
-        // Check array lengthes match
-        require(_tokens.length <= MAX_ALLOWED_TOKENS, ERROR_MAX_ALLOWED_TOKENS);
-        require(_tokens.length == _distribution.length, ERROR_TOKEN_ALLOCATION_MISMATCH);
+    function determineAllocation(uint256 _denominationTokenAllocation) external employeeMatches {
+        require(_denominationTokenAllocation <= PCT_BASE, ERROR_DENOMINATION_TOKEN_TOO_HIGH);
 
         uint256 employeeId = employeeIds[msg.sender];
         Employee storage employee = employees[employeeId];
 
-        // Delete previous token allocations
-        address[] memory previousAllowedTokenAddresses = employee.allocationTokenAddresses;
-        for (uint256 j = 0; j < previousAllowedTokenAddresses.length; j++) {
-            delete employee.allocationTokens[previousAllowedTokenAddresses[j]];
-        }
-        delete employee.allocationTokenAddresses;
+        employee.denominationTokenAllocation = _denominationTokenAllocation;
 
-        // Set distributions only if given tokens are allowed
-        for (uint256 i = 0; i < _tokens.length; i++) {
-            employee.allocationTokenAddresses.push(_tokens[i]);
-            employee.allocationTokens[_tokens[i]] = _distribution[i];
-        }
-
-        emit DetermineAllocation(employeeId);
+        emit DetermineAllocation(employeeId, _denominationTokenAllocation);
     }
 
     /**
@@ -250,7 +300,8 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
      *      Initialization check is implicitly provided by `employeeMatches` as new employees can
      *      only be added via `addEmployee(),` which requires initialization.
      *      As the employee is allowed to call this, we enforce non-reentrancy.
-     * @param _requestedAmount Requested amount to pay for the payment type. Must be less than or equal to total owed amount for the payment type, or zero to request all.
+     * @param _requestedAmount Requested amount of the denomination token. Must be less than or equal to total owed
+            amount, or zero to request all.
      */
     function payday(uint256 _requestedAmount) external employeeMatches nonReentrant {
         uint256 paymentAmount;
@@ -286,7 +337,7 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
      */
     function forward(bytes _evmScript) public {
         require(canForward(msg.sender, _evmScript), ERROR_CAN_NOT_FORWARD);
-        bytes memory input = new bytes(0); // TODO: Consider input for this
+        bytes memory input = new bytes(0);
 
         // Add the Finance app to the blacklist to disallow employees from executing actions on the
         // Finance app from Payroll's context (since Payroll requires permissions on Finance)
@@ -337,7 +388,7 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
             uint256 accruedSalary,
             uint64 lastPayroll,
             uint64 endDate,
-            address[] allocationTokens
+            uint256 denominationTokenAllocation
         )
     {
         Employee storage employee = employees[_employeeId];
@@ -347,7 +398,7 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
         accruedSalary = employee.accruedSalary;
         lastPayroll = employee.lastPayroll;
         endDate = employee.endDate;
-        allocationTokens = employee.allocationTokenAddresses;
+        denominationTokenAllocation = employee.denominationTokenAllocation;
     }
 
     /**
@@ -357,16 +408,6 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
      */
     function getTotalOwedSalary(uint256 _employeeId) public view employeeIdExists(_employeeId) returns (uint256) {
         return _getTotalOwedCappedSalary(employees[_employeeId]);
-    }
-
-    /**
-     * @dev Get an employee's payment allocation for a token
-     * @param _employeeId Employee's identifier
-     * @param _token Token to query the payment allocation for
-     * @return Employee's payment allocation for the token being queried
-     */
-    function getAllocation(uint256 _employeeId, address _token) public view employeeIdExists(_employeeId) returns (uint256) {
-        return employees[_employeeId].allocationTokens[_token];
     }
 
     // Internal fns
@@ -444,28 +485,29 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
 
         Employee storage employee = employees[_employeeId];
         address employeeAddress = employee.accountAddress;
+        uint256 employeeDenominationAllocation = employee.denominationTokenAllocation;
 
-        address[] storage allocationTokenAddresses = employee.allocationTokenAddresses;
-        for (uint256 i = 0; i < allocationTokenAddresses.length; i++) {
-            address token = allocationTokenAddresses[i];
-            uint256 tokenAllocation = employee.allocationTokens[token];
-            if (tokenAllocation != uint256(0)) {
-                // Divide by 100 for the allocation percentage
-                uint256 tokenAmount = _totalAmount.mul(tokenAllocation).div(100);
+        uint256 denominationTokenAmount = _totalAmount.mul(employeeDenominationAllocation).div(PCT_BASE);
+        uint256 equityTokenAmount = _totalAmount.sub(denominationTokenAmount);
 
-                //Check if the token is the equity token and apply equity multiplier
-                if (token == address(equityTokenManager)) {
-                    tokenAmount = tokenAmount.mul(equityMultiplier);
-                    equityTokenManager.mint(employeeAddress, tokenAmount);
-                } else {
-                      // Finance reverts if the payment wasn't possible
-                    finance.newImmediatePayment(token, employeeAddress, tokenAmount, PAYMENT_REFERENCE);
-                }
+        if (denominationTokenAmount > 0) {
+            // Finance reverts if the payment wasn't possible
+            finance.newImmediatePayment(denominationToken, employeeAddress, denominationTokenAmount, PAYMENT_REFERENCE);
+        }
 
-                emit SendPayment(_employeeId, employeeAddress, token, tokenAmount, PAYMENT_REFERENCE, getTimestamp64());
-                somethingPaid = true;
+        if (equityTokenAmount > 0) {
+            if (vestingLength > 0) {
+                uint64 vestingCliffTime = getTimestamp64().add(vestingCliffLength);
+                uint64 vestingEnd = getTimestamp64().add(vestingLength);
+                equityTokenManager.assignVested(employeeAddress, equityTokenAmount, getTimestamp64(),
+                    vestingCliffTime, vestingEnd, vestingRevokable);
+            } else {
+                equityTokenManager.mint(employeeAddress, equityTokenAmount);
             }
         }
+
+        emit SendPayment(_employeeId, employeeAddress, denominationToken, denominationTokenAmount, equityTokenAmount);
+        return true;
     }
 
     /**
