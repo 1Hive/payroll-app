@@ -10,6 +10,7 @@ import "@aragon/os/contracts/lib/math/SafeMath64.sol";
 
 import "@aragon/ppf-contracts/contracts/IFeed.sol";
 import "@aragon/apps-finance/contracts/Finance.sol";
+import "@aragon/apps-token-manager/contracts/TokenManager.sol";
 
 
 /**
@@ -148,13 +149,13 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
      * @param _priceFeed Address of the price feed
      * @param _rateExpiryTime Acceptable expiry time in seconds for the price feed's exchange rates
      */
-    function initialize(Finance _finance, address _denominationToken, IFeed _priceFeed, uint64 _rateExpiryTime) external onlyInit {
+    function initialize(Finance _finance, TokenManager _tokenManager, address _denominationToken, uint8 _multiplier) external onlyInit {
         initialized();
 
         require(isContract(_finance), ERROR_FINANCE_NOT_CONTRACT);
         finance = _finance;
 
-        denominationToken = _denominationToken;
+        
         _setPriceFeed(_priceFeed);
         _setRateExpiryTime(_rateExpiryTime);
 
