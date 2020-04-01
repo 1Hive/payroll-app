@@ -7,12 +7,12 @@ const { deployContracts, createPayrollAndPriceFeed } = require('../helpers/deplo
 const { USD, deployANT, deployDAI } = require('../helpers/tokens')(artifacts, web3)
 
 contract('Payroll employee info', ([owner, employee]) => {
-  let dao, payroll, payrollBase, finance, vault, priceFeed, DAI
+  let dao, payroll, payrollBase, finance, vault, priceFeed, DAI, equityTokenManager
 
   const currentTimestamp = async () => payroll.getTimestampPublic()
 
   before('deploy base apps and tokens', async () => {
-    ({ dao, finance, vault, payrollBase } = await deployContracts(owner))
+    ({ dao, finance, vault, payrollBase, equityTokenManager } = await deployContracts(owner))
     DAI = await deployDAI(owner, finance)
   })
 
@@ -23,7 +23,7 @@ contract('Payroll employee info', ([owner, employee]) => {
   describe('getEmployee', () => {
     context('when it has already been initialized', () => {
       beforeEach('initialize payroll app using USD as denomination token', async () => {
-        await payroll.initialize(finance.address, USD, priceFeed.address, RATE_EXPIRATION_TIME, { from: owner })
+        await payroll.initialize(finance.address, DAI.address, equityTokenManager.address, 1, 0, 0, false, { from: owner })
       })
 
       context('when the given id exists', () => {
@@ -35,52 +35,15 @@ contract('Payroll employee info', ([owner, employee]) => {
           employeeId = getEventArgument(receipt, 'AddEmployee', 'employeeId').toString()
         })
 
-        const itReturnsTheEmployeeInformation = expectedAllocationTokenAddresses => {
-          it('adds a new employee', async () => {
-            const [address, employeeSalary, accruedSalary, bonus, reimbursements, lastPayroll, endDate, allocationTokens] = await payroll.getEmployee(employeeId)
+        it('adds a new employee', async () => {
+          const [address, employeeSalary, accruedSalary, lastPayroll, endDate, denominationTokenAllocation] = await payroll.getEmployee(employeeId)
 
-            assert.equal(address, employee, 'employee address does not match')
-            assert.equal(employeeSalary.toString(), salary.toString(), 'employee salary does not match')
-            assert.equal(accruedSalary.toString(), 0, 'employee accrued salary does not match')
-            assert.equal(bonus.toString(), 0, 'employee bonus does not match')
-            assert.equal(reimbursements.toString(), 0, 'employee reimbursements does not match')
-            assert.equal(lastPayroll.toString(), (await currentTimestamp()).toString(), 'employee last payroll does not match')
-            assert.equal(endDate.toString(), MAX_UINT64, 'employee end date does not match')
-            assert.deepEqual(allocationTokens, expectedAllocationTokenAddresses, 'employee allocation tokens should be empty')
-          })
-        }
-
-        context('when the employee has not set an allocation yet', () => {
-          const expectedAllocationTokenAddresses = []
-
-          itReturnsTheEmployeeInformation(expectedAllocationTokenAddresses)
-        })
-
-        context('when the employee has already set an allocation', () => {
-          const tokens = []
-          const tokenAddresses = []
-
-          before('deploy tokens', async () => {
-            tokens.push(await deployANT(owner, finance))
-            tokens.push(await deployDAI(owner, finance))
-
-            tokens.forEach(token => tokenAddresses.push(token.address))
-          })
-
-          beforeEach('set allowed tokens', async () => {
-            const from = owner
-
-            await payroll.setAllowedToken(tokens[0].address, true, { from })
-            await payroll.setAllowedToken(tokens[1].address, true, { from })
-          })
-
-          beforeEach('set employee allocation', async () => {
-            const allocations = tokenAddresses.map(() => 100 / tokenAddresses.length)
-
-            await payroll.determineAllocation(tokenAddresses, allocations, { from: employee })
-          })
-
-          itReturnsTheEmployeeInformation(tokenAddresses)
+          assert.equal(address, employee, 'employee address does not match')
+          assert.equal(employeeSalary.toString(), salary.toString(), 'employee salary does not match')
+          assert.equal(accruedSalary.toString(), 0, 'employee accrued salary does not match')
+          assert.equal(lastPayroll.toString(), (await currentTimestamp()).toString(), 'employee last payroll does not match')
+          assert.equal(endDate.toString(), MAX_UINT64, 'employee end date does not match')
+          assert.equal(denominationTokenAllocation.toString(), 0, 'employee denominationTokenAllocation does not match')
         })
       })
 
@@ -104,8 +67,8 @@ contract('Payroll employee info', ([owner, employee]) => {
 
   describe('getEmployeeIdByAddress', () => {
     context('when it has already been initialized', () => {
-      beforeEach('initialize payroll app using USD as denomination token', async () => {
-        await payroll.initialize(finance.address, USD, priceFeed.address, RATE_EXPIRATION_TIME, { from: owner })
+      beforeEach('initialize payroll app using DAI as denomination token', async () => {
+        await payroll.initialize(finance.address, DAI.address, equityTokenManager.address, 1, 0, 0, false, { from: owner })
       })
 
       context('when the given address exists', () => {
@@ -143,8 +106,8 @@ contract('Payroll employee info', ([owner, employee]) => {
 
   describe('getTotalOwedSalary', () => {
     context('when it has already been initialized', () => {
-      beforeEach('initialize payroll app using USD as denomination token', async () => {
-        await payroll.initialize(finance.address, USD, priceFeed.address, RATE_EXPIRATION_TIME, { from: owner })
+      beforeEach('initialize payroll app using DAI as denomination token', async () => {
+        await payroll.initialize(finance.address, DAI.address, equityTokenManager.address, 1, 0, 0, false, { from: owner })
       })
 
       context('when the given id exists', () => {
@@ -169,28 +132,6 @@ contract('Payroll employee info', ([owner, employee]) => {
 
           context('when the employee does not have any other owed amount', () => {
             it('returns the owed payroll', async () => {
-              const expectedOwedSalary = salary.mul(ONE_MONTH)
-              assert.equal((await payroll.getTotalOwedSalary(employeeId)).toString(), expectedOwedSalary.toString(), 'total owed salary does not match')
-            })
-          })
-
-          context('when the employee has some bonus', () => {
-            beforeEach('add bonus', async () => {
-              await payroll.addBonus(employeeId, 1000, { from: owner })
-            })
-
-            it('returns only the owed payroll', async () => {
-              const expectedOwedSalary = salary.mul(ONE_MONTH)
-              assert.equal((await payroll.getTotalOwedSalary(employeeId)).toString(), expectedOwedSalary.toString(), 'total owed salary does not match')
-            })
-          })
-
-          context('when the employee has some reimbursements', () => {
-            beforeEach('add reimbursement', async () => {
-              await payroll.addReimbursement(employeeId, 1000, { from: owner })
-            })
-
-            it('returns only the owed payroll', async () => {
               const expectedOwedSalary = salary.mul(ONE_MONTH)
               assert.equal((await payroll.getTotalOwedSalary(employeeId)).toString(), expectedOwedSalary.toString(), 'total owed salary does not match')
             })
