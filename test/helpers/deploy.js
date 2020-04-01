@@ -82,7 +82,7 @@ module.exports = (artifacts, web3) => {
     return { dao, finance, vault, payrollBase, equityTokenManager, equityToken }
   }
 
-  async function createPayrollAndPriceFeed(dao, payrollBase, owner, currentTimestamp) {
+  async function createPayroll(dao, payrollBase, owner, currentTimestamp) {
     const receipt = await dao.newAppInstance('0x4321', payrollBase.address, '0x', false, { from: owner })
     const payroll = Payroll.at(getNewProxyAddress(receipt))
 
@@ -106,16 +106,14 @@ module.exports = (artifacts, web3) => {
     await acl.createPermission(owner, payroll.address, SET_EQUITY_MULTIPLIER_ROLE, owner, { from: owner })
     await acl.createPermission(owner, payroll.address, SET_VESTING_SETTINGS_ROLE, owner, { from: owner })
 
-    const priceFeed = await PriceFeed.new()
-    await priceFeed.mockSetTimestamp(currentTimestamp)
     await payroll.mockSetTimestamp(currentTimestamp)
 
-    return { payroll, priceFeed }
+    return payroll
   }
 
   return {
     deployContracts,
     deployErc20TokenAndDeposit,
-    createPayrollAndPriceFeed
+    createPayroll
   }
 }

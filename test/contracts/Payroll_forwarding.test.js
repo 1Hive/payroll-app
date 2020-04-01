@@ -2,28 +2,28 @@ const { assertRevert } = require('@aragon/test-helpers/assertThrow')
 const { getEventArgument } = require('@aragon/test-helpers/events')
 const { encodeCallScript } = require('@aragon/test-helpers/evmScript')
 const { annualSalaryPerSecond, bn } = require('../helpers/numbers')(web3)
-const { USD, deployDAI } = require('../helpers/tokens')(artifacts, web3)
-const { NOW, ONE_MONTH, RATE_EXPIRATION_TIME } = require('../helpers/time')
-const { deployContracts, createPayrollAndPriceFeed } = require('../helpers/deploy')(artifacts, web3)
+const { deployDAI } = require('../helpers/tokens')(artifacts, web3)
+const { NOW, ONE_MONTH } = require('../helpers/time')
+const { deployContracts, createPayroll } = require('../helpers/deploy')(artifacts, web3)
 
 const ExecutionTarget = artifacts.require('ExecutionTarget')
 
 contract('Payroll forwarding', ([owner, employee, anyone]) => {
-  let dao, payroll, payrollBase, finance, vault, priceFeed, DAI
+  let dao, payroll, payrollBase, finance, vault, DAI, equityTokenManager
 
   before('deploy base apps and tokens', async () => {
-    ({ dao, finance, vault, payrollBase } = await deployContracts(owner))
+    ({ dao, finance, vault, payrollBase, equityTokenManager } = await deployContracts(owner))
     DAI = await deployDAI(owner, finance)
   })
 
   beforeEach('create payroll and price feed instance', async () => {
-    ({ payroll, priceFeed } = await createPayrollAndPriceFeed(dao, payrollBase, owner, NOW))
+    payroll = await createPayroll(dao, payrollBase, owner, NOW)
   })
 
   describe('isForwarder', () => {
     context('when it has already been initialized', function () {
-      beforeEach('initialize payroll app using USD as denomination token', async () => {
-        await payroll.initialize(finance.address, USD, priceFeed.address, RATE_EXPIRATION_TIME, { from: owner })
+      beforeEach('initialize payroll app using DAI as denomination token', async () => {
+        await payroll.initialize(finance.address, DAI.address, equityTokenManager.address, 1, 0, 0, false, { from: owner })
       })
 
       it('returns true', async () => {
@@ -40,8 +40,8 @@ contract('Payroll forwarding', ([owner, employee, anyone]) => {
 
   describe('canForward', () => {
     context('when it has already been initialized', function () {
-      beforeEach('initialize payroll app using USD as denomination token', async () => {
-        await payroll.initialize(finance.address, USD, priceFeed.address, RATE_EXPIRATION_TIME, { from: owner })
+      beforeEach('initialize payroll app using DAI as denomination token', async () => {
+        await payroll.initialize(finance.address, DAI.address, equityTokenManager.address, 1, 0, 0, false, { from: owner })
       })
 
       context('when the sender is an employee', () => {
@@ -115,8 +115,8 @@ contract('Payroll forwarding', ([owner, employee, anyone]) => {
     })
 
     context('when it has already been initialized', function () {
-      beforeEach('initialize payroll app using USD as denomination token', async () => {
-        await payroll.initialize(finance.address, USD, priceFeed.address, RATE_EXPIRATION_TIME, { from: owner })
+      beforeEach('initialize payroll app using DAI as denomination token', async () => {
+        await payroll.initialize(finance.address, DAI.address, equityTokenManager.address, 1, 0, 0, false, { from: owner })
       })
 
       context('when the sender is an employee', () => {

@@ -2,12 +2,12 @@ const { assertRevert } = require('@aragon/test-helpers/assertThrow')
 const { getEventArgument } = require('@aragon/test-helpers/events')
 const { annualSalaryPerSecond } = require('../helpers/numbers')(web3)
 const { MAX_UINT256, MAX_UINT64 } = require('../helpers/numbers')(web3)
-const { NOW, ONE_MONTH, RATE_EXPIRATION_TIME } = require('../helpers/time')
-const { deployContracts, createPayrollAndPriceFeed } = require('../helpers/deploy')(artifacts, web3)
-const { USD, deployANT, deployDAI } = require('../helpers/tokens')(artifacts, web3)
+const { NOW, ONE_MONTH } = require('../helpers/time')
+const { deployContracts, createPayroll } = require('../helpers/deploy')(artifacts, web3)
+const { deployDAI } = require('../helpers/tokens')(artifacts, web3)
 
 contract('Payroll employee info', ([owner, employee]) => {
-  let dao, payroll, payrollBase, finance, vault, priceFeed, DAI, equityTokenManager
+  let dao, payroll, payrollBase, finance, vault, DAI, equityTokenManager
 
   const currentTimestamp = async () => payroll.getTimestampPublic()
 
@@ -17,12 +17,12 @@ contract('Payroll employee info', ([owner, employee]) => {
   })
 
   beforeEach('create payroll and price feed instance', async () => {
-    ({ payroll, priceFeed } = await createPayrollAndPriceFeed(dao, payrollBase, owner, NOW))
+    payroll = await createPayroll(dao, payrollBase, owner, NOW)
   })
 
   describe('getEmployee', () => {
     context('when it has already been initialized', () => {
-      beforeEach('initialize payroll app using USD as denomination token', async () => {
+      beforeEach('initialize payroll app using DAI as denomination token', async () => {
         await payroll.initialize(finance.address, DAI.address, equityTokenManager.address, 1, 0, 0, false, { from: owner })
       })
 

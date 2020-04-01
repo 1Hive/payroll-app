@@ -3,12 +3,12 @@ const { getEvents, getEventArgument } = require('@aragon/test-helpers/events')
 const { deployDAI } = require('../helpers/tokens')(artifacts, web3)
 const { NOW, TWO_MONTHS } = require('../helpers/time')
 const { MAX_UINT64, annualSalaryPerSecond } = require('../helpers/numbers')(web3)
-const { deployContracts, createPayrollAndPriceFeed } = require('../helpers/deploy')(artifacts, web3)
+const { deployContracts, createPayroll } = require('../helpers/deploy')(artifacts, web3)
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 
 contract('Payroll employees addition', ([owner, employee, anotherEmployee, anyone, unusedAddress]) => {
-  let dao, payroll, payrollBase, finance, vault, priceFeed, DAI, equityTokenManager, equityToken
+  let dao, payroll, payrollBase, finance, vault, DAI, equityTokenManager, equityToken
 
   before('deploy base apps and tokens', async () => {
     ({ dao, finance, vault, payrollBase, equityTokenManager, equityToken } = await deployContracts(owner))
@@ -16,7 +16,7 @@ contract('Payroll employees addition', ([owner, employee, anotherEmployee, anyon
   })
 
   beforeEach('create payroll and price feed instance', async () => {
-    ({ payroll, priceFeed } = await createPayrollAndPriceFeed(dao, payrollBase, owner, NOW))
+    payroll = await createPayroll(dao, payrollBase, owner, NOW)
   })
 
   describe('addEmployee', () => {
