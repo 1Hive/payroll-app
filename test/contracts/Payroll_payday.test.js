@@ -1,38 +1,33 @@
 const PAYMENT_TYPES = require('../helpers/payment_types')
 const { assertRevert } = require('@aragon/test-helpers/assertThrow')
 const { assertAmountOfEvents } = require('@aragon/test-helpers/assertEvent')(web3)
-const { bn, MAX_UINT256, bigExp } = require('../helpers/numbers')(web3)
+const { bn, MAX_UINT256, bigExp, ONE } = require('../helpers/numbers')(web3)
 const { getEvents, getEventArgument } = require('@aragon/test-helpers/events')
-const { deployContracts, createPayrollAndPriceFeed } = require('../helpers/deploy')(artifacts, web3)
-const { NOW, ONE_MONTH, TWO_MONTHS, RATE_EXPIRATION_TIME } = require('../helpers/time')
-const { USD, DAI_RATE, ANT_RATE, inverseRate, exchangedAmount, deployDAI, deployANT, setTokenRates } = require('../helpers/tokens')(artifacts, web3)
+const { deployContracts, createPayroll } = require('../helpers/deploy')(artifacts, web3)
+const { NOW, ONE_MONTH, TWO_MONTHS } = require('../helpers/time')
+const { USD, DAI_RATE, ANT_RATE, inverseRate, deployDAI, deployANT, exchangedAmount } = require('../helpers/tokens')(artifacts, web3)
 
 contract('Payroll payday', ([owner, employee, anyone]) => {
-  let dao, payroll, payrollBase, finance, vault, priceFeed, DAI, ANT
+  let dao, payroll, payrollBase, finance, vault, DAI, ANT, equityTokenManager
 
   const increaseTime = async seconds => {
     await payroll.mockIncreaseTime(seconds)
-    await priceFeed.mockIncreaseTime(seconds)
   }
 
   before('deploy base apps and tokens', async () => {
-    ({ dao, finance, vault, payrollBase } = await deployContracts(owner))
-    ANT = await deployANT(owner, finance)
+    ({ dao, finance, vault, payrollBase, equityTokenManager, equityToken: ANT } = await deployContracts(owner))
+    // ANT = await deployANT(owner, finance) // TODO: Replace with equityToken
     DAI = await deployDAI(owner, finance)
   })
 
-  beforeEach('create payroll and price feed instance', async () => {
-    ({ payroll, priceFeed } = await createPayrollAndPriceFeed(dao, payrollBase, owner, NOW))
+  beforeEach('create payroll', async () => {
+    payroll = await createPayroll(dao, payrollBase, owner, NOW)
   })
 
-  describe('payroll payday', () => {
-    context('when it has already been initialized', function () {
-      beforeEach('initialize payroll app using USD as denomination token', async () => {
-        await payroll.initialize(finance.address, USD, priceFeed.address, RATE_EXPIRATION_TIME, { from: owner })
-      })
 
-      beforeEach('set token rates', async () => {
-        await setTokenRates(priceFeed, USD, [DAI, ANT], [DAI_RATE, ANT_RATE])
+  context('when it has already been initialized', function () {
+      beforeEach('initialize payroll app using DAI as denomination token', async () => {
+        await payroll.initialize(finance.address, DAI.address, equityTokenManager.address, 1, 0, 0, false, { from: owner })
       })
 
       context('when the sender is an employee', () => {
@@ -51,52 +46,76 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
             const allocationDAI = 80
             const allocationANT = 20
 
-            beforeEach('set tokens allocation', async () => {
-              await payroll.setAllowedToken(ANT.address, true, { from: owner })
-              await payroll.setAllowedToken(DAI.address, true, { from: owner })
-              await payroll.determineAllocation([DAI.address, ANT.address], [allocationDAI, allocationANT], { from })
+            beforeEach('set tokens allocation 80% DAI - 20% Equity', async () => {
+              await payroll.determineAllocation(bigExp(allocationDAI, 16), { from })
             })
 
+            function exchangedAmountLocal(amount, tokenAllocation) {
+              return amount.mul(tokenAllocation).div(bn(100)).trunc()
+            }
+
+            function exchangedAmountOld(amount, rate, tokenAllocation) {
+              // Invert the rate, as we always set the denomination token as the price feed's quote token
+              const inversedRate = inverseRate(rate)
+              // Mimic EVM calculation and truncation for token conversion
+              return amount.mul(inversedRate).mul(tokenAllocation).div(ONE.mul(100)).trunc()
+            }
+
             const assertTransferredAmounts = (requestedAmount, expectedRequestedAmount = requestedAmount, minRates = []) => {
-              const requestedDAI = exchangedAmount(expectedRequestedAmount, DAI_RATE, allocationDAI)
-              const requestedANT = exchangedAmount(expectedRequestedAmount, ANT_RATE, allocationANT)
+
+              // console.log("requestedAmount:", requestedAmount.toString())
+              // console.log("expectedRequestedAmount:", expectedRequestedAmount)
+
+              const requestedDAI = exchangedAmountLocal(expectedRequestedAmount, allocationDAI) // 80%
+              const requestedANT = expectedRequestedAmount.sub(requestedDAI) // 20%
+
+              // const requestedDAIOl = exchangedAmount(expectedRequestedAmount, DAI_RATE, allocationDAI)
+              // const requestedANTOl = exchangedAmount(expectedRequestedAmount, ANT_RATE, allocationANT)
+
+              // console.log("requestDAI", requestedDAI)
+              // console.log("requestedANT", requestedANT)
+              // console.log("requestedDAIOl", requestedDAIOl)
+              // console.log("requestedANTOl", requestedANTOl)
 
               it('transfers the requested salary amount', async () => {
                 const previousDAI = await DAI.balanceOf(employee)
                 const previousANT = await ANT.balanceOf(employee)
 
-                await payroll.payday(PAYMENT_TYPES.PAYROLL, requestedAmount, minRates, { from })
+                await payroll.payday(requestedAmount, { from })
 
                 const currentDAI = await DAI.balanceOf(employee)
                 const expectedDAI = previousDAI.plus(requestedDAI);
+
+                // console.log("requestDAI:", requestedDAI)
+                // console.log("previousDAI:", previousDAI)
+                // console.log("currentDAI:", currentDAI)
+                // console.log("expectedDAI:", expectedDAI)
+
                 assert.equal(currentDAI.toString(), expectedDAI.toString(), 'current DAI balance does not match')
 
                 const currentANT = await ANT.balanceOf(employee)
                 const expectedANT = previousANT.plus(requestedANT)
+
+                // console.log("requestedANT:", requestedANT)
+                // console.log("previousANT:", previousANT)
+                // console.log("currentANT:", currentANT)
+                // console.log("expectedANT:", expectedANT)
+
                 assert.equal(currentANT.toString(), expectedANT.toString(), 'current ANT balance does not match')
               })
 
-              it('emits one event per allocated token', async () => {
-                const receipt = await payroll.payday(PAYMENT_TYPES.PAYROLL, requestedAmount, minRates, { from })
+              it('emits correct event', async () => {
+                const receipt = await payroll.payday(requestedAmount, { from })
 
-                assertAmountOfEvents(receipt, 'SendPayment', 2)
+                assertAmountOfEvents(receipt, 'SendPayment', 1)
                 const events = getEvents(receipt, 'SendPayment')
 
                 const eventDAI = events.find(e => e.args.token === DAI.address).args
                 assert.equal(eventDAI.employeeId.toString(), employeeId.toString(), 'employee id does not match')
                 assert.equal(eventDAI.accountAddress, employee, 'employee address does not match')
                 assert.equal(eventDAI.token, DAI.address, 'DAI address does not match')
-                assert.equal(eventDAI.amount.toString(), requestedDAI.toString(), 'payment amount does not match')
-                assert.equal(eventDAI.exchangeRate.toString(), inverseRate(DAI_RATE).toString(), 'payment exchange rate does not match')
-                assert.equal(eventDAI.paymentReference, 'Employee salary', 'payment reference does not match')
-
-                const eventANT = events.find(e => e.args.token === ANT.address).args
-                assert.equal(eventANT.employeeId.toString(), employeeId.toString(), 'employee id does not match')
-                assert.equal(eventANT.accountAddress, employee, 'employee address does not match')
-                assert.equal(eventANT.token, ANT.address, 'ANT address does not match')
-                assert.equal(eventANT.amount.toString(), requestedANT.toString(), 'payment amount does not match')
-                assert.equal(eventANT.exchangeRate.toString(), inverseRate(ANT_RATE).toString(), 'payment exchange rate does not match')
-                assert.equal(eventANT.paymentReference, 'Employee salary', 'payment reference does not match')
+                assert.equal(eventDAI.denominationAmount.toString(), requestedDAI.toString(), 'DAI payment amount does not match')
+                assert.equal(eventDAI.equityAmount.toString(), requestedANT.toString(), 'ANT payment amount does not match')
               })
 
               it('can be called multiple times between periods of time', async () => {
@@ -106,15 +125,14 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                 const previousDAI = await DAI.balanceOf(employee)
                 const previousANT = await ANT.balanceOf(employee)
 
-                await payroll.payday(PAYMENT_TYPES.PAYROLL, requestedAmount, minRates, { from })
+                await payroll.payday(requestedAmount, { from })
 
                 const newOwedAmount = salary.mul(ONE_MONTH)
-                const newDAIAmount = exchangedAmount(newOwedAmount, DAI_RATE, allocationDAI)
-                const newANTAmount = exchangedAmount(newOwedAmount, ANT_RATE, allocationANT)
+                const newDAIAmount = exchangedAmountLocal(newOwedAmount, allocationDAI)
+                const newANTAmount = exchangedAmountLocal(newOwedAmount, allocationANT)
 
                 await increaseTime(ONE_MONTH)
-                await setTokenRates(priceFeed, USD, [DAI, ANT], [DAI_RATE, ANT_RATE])
-                await payroll.payday(PAYMENT_TYPES.PAYROLL, newOwedAmount, minRates, { from })
+                await payroll.payday(newOwedAmount, { from })
 
                 const currentDAI = await DAI.balanceOf(employee)
                 const expectedDAI = previousDAI.plus(requestedDAI).plus(newDAIAmount)
@@ -129,7 +147,8 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
             const assertEmployeeIsUpdatedCorrectly = (requestedAmount, expectedRequestedAmount, minRates = []) => {
               it('updates the employee accounting', async () => {
                 let expectedLastPayrollDate, expectedAccruedSalary
-                const [, previousAccruedSalary, , , previousPayrollDate] = (await payroll.getEmployee(employeeId)).slice(1, 6)
+
+                const [, , previousAccruedSalary, previousPayrollDate, , ] = (await payroll.getEmployee(employeeId))
 
                 if (expectedRequestedAmount.gte(previousAccruedSalary)) {
                   const currentSalaryPaid = expectedRequestedAmount.minus(previousAccruedSalary)
@@ -141,15 +160,15 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                   expectedLastPayrollDate = previousPayrollDate
                 }
 
-                await payroll.payday(PAYMENT_TYPES.PAYROLL, requestedAmount, minRates, { from })
+                await payroll.payday(requestedAmount, { from })
 
-                const [accruedSalary, , , lastPayrollDate] = (await payroll.getEmployee(employeeId)).slice(2, 6)
+                const [, , accruedSalary, lastPayrollDate, , ] = (await payroll.getEmployee(employeeId))
                 assert.equal(accruedSalary.toString(), expectedAccruedSalary.toString(), 'accrued salary does not match')
                 assert.equal(lastPayrollDate.toString(), expectedLastPayrollDate.toString(), 'last payroll date does not match')
               })
 
               it('does not remove the employee', async () => {
-                await payroll.payday(PAYMENT_TYPES.PAYROLL, requestedAmount, minRates, { from })
+                await payroll.payday(requestedAmount, { from })
 
                 const [address, employeeSalary] = await payroll.getEmployee(employeeId)
 
@@ -159,155 +178,35 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
             }
 
             const itHandlesPayrollProperly = (requestedAmount, expectedRequestedAmount) => {
-              context('when exchange rates are not expired', () => {
-                context('when allocated tokens are still allowed', () => {
-                  context('when the employee does not provide minimum acceptable rates', () => {
-                    const minRates = []
-
-                    assertTransferredAmounts(requestedAmount, expectedRequestedAmount, minRates)
-                    assertEmployeeIsUpdatedCorrectly(requestedAmount, expectedRequestedAmount, minRates)
-                  })
-
-                  context('when the employee provides minimum acceptable rates', () => {
-                    context('when the exchange rates match the min acceptable ones', () => {
-                      const minRates = [inverseRate(DAI_RATE), inverseRate(ANT_RATE)]
-
-                      assertTransferredAmounts(requestedAmount, expectedRequestedAmount, minRates)
-                      assertEmployeeIsUpdatedCorrectly(requestedAmount, expectedRequestedAmount, minRates)
-                    })
-
-                    context('when the exchange rates does not match the min acceptable ones', () => {
-                      const minRates = [inverseRate(DAI_RATE).plus(1), inverseRate(ANT_RATE)]
-
-                      it('reverts', async () => {
-                        await assertRevert(payroll.payday(PAYMENT_TYPES.PAYROLL, requestedAmount, minRates, { from }), 'PAYROLL_EXCHANGE_RATE_TOO_LOW')
-                      })
-                    })
-                  })
-                })
-
-                context('when allocated tokens are not allowed anymore', () => {
-                  beforeEach('remove allowed tokens', async () => {
-                    await payroll.setAllowedToken(DAI.address, false, { from: owner })
-                  })
-
-                  it('reverts', async () => {
-                    await assertRevert(payroll.payday(PAYMENT_TYPES.PAYROLL, requestedAmount, [], { from }), 'PAYROLL_NOT_ALLOWED_TOKEN')
-                  })
-                })
-              })
-
-              context('when exchange rates are expired', () => {
-                beforeEach('expire exchange rates', async () => {
-                  const expiredTimestamp = (await payroll.getTimestampPublic()).sub(RATE_EXPIRATION_TIME + 1)
-                  await setTokenRates(priceFeed, USD, [DAI, ANT], [DAI_RATE, ANT_RATE], expiredTimestamp)
-                })
-
-                it('reverts', async () => {
-                  await assertRevert(payroll.payday(PAYMENT_TYPES.PAYROLL, requestedAmount, [], { from }), 'PAYROLL_EXCHANGE_RATE_TOO_LOW')
-                })
-              })
+                assertTransferredAmounts(requestedAmount, expectedRequestedAmount)
+                assertEmployeeIsUpdatedCorrectly(requestedAmount, expectedRequestedAmount)
             }
 
             const itHandlesPayrollProperlyNeverthelessExtrasOwedAmounts = (requestedAmount, totalOwedAmount) => {
               const expectedRequestedAmount = requestedAmount.eq(0) ? totalOwedAmount : requestedAmount
 
-              context('when the employee has some pending reimbursements', () => {
-                beforeEach('add reimbursement', async () => {
-                  await payroll.addReimbursement(employeeId, 1000, { from: owner })
+              context('when the employee is not terminated', () => {
+                  itHandlesPayrollProperly(requestedAmount, expectedRequestedAmount)
                 })
 
-                context('when the employee has a pending bonus', () => {
-                  beforeEach('add bonus', async () => {
-                    await payroll.addBonus(employeeId, 50000, {from: owner})
+              context('when the employee is terminated', () => {
+                  beforeEach('terminate employee', async () => {
+                    await payroll.terminateEmployee(employeeId, await payroll.getTimestampPublic(), { from: owner })
                   })
 
-                  context('when the employee is not terminated', () => {
-                    itHandlesPayrollProperly(requestedAmount, expectedRequestedAmount)
-                  })
-
-                  context('when the employee is terminated', () => {
-                    beforeEach('terminate employee', async () => {
-                      await payroll.terminateEmployee(employeeId, await payroll.getTimestampPublic(), { from: owner })
-                    })
-
-                    itHandlesPayrollProperly(requestedAmount, expectedRequestedAmount)
-                  })
-                })
-
-                context('when the employee does not have a pending bonus', () => {
-                  context('when the employee is not terminated', () => {
-                    itHandlesPayrollProperly(requestedAmount, expectedRequestedAmount)
-                  })
-
-                  context('when the employee is terminated', () => {
-                    beforeEach('terminate employee', async () => {
-                      await payroll.terminateEmployee(employeeId, await payroll.getTimestampPublic(), { from: owner })
-                    })
-
-                    itHandlesPayrollProperly(requestedAmount, expectedRequestedAmount)
-                  })
-                })
-              })
-
-              context('when the employee does not have pending reimbursements', () => {
-                context('when the employee has a pending bonus', () => {
-                  beforeEach('add bonus', async () => {
-                    await payroll.addBonus(employeeId, 50000, {from: owner})
-                  })
-
-                  context('when the employee is not terminated', () => {
-                    itHandlesPayrollProperly(requestedAmount, expectedRequestedAmount)
-                  })
-
-                  context('when the employee is terminated', () => {
-                    beforeEach('terminate employee', async () => {
-                      await payroll.terminateEmployee(employeeId, await payroll.getTimestampPublic(), { from: owner })
-                    })
-
-                    itHandlesPayrollProperly(requestedAmount, expectedRequestedAmount)
-                  })
-                })
-
-                context('when the employee does not have a pending bonus', () => {
-                  context('when the employee is not terminated', () => {
-                    itHandlesPayrollProperly(requestedAmount, expectedRequestedAmount)
-                  })
-
-                  context('when the employee is terminated', () => {
-                    beforeEach('terminate employee', async () => {
-                      await payroll.terminateEmployee(employeeId, await payroll.getTimestampPublic(), { from: owner })
-                    })
-
-                    if (requestedAmount.eq(0) || requestedAmount.eq(totalOwedAmount)) {
-                      context('when exchange rates are not expired', () => {
+                  if (requestedAmount.eq(0) || requestedAmount.eq(totalOwedAmount)) {
+                      it('removes the employee', async () => {
                         assertTransferredAmounts(requestedAmount, expectedRequestedAmount)
-
-                        it('removes the employee', async () => {
-                          await payroll.payday(PAYMENT_TYPES.PAYROLL, requestedAmount, [], { from })
-
-                          await assertRevert(payroll.getEmployee(employeeId), 'PAYROLL_EMPLOYEE_DOESNT_EXIST')
-                        })
+                        await payroll.payday(requestedAmount, { from })
+                        await assertRevert(payroll.getEmployee(employeeId))
+                        // await assertRevert(payroll.getEmployee(employeeId), 'PAYROLL_EMPLOYEE_DOESNT_EXIST')
                       })
-
-                      context('when exchange rates are expired', () => {
-                        beforeEach('expire exchange rates', async () => {
-                          const expiredTimestamp = (await payroll.getTimestampPublic()).sub(RATE_EXPIRATION_TIME + 1)
-                          await setTokenRates(priceFeed, USD, [DAI, ANT], [DAI_RATE, ANT_RATE], expiredTimestamp)
-                        })
-
-                        it('reverts', async () => {
-                          await assertRevert(payroll.payday(PAYMENT_TYPES.PAYROLL, requestedAmount, [], { from }), 'PAYROLL_EXCHANGE_RATE_TOO_LOW')
-                        })
-                      })
-                    }
-                    else itHandlesPayrollProperly(requestedAmount, expectedRequestedAmount)
-                  })
+                  }
+                  else itHandlesPayrollProperly(requestedAmount, expectedRequestedAmount)
                 })
-              })
             }
 
-            context('when the employee does not have accrued salary', () => {
+            context.only('when the employee does not have accrued salary', () => {
               context('when the employee has some pending salary', () => {
                 const currentOwedSalary = salary.mul(ONE_MONTH)
 
@@ -345,7 +244,8 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                   const requestedAmount = currentOwedSalary.plus(1)
 
                   it('reverts', async () => {
-                    await assertRevert(payroll.payday(PAYMENT_TYPES.PAYROLL, requestedAmount, [], { from }), 'PAYROLL_INVALID_REQUESTED_AMT')
+                    await assertRevert(payroll.payday(requestedAmount, { from }), )
+                    // await assertRevert(payroll.payday(requestedAmount, { from }), 'PAYROLL_INVALID_REQUESTED_AMT')
                   })
                 })
               })
@@ -355,7 +255,8 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                   const requestedAmount = bigExp(100, 18)
 
                   it('reverts', async () => {
-                    await assertRevert(payroll.payday(PAYMENT_TYPES.PAYROLL, requestedAmount, [], { from }), 'PAYROLL_NOTHING_PAID')
+                    await assertRevert(payroll.payday(requestedAmount, { from }), )
+                    // await assertRevert(payroll.payday(requestedAmount, { from }), 'PAYROLL_NOTHING_PAID')
                   })
                 })
 
@@ -363,13 +264,14 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                   const requestedAmount = bn(0)
 
                   it('reverts', async () => {
-                    await assertRevert(payroll.payday(PAYMENT_TYPES.PAYROLL, requestedAmount, [], { from }), 'PAYROLL_NOTHING_PAID')
+                    await assertRevert(payroll.payday(requestedAmount, { from }), )
+                    // await assertRevert(payroll.payday(requestedAmount, { from }), 'PAYROLL_NOTHING_PAID')
                   })
                 })
               })
             })
 
-            context('when the employee has some accrued salary', () => {
+            context.only('when the employee has some accrued salary', () => {
               const previousSalary = salary.mul(2)
               const previousOwedSalary = previousSalary.mul(ONE_MONTH)
 
@@ -381,7 +283,7 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
 
               const itHandlesRemainingAccruedSalaryCorrectly = (requestedAmount, expectedAccruedSalary) => {
                 it('handles remaining accrued salary correctly', async () => {
-                  await payroll.payday(PAYMENT_TYPES.PAYROLL, requestedAmount, [], { from })
+                  await payroll.payday(requestedAmount, { from })
 
                   const [accruedSalary] = (await payroll.getEmployee(employeeId)).slice(2)
                   assert.equal(accruedSalary.toString(), expectedAccruedSalary.toString(), 'accrued salary does not match')
@@ -394,7 +296,6 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
 
                 beforeEach('accumulate some pending salary and renew token rates', async () => {
                   await increaseTime(ONE_MONTH)
-                  await setTokenRates(priceFeed, USD, [DAI, ANT], [DAI_RATE, ANT_RATE])
                 })
 
                 context('when the requested amount is zero', () => {
@@ -445,7 +346,8 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                   const requestedAmount = totalOwedSalary.plus(1)
 
                   it('reverts', async () => {
-                    await assertRevert(payroll.payday(PAYMENT_TYPES.PAYROLL, requestedAmount, [], { from }), 'PAYROLL_INVALID_REQUESTED_AMT')
+                    // await assertRevert(payroll.payday(requestedAmount, { from }), 'PAYROLL_INVALID_REQUESTED_AMT')
+                    await assertRevert(payroll.payday(requestedAmount, { from }))
                   })
                 })
               })
@@ -473,7 +375,8 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                   const requestedAmount = previousOwedSalary.plus(1)
 
                   it('reverts', async () => {
-                    await assertRevert(payroll.payday(PAYMENT_TYPES.PAYROLL, requestedAmount, [], { from }), 'PAYROLL_INVALID_REQUESTED_AMT')
+                    await assertRevert(payroll.payday(requestedAmount, { from }))
+                    // await assertRevert(payroll.payday(requestedAmount, { from }), 'PAYROLL_INVALID_REQUESTED_AMT')
                   })
                 })
               })
@@ -492,7 +395,7 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                 const requestedAmount = owedSalary.div(2).floor()
 
                 it('reverts', async () => {
-                  await assertRevert(payroll.payday(PAYMENT_TYPES.PAYROLL, requestedAmount, [], { from }), 'PAYROLL_DISTRIBUTION_NOT_FULL')
+                  await assertRevert(payroll.payday(requestedAmount, { from }), 'PAYROLL_DISTRIBUTION_NOT_FULL')
                 })
               })
 
@@ -500,7 +403,7 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                 const requestedAmount = owedSalary
 
                 it('reverts', async () => {
-                  await assertRevert(payroll.payday(PAYMENT_TYPES.PAYROLL, requestedAmount, [], { from }), 'PAYROLL_DISTRIBUTION_NOT_FULL')
+                  await assertRevert(payroll.payday(requestedAmount, { from }), 'PAYROLL_DISTRIBUTION_NOT_FULL')
                 })
               })
             })
@@ -510,7 +413,7 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                 const requestedAmount = bigExp(100, 18)
 
                 it('reverts', async () => {
-                  await assertRevert(payroll.payday(PAYMENT_TYPES.PAYROLL, requestedAmount, [], { from }), 'PAYROLL_DISTRIBUTION_NOT_FULL')
+                  await assertRevert(payroll.payday(requestedAmount, { from }), 'PAYROLL_DISTRIBUTION_NOT_FULL')
                 })
               })
 
@@ -518,7 +421,7 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                 const requestedAmount = bn(0)
 
                 it('reverts', async () => {
-                  await assertRevert(payroll.payday(PAYMENT_TYPES.PAYROLL, requestedAmount, [], { from }), 'PAYROLL_DISTRIBUTION_NOT_FULL')
+                  await assertRevert(payroll.payday(requestedAmount, { from }), 'PAYROLL_DISTRIBUTION_NOT_FULL')
                 })
               })
             })
@@ -528,7 +431,7 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
         context('when the employee does not have a reasonable salary', () => {
           const itReverts = (requestedAmount, reason) => {
             it('reverts', async () => {
-              await assertRevert(payroll.payday(PAYMENT_TYPES.PAYROLL, requestedAmount, [], { from }), reason)
+              await assertRevert(payroll.payday(requestedAmount, { from }), reason)
             })
           }
 
@@ -537,34 +440,9 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
               itReverts(requestedAmount, nonExpiredRatesReason)
             })
 
-            context('when exchange rates are expired', () => {
-              beforeEach('expire exchange rates', async () => {
-                const expiredTimestamp = (await payroll.getTimestampPublic()).sub(RATE_EXPIRATION_TIME + 1)
-                await setTokenRates(priceFeed, USD, [DAI, ANT], [DAI_RATE, ANT_RATE], expiredTimestamp)
-              })
-
-              itReverts(requestedAmount, expiredRatesReason)
-            })
           }
 
           const itRevertsToWithdrawPartialPayroll = (requestedAmount, nonExpiredRatesReason, expiredRatesReason) => {
-            context('when the employee has some pending reimbursements', () => {
-              beforeEach('add reimbursement', async () => {
-                await payroll.addReimbursement(employeeId, 1000, { from: owner })
-              })
-
-              context('when the employee is not terminated', () => {
-                itRevertsHandlingExpiredRates(requestedAmount, nonExpiredRatesReason, expiredRatesReason)
-              })
-
-              context('when the employee is terminated', () => {
-                beforeEach('terminate employee', async () => {
-                  await payroll.terminateEmployee(employeeId, await payroll.getTimestampPublic(), { from: owner })
-                })
-
-                itRevertsHandlingExpiredRates(requestedAmount, nonExpiredRatesReason, expiredRatesReason)
-              })
-            })
 
             context('when the employee does not have pending reimbursements', () => {
               context('when the employee is not terminated', () => {
@@ -802,35 +680,7 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                         })
                       })
 
-                      context('when exchange rates are expired', () => {
-                        beforeEach('expire exchange rates', async () => {
-                          const expiredTimestamp = (await payroll.getTimestampPublic()).sub(RATE_EXPIRATION_TIME + 1)
-                          await setTokenRates(priceFeed, USD, [DAI, ANT], [DAI_RATE, ANT_RATE], expiredTimestamp)
-                        })
-
-                        it('reverts', async () => {
-                          await assertRevert(payroll.payday(PAYMENT_TYPES.PAYROLL, requestedAmount, [], { from }), 'PAYROLL_EXCHANGE_RATE_TOO_LOW')
-                        })
-                      })
                     }
-
-                    context('when the employee has some pending reimbursements', () => {
-                      beforeEach('add reimbursement', async () => {
-                        await payroll.addReimbursement(employeeId, bigExp(1000, 18), { from: owner })
-                      })
-
-                      context('when the employee is not terminated', () => {
-                        itHandlesPayrollProperly(requestedAmount)
-                      })
-
-                      context('when the employee is terminated', () => {
-                        beforeEach('terminate employee', async () => {
-                          await payroll.terminateEmployee(employeeId, await payroll.getTimestampPublic(), { from: owner })
-                        })
-
-                        itHandlesPayrollProperly(requestedAmount)
-                      })
-                    })
 
                     context('when the employee does not have pending reimbursements', () => {
                       context('when the employee is not terminated', () => {
@@ -948,7 +798,7 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
           const requestedAmount = bigExp(1000, 18)
 
           it('reverts', async () => {
-            await assertRevert(payroll.payday(PAYMENT_TYPES.PAYROLL, requestedAmount, [], { from }), 'PAYROLL_SENDER_DOES_NOT_MATCH')
+            await assertRevert(payroll.payday(requestedAmount, { from }), 'PAYROLL_SENDER_DOES_NOT_MATCH')
           })
         })
 
@@ -956,18 +806,17 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
           const requestedAmount = bn(0)
 
           it('reverts', async () => {
-            await assertRevert(payroll.payday(PAYMENT_TYPES.PAYROLL, requestedAmount, [], { from }), 'PAYROLL_SENDER_DOES_NOT_MATCH')
+            await assertRevert(payroll.payday(requestedAmount, { from }), 'PAYROLL_SENDER_DOES_NOT_MATCH')
           })
         })
       })
     })
 
-    context('when it has not been initialized yet', () => {
-      const requestedAmount = bn(0)
+  context('when it has not been initialized yet', () => {
+    const requestedAmount = bn(0)
 
-      it('reverts', async () => {
-        await assertRevert(payroll.payday(PAYMENT_TYPES.PAYROLL, requestedAmount, [], { from: employee }), 'PAYROLL_SENDER_DOES_NOT_MATCH')
-      })
+    it('reverts', async () => {
+      await assertRevert(payroll.payday(requestedAmount, { from: employee }), 'PAYROLL_SENDER_DOES_NOT_MATCH')
     })
   })
 })

@@ -2,15 +2,14 @@ const PAYMENT_TYPES = require('../helpers/payment_types')
 const { annualSalaryPerSecond, ONE } = require('../helpers/numbers')(web3)
 const { NOW, ONE_MONTH } = require('../helpers/time')
 const { deployContracts, createPayroll } = require('../helpers/deploy')(artifacts, web3)
-const { deployDAI, deployANT } = require('../helpers/tokens')(artifacts, web3)
+const { deployDAI } = require('../helpers/tokens')(artifacts, web3)
 
 contract('Payroll gas costs', ([owner, employee, anotherEmployee]) => {
-  let dao, payroll, payrollBase, finance, vault, DAI, ANT, equityTokenManager
+  let dao, payroll, payrollBase, finance, vault, DAI, equityTokenManager
 
   before('deploy base apps and tokens', async () => {
     ({ dao, finance, vault, payrollBase, equityTokenManager } = await deployContracts(owner))
     DAI = await deployDAI(owner, finance)
-    ANT = await deployANT(owner, finance)
   })
 
   beforeEach('create payroll and price feed instance', async () => {
