@@ -198,8 +198,7 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                       it('removes the employee', async () => {
                         assertTransferredAmounts(requestedAmount, expectedRequestedAmount)
                         await payroll.payday(requestedAmount, { from })
-                        await assertRevert(payroll.getEmployee(employeeId))
-                        // await assertRevert(payroll.getEmployee(employeeId), 'PAYROLL_EMPLOYEE_DOESNT_EXIST')
+                        await assertRevert(payroll.getEmployee(employeeId), 'PAYROLL_EMPLOYEE_DOESNT_EXIST')
                       })
                   }
                   else itHandlesPayrollProperly(requestedAmount, expectedRequestedAmount)
@@ -244,8 +243,7 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                   const requestedAmount = currentOwedSalary.plus(1)
 
                   it('reverts', async () => {
-                    await assertRevert(payroll.payday(requestedAmount, { from }), )
-                    // await assertRevert(payroll.payday(requestedAmount, { from }), 'PAYROLL_INVALID_REQUESTED_AMT')
+                    await assertRevert(payroll.payday(requestedAmount, { from }), 'PAYROLL_INVALID_REQUESTED_AMT')
                   })
                 })
               })
@@ -255,8 +253,7 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                   const requestedAmount = bigExp(100, 18)
 
                   it('reverts', async () => {
-                    await assertRevert(payroll.payday(requestedAmount, { from }), )
-                    // await assertRevert(payroll.payday(requestedAmount, { from }), 'PAYROLL_NOTHING_PAID')
+                    await assertRevert(payroll.payday(requestedAmount, { from }), 'PAYROLL_NOTHING_PAID')
                   })
                 })
 
@@ -264,8 +261,7 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                   const requestedAmount = bn(0)
 
                   it('reverts', async () => {
-                    await assertRevert(payroll.payday(requestedAmount, { from }), )
-                    // await assertRevert(payroll.payday(requestedAmount, { from }), 'PAYROLL_NOTHING_PAID')
+                    await assertRevert(payroll.payday(requestedAmount, { from }), 'PAYROLL_NOTHING_PAID')
                   })
                 })
               })
@@ -346,8 +342,7 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                   const requestedAmount = totalOwedSalary.plus(1)
 
                   it('reverts', async () => {
-                    // await assertRevert(payroll.payday(requestedAmount, { from }), 'PAYROLL_INVALID_REQUESTED_AMT')
-                    await assertRevert(payroll.payday(requestedAmount, { from }))
+                    await assertRevert(payroll.payday(requestedAmount, { from }), 'PAYROLL_INVALID_REQUESTED_AMT')
                   })
                 })
               })
@@ -375,8 +370,7 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                   const requestedAmount = previousOwedSalary.plus(1)
 
                   it('reverts', async () => {
-                    await assertRevert(payroll.payday(requestedAmount, { from }))
-                    // await assertRevert(payroll.payday(requestedAmount, { from }), 'PAYROLL_INVALID_REQUESTED_AMT')
+                    await assertRevert(payroll.payday(requestedAmount, { from }), 'PAYROLL_INVALID_REQUESTED_AMT')
                   })
                 })
               })
