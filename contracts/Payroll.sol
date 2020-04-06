@@ -283,7 +283,7 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
      * @param _denominationTokenAllocation The percent of payment expected in the denomination token, the rest is
             expected in the equity token. 0% = 0; 1% = 10^16; 100% = 10^18
      */
-    function determineAllocation(uint256 _denominationTokenAllocation) external employeeMatches {
+    function determineAllocation(uint256 _denominationTokenAllocation) external employeeMatches nonReentrant {
         require(_denominationTokenAllocation <= PCT_BASE, ERROR_DENOMINATION_TOKEN_TOO_HIGH);
 
         uint256 employeeId = employeeIds[msg.sender];
@@ -304,6 +304,7 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
             amount, or zero to request all.
      */
     function payday(uint256 _requestedAmount) external employeeMatches nonReentrant {
+
         uint256 paymentAmount;
         uint256 employeeId = employeeIds[msg.sender];
         Employee storage employee = employees[employeeId];
@@ -472,6 +473,8 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
         emit TerminateEmployee(_employeeId, _endDate);
     }
 
+    event DEBUG(uint256 into1, uint256 into2, uint256 equityTokenManager);
+
     /**
      * @dev Loop over allowed tokens to send requested amount to the employee in their desired allocation
      * @param _employeeId Employee's identifier
@@ -488,7 +491,7 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
         uint256 employeeDenominationAllocation = employee.denominationTokenAllocation;
 
         uint256 denominationTokenAmount = _totalAmount.mul(employeeDenominationAllocation).div(PCT_BASE);
-        uint256 equityTokenAmount = _totalAmount.sub(denominationTokenAmount);
+        uint256 equityTokenAmount = (_totalAmount.sub(denominationTokenAmount)).mul(equityMultiplier).div(PCT_BASE);
 
         if (denominationTokenAmount > 0) {
             // Finance reverts if the payment wasn't possible

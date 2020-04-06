@@ -1,11 +1,10 @@
-const PAYMENT_TYPES = require('../helpers/payment_types')
 const { assertRevert } = require('@aragon/test-helpers/assertThrow')
 const { assertAmountOfEvents } = require('@aragon/test-helpers/assertEvent')(web3)
-const { bn, MAX_UINT256, bigExp, ONE } = require('../helpers/numbers')(web3)
+const { bn, MAX_UINT256, bigExp } = require('../helpers/numbers')(web3)
 const { getEvents, getEventArgument } = require('@aragon/test-helpers/events')
 const { deployContracts, createPayroll } = require('../helpers/deploy')(artifacts, web3)
 const { NOW, ONE_MONTH, TWO_MONTHS } = require('../helpers/time')
-const { USD, DAI_RATE, ANT_RATE, inverseRate, deployDAI, deployANT, exchangedAmount } = require('../helpers/tokens')(artifacts, web3)
+const { deployDAI } = require('../helpers/tokens')(artifacts, web3)
 
 contract('Payroll payday', ([owner, employee, anyone]) => {
   let dao, payroll, payrollBase, finance, vault, DAI, ANT, equityTokenManager
@@ -46,7 +45,7 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
             employeeId = getEventArgument(receipt, 'AddEmployee', 'employeeId')
           })
 
-          context('when the employee has already set some token allocations', () => {
+          context('when the employee has already set a token allocation', () => {
             const allocationDAI = 80
             const allocationANT = 20
 
@@ -54,7 +53,7 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
               await payroll.determineAllocation(bigExp(allocationDAI, 16), { from })
             })
 
-            const assertTransferredAmounts = (requestedAmount, expectedRequestedAmount = requestedAmount, minRates = []) => {
+            const assertTransferredAmounts = (requestedAmount, expectedRequestedAmount = requestedAmount) => {
 
               const requestedDAI = exchangedAmountLocal(expectedRequestedAmount, allocationDAI) // 80%
               const requestedANT = expectedRequestedAmount.sub(requestedDAI) // 20%
@@ -116,7 +115,7 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
               })
             }
 
-            const assertEmployeeIsUpdatedCorrectly = (requestedAmount, expectedRequestedAmount, minRates = []) => {
+            const assertEmployeeIsUpdatedCorrectly = (requestedAmount, expectedRequestedAmount) => {
               it('updates the employee accounting', async () => {
                 let expectedLastPayrollDate, expectedAccruedSalary
 
@@ -218,6 +217,80 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                     await assertRevert(payroll.payday(requestedAmount, { from }), 'PAYROLL_INVALID_REQUESTED_AMT')
                   })
                 })
+
+                context('when the equityMultiplier is not equal to one', () => {
+
+                  const assertTransferredAmountWithEquityMultiplier = async (requestedDAI, requestedANT, equityMultiplier) => {
+                    await payroll.setEquityMultiplier(equityMultiplier)
+
+                    const previousDAI = await DAI.balanceOf(employee)
+                    const previousANT = await ANT.balanceOf(employee)
+
+                    await payroll.payday(currentOwedSalary, { from })
+
+                    const currentDAI = await DAI.balanceOf(employee)
+                    const expectedDAI = previousDAI.plus(requestedDAI);
+
+                    assert.equal(currentDAI.toString(), expectedDAI.toString(), 'current DAI balance does not match')
+
+                    const currentANT = await ANT.balanceOf(employee)
+                    const expectedANT = previousANT.plus(requestedANT)
+
+                    assert.equal(currentANT.toString(), expectedANT.toString(), 'current ANT balance does not match')
+                  }
+
+                  it('transfers the requested salary amount when the equityMultiplier is two', async () => {
+                    const requestedDAI = exchangedAmountLocal(currentOwedSalary, allocationDAI) // 80%
+                    const requestedANT = (currentOwedSalary.sub(requestedDAI)).mul(bn(2)) // 20% * 2
+
+                    await assertTransferredAmountWithEquityMultiplier(requestedDAI, requestedANT, bigExp(2, 18))
+                  })
+
+                  it('transfers the requested salary amount when the equityMultiplier is a half', async () => {
+                    const requestedDAI = exchangedAmountLocal(currentOwedSalary, allocationDAI) // 80%
+                    const requestedANT = (currentOwedSalary.sub(requestedDAI)).div(bn(2)) // 20% / 2
+
+                    await assertTransferredAmountWithEquityMultiplier(requestedDAI, requestedANT, bigExp(50, 16))
+                  })
+                })
+
+                context.only('when vesting is enabled', () => {
+                  const assertTransferredAmountWithVesting = async (vestingLength, vestingCliff, vestingRevokable) => {
+                    const requestedDAI = exchangedAmountLocal(currentOwedSalary, allocationDAI) // 80%
+                    const requestedANT = (currentOwedSalary.sub(requestedDAI)) // 20% * 2
+
+                    console.log(currentOwedSalary.toString())
+                    console.log(requestedDAI.toString())
+                    console.log(requestedANT.toString())
+
+                    await payroll.setVestingSettings(vestingLength, vestingCliff, vestingRevokable);
+
+                    const previousDAI = await DAI.balanceOf(employee)
+                    const previousANT = await ANT.balanceOf(employee)
+                    const previousVestings = await equityTokenManager.vestingsLengths(employee)
+
+                    await payroll.payday(currentOwedSalary, { from })
+
+                    const currentDAI = await DAI.balanceOf(employee)
+                    const expectedDAI = previousDAI.plus(requestedDAI);
+
+                    assert.equal(currentDAI.toString(), expectedDAI.toString(), 'current DAI balance does not match')
+
+                    const currentANT = await ANT.balanceOf(employee)
+                    const expectedANT = previousANT.plus(requestedANT)
+
+                    assert.equal(currentANT.toString(), expectedANT.toString(), 'current ANT balance does not match')
+
+                    const accountVestings = await equityTokenManager.vestingsLengths(employee)
+                    const expectedVestings = accountVestings.plus(previousVestings)
+
+                    assert.equal(accountVestings.toString(), expectedVestings.toString(), 'current vestings do not match')
+                  }
+
+                  it('vests tokens instead of minting them', async () => {
+                    await assertTransferredAmountWithVesting(100, 50, true)
+                  })
+                })
               })
 
               context('when the employee does not have pending salary', () => {
@@ -262,7 +335,7 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                 const currentOwedSalary = salary.mul(ONE_MONTH)
                 const totalOwedSalary = previousOwedSalary.plus(currentOwedSalary)
 
-                beforeEach('accumulate some pending salary and renew token rates', async () => {
+                beforeEach('accumulate some pending salary', async () => {
                   await increaseTime(ONE_MONTH)
                 })
 
@@ -417,7 +490,7 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
               })
             }
 
-            context('when the employee has already set some token allocations', () => {
+            context('when the employee sets the token allocation', () => {
               const allocationDAI = 80
 
               beforeEach('set tokens allocation', async () => {
@@ -437,7 +510,7 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
               employeeId = getEventArgument(receipt, 'AddEmployee', 'employeeId')
             })
 
-            context('when the employee has already set some token allocations', () => {
+            context('when the employee has already set the token allocation', () => {
               const allocationDAI = 80
 
               beforeEach('set tokens allocation', async () => {

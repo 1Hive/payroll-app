@@ -11,7 +11,6 @@ module.exports = (artifacts, web3) => {
   const Finance = getContract('Finance')
   const TokenManager = getContract('TokenManager')
   const Payroll = getContract('PayrollMock')
-  const PriceFeed = getContract('PriceFeedMock')
   const DAOFactory = getContract('DAOFactory')
   const EVMScriptRegistryFactory = getContract('EVMScriptRegistryFactory')
 
@@ -74,6 +73,10 @@ module.exports = (artifacts, web3) => {
     await finance.initialize(vault.address, SECONDS_IN_A_YEAR) // more than one day
 
     const equityToken = await deployErc20TokenAndDeposit(owner, finance, "EquityToken")
+
+    const amount = bigExp(1e18, 18)
+    await equityToken.generateTokens(equityTokenManager.address, amount)
+
     await equityToken.changeController(equityTokenManager.address)
     await equityTokenManager.initialize(equityToken.address, true, 0)
 
