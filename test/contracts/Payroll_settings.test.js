@@ -4,8 +4,6 @@ const { NOW } = require('../helpers/time')
 const { deployContracts, createPayroll } = require('../helpers/deploy')(artifacts, web3)
 const { ONE, bn } = require('../helpers/numbers')(web3)
 
-const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
-
 contract('Payroll settings', ([owner, nonContractAddress]) => {
   let dao, payroll, payrollBase, finance, vault, equityTokenManager, DAI, contract
 

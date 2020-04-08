@@ -1,10 +1,9 @@
-const PAYMENT_TYPES = require('../helpers/payment_types')
 const { assertRevert } = require('@aragon/test-helpers/assertThrow')
 const { getEvents, getEventArgument } = require('@aragon/test-helpers/events')
 const { NOW, ONE_MONTH } = require('../helpers/time')
 const { deployContracts, createPayroll } = require('../helpers/deploy')(artifacts, web3)
-const { bn, bigExp, MAX_UINT64, annualSalaryPerSecond, ONE } = require('../helpers/numbers')(web3)
-const { DAI_RATE, exchangedAmount, inverseRate, deployDAI } = require('../helpers/tokens')(artifacts, web3)
+const { bn, MAX_UINT64, annualSalaryPerSecond, ONE } = require('../helpers/numbers')(web3)
+const { DAI_RATE, exchangedAmount, deployDAI } = require('../helpers/tokens')(artifacts, web3)
 
 contract('Payroll employees termination', ([owner, employee, anyone]) => {
   let dao, payroll, payrollBase, finance, vault, DAI, equityTokenManager
