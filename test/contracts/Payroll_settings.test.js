@@ -1,29 +1,37 @@
 const { deployDAI } = require('../helpers/tokens')(artifacts, web3)
-const { getEvents } = require('@aragon/test-helpers/events')
 const { assertRevert } = require('@aragon/test-helpers/assertThrow')
-const { NOW, ONE_MINUTE, RATE_EXPIRATION_TIME } = require('../helpers/time')
+const { NOW } = require('../helpers/time')
 const { deployContracts, createPayroll } = require('../helpers/deploy')(artifacts, web3)
+const { ONE, bn } = require('../helpers/numbers')(web3)
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 
-contract('Payroll settings', ([owner, anyone]) => {
-  let dao, payroll, payrollBase, finance, vault, equityTokenManager, DAI
+contract('Payroll settings', ([owner, nonContractAddress]) => {
+  let dao, payroll, payrollBase, finance, vault, equityTokenManager, DAI, contract
 
   before('deploy base apps and tokens', async () => {
     ({ dao, finance, vault, payrollBase, equityTokenManager } = await deployContracts(owner))
     DAI = await deployDAI(owner, finance)
+    contract = DAI
   })
 
   beforeEach('create payroll', async () => {
     payroll = await createPayroll(dao, payrollBase, owner, NOW)
-    await payroll.initialize(finance.address, DAI.address, equityTokenManager.address, 1, 0, 0, false, { from: owner })
+    await payroll.initialize(finance.address, DAI.address, equityTokenManager.address, ONE, 0, 0, false, { from: owner })
   })
 
-  // setFinance
-  // setDenominationToken
-  // setEquityTokenManager
-  // setEquityMultiplier
-  // setVestingSettings
+  describe('setFinance', () => {
+
+    it('sets correctly', async () => {
+      await payroll.setFinance(contract.address)
+      const newFinance = await payroll.finance()
+      assert.equal(newFinance, contract.address)
+    })
+
+    it('reverts when not contract', async () => {
+      await assertRevert(payroll.setFinance(nonContractAddress), "PAYROLL_FINANCE_NOT_CONTRACT")
+    })
+  })
 
   describe('setDenominationToken', () => {
 
@@ -31,7 +39,56 @@ contract('Payroll settings', ([owner, anyone]) => {
       const DAINew = await deployDAI(owner, finance)
       await payroll.setDenominationToken(DAINew.address)
       const newDenominationToken = await payroll.denominationToken()
-      assert.equal(DAINew.address, newDenominationToken)
+      assert.equal(newDenominationToken, DAINew.address)
+    })
+
+    it('reverts when not contract', async () => {
+      await assertRevert(payroll.setDenominationToken(nonContractAddress), "PAYROLL_DENOMINATION_TOKEN_NOT_CONTRACT")
+    })
+  })
+
+  describe('setEquityTokenManager', () => {
+
+    it('sets correctly', async () => {
+      await payroll.setEquityTokenManager(contract.address)
+      const newEquityTokenManager = await payroll.equityTokenManager()
+      assert.equal(newEquityTokenManager, contract.address)
+    })
+
+    it('reverts when not contract', async () => {
+      await assertRevert(payroll.setEquityTokenManager(nonContractAddress), "PAYROLL_TOKEN_MANAGER_NOT_CONTRACT")
+    })
+  })
+
+  describe('setEquityMultiplier', () => {
+
+    it('sets correctly', async () => {
+      const expectedEquityMultiplier = bn(2000)
+      await payroll.setEquityMultiplier(expectedEquityMultiplier)
+      const newEquityMultiplier = await payroll.equityMultiplier()
+      assert.equal(newEquityMultiplier.toString(), expectedEquityMultiplier.toString())
+    })
+  })
+
+  describe('setVestingSettings', () => {
+
+    it('sets correctly', async () => {
+      const expectedVestingLength = 1000
+      const expectedVestingCliff = 10
+      const expectedVestingRevokable = true
+
+      await payroll.setVestingSettings(expectedVestingLength, expectedVestingCliff, expectedVestingRevokable)
+
+      const vestingLength = await payroll.vestingLength()
+      const vestingCliffLength = await payroll.vestingCliffLength()
+      const vestingRevokable = await payroll.vestingRevokable()
+      assert.equal(vestingLength, expectedVestingLength)
+      assert.equal(vestingCliffLength, expectedVestingCliff)
+      assert.equal(vestingRevokable, expectedVestingRevokable)
+    })
+
+    it('reverts when cliff is greater than length', async () => {
+      await assertRevert(payroll.setVestingSettings(100, 101, false), 'PAYROLL_CLIFF_PERIOD_TOO_HIGH')
     })
   })
 
