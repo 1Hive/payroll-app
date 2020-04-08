@@ -2,7 +2,7 @@ const { assertRevert } = require('@aragon/test-helpers/assertThrow')
 const { getEvents, getEventArgument } = require('@aragon/test-helpers/events')
 const { deployDAI } = require('../helpers/tokens')(artifacts, web3)
 const { NOW, TWO_MONTHS } = require('../helpers/time')
-const { MAX_UINT64, annualSalaryPerSecond } = require('../helpers/numbers')(web3)
+const { MAX_UINT64, annualSalaryPerSecond, ONE } = require('../helpers/numbers')(web3)
 const { deployContracts, createPayroll } = require('../helpers/deploy')(artifacts, web3)
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
@@ -25,7 +25,7 @@ contract('Payroll employees addition', ([owner, employee, anotherEmployee, anyon
 
     context('when it has already been initialized', function () {
       beforeEach('initialize payroll app using USD as denomination token', async () => {
-        await payroll.initialize(finance.address, DAI.address, equityTokenManager.address, 1, 0, 0, false, { from: owner })
+        await payroll.initialize(finance.address, DAI.address, equityTokenManager.address, ONE, 0, 0, false, { from: owner })
       })
 
       context('when the sender has permissions to add employees', () => {

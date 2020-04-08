@@ -1,7 +1,7 @@
 const { assertRevert } = require('@aragon/test-helpers/assertThrow')
 const { getEventArgument } = require('@aragon/test-helpers/events')
 const { annualSalaryPerSecond } = require('../helpers/numbers')(web3)
-const { MAX_UINT256, MAX_UINT64 } = require('../helpers/numbers')(web3)
+const { MAX_UINT256, MAX_UINT64, ONE } = require('../helpers/numbers')(web3)
 const { NOW, ONE_MONTH } = require('../helpers/time')
 const { deployContracts, createPayroll } = require('../helpers/deploy')(artifacts, web3)
 const { deployDAI } = require('../helpers/tokens')(artifacts, web3)
@@ -23,7 +23,7 @@ contract('Payroll employee info', ([owner, employee]) => {
   describe('getEmployee', () => {
     context('when it has already been initialized', () => {
       beforeEach('initialize payroll app using DAI as denomination token', async () => {
-        await payroll.initialize(finance.address, DAI.address, equityTokenManager.address, 1, 0, 0, false, { from: owner })
+        await payroll.initialize(finance.address, DAI.address, equityTokenManager.address, ONE, 0, 0, false, { from: owner })
       })
 
       context('when the given id exists', () => {
@@ -68,7 +68,7 @@ contract('Payroll employee info', ([owner, employee]) => {
   describe('getEmployeeIdByAddress', () => {
     context('when it has already been initialized', () => {
       beforeEach('initialize payroll app using DAI as denomination token', async () => {
-        await payroll.initialize(finance.address, DAI.address, equityTokenManager.address, 1, 0, 0, false, { from: owner })
+        await payroll.initialize(finance.address, DAI.address, equityTokenManager.address, ONE, 0, 0, false, { from: owner })
       })
 
       context('when the given address exists', () => {
@@ -107,7 +107,7 @@ contract('Payroll employee info', ([owner, employee]) => {
   describe('getTotalOwedSalary', () => {
     context('when it has already been initialized', () => {
       beforeEach('initialize payroll app using DAI as denomination token', async () => {
-        await payroll.initialize(finance.address, DAI.address, equityTokenManager.address, 1, 0, 0, false, { from: owner })
+        await payroll.initialize(finance.address, DAI.address, equityTokenManager.address, ONE, 0, 0, false, { from: owner })
       })
 
       context('when the given id exists', () => {

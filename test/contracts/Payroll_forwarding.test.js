@@ -1,7 +1,7 @@
 const { assertRevert } = require('@aragon/test-helpers/assertThrow')
 const { getEventArgument } = require('@aragon/test-helpers/events')
 const { encodeCallScript } = require('@aragon/test-helpers/evmScript')
-const { annualSalaryPerSecond, bn } = require('../helpers/numbers')(web3)
+const { annualSalaryPerSecond, bn, ONE } = require('../helpers/numbers')(web3)
 const { deployDAI } = require('../helpers/tokens')(artifacts, web3)
 const { NOW, ONE_MONTH } = require('../helpers/time')
 const { deployContracts, createPayroll } = require('../helpers/deploy')(artifacts, web3)
@@ -23,7 +23,7 @@ contract('Payroll forwarding', ([owner, employee, anyone]) => {
   describe('isForwarder', () => {
     context('when it has already been initialized', function () {
       beforeEach('initialize payroll app using DAI as denomination token', async () => {
-        await payroll.initialize(finance.address, DAI.address, equityTokenManager.address, 1, 0, 0, false, { from: owner })
+        await payroll.initialize(finance.address, DAI.address, equityTokenManager.address, ONE, 0, 0, false, { from: owner })
       })
 
       it('returns true', async () => {
@@ -41,7 +41,7 @@ contract('Payroll forwarding', ([owner, employee, anyone]) => {
   describe('canForward', () => {
     context('when it has already been initialized', function () {
       beforeEach('initialize payroll app using DAI as denomination token', async () => {
-        await payroll.initialize(finance.address, DAI.address, equityTokenManager.address, 1, 0, 0, false, { from: owner })
+        await payroll.initialize(finance.address, DAI.address, equityTokenManager.address, ONE, 0, 0, false, { from: owner })
       })
 
       context('when the sender is an employee', () => {
@@ -116,7 +116,7 @@ contract('Payroll forwarding', ([owner, employee, anyone]) => {
 
     context('when it has already been initialized', function () {
       beforeEach('initialize payroll app using DAI as denomination token', async () => {
-        await payroll.initialize(finance.address, DAI.address, equityTokenManager.address, 1, 0, 0, false, { from: owner })
+        await payroll.initialize(finance.address, DAI.address, equityTokenManager.address, ONE, 0, 0, false, { from: owner })
       })
 
       context('when the sender is an employee', () => {

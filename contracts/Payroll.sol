@@ -478,8 +478,6 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
         emit TerminateEmployee(_employeeId, _endDate);
     }
 
-    event DEBUG(uint256 into1, uint256 into2, uint256 equityTokenManager);
-
     /**
      * @dev Loop over allowed tokens to send requested amount to the employee in their desired allocation
      * @param _employeeId Employee's identifier

@@ -27,8 +27,7 @@ contract('Payroll employees termination', ([owner, employee, anyone]) => {
   describe('terminateEmployee', () => {
     context('when it has already been initialized', function () {
       beforeEach('initialize payroll app using DAI as denomination token', async () => {
-        await payroll.initialize(finance.address, DAI.address, equityTokenManager.address, 1, 0, 0, false, { from: owner })
-
+        await payroll.initialize(finance.address, DAI.address, equityTokenManager.address, ONE, 0, 0, false, { from: owner })
       })
 
       context('when the given employee id exists', () => {

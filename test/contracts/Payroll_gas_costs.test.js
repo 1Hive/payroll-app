@@ -1,4 +1,3 @@
-const PAYMENT_TYPES = require('../helpers/payment_types')
 const { annualSalaryPerSecond, ONE } = require('../helpers/numbers')(web3)
 const { NOW, ONE_MONTH } = require('../helpers/time')
 const { deployContracts, createPayroll } = require('../helpers/deploy')(artifacts, web3)
@@ -18,7 +17,7 @@ contract('Payroll gas costs', ([owner, employee, anotherEmployee]) => {
 
   describe('gas costs', () => {
     beforeEach('initialize payroll app using DAI as denomination token', async () => {
-      await payroll.initialize(finance.address, DAI.address, equityTokenManager.address, 1, 0, 0, false, { from: owner })
+      await payroll.initialize(finance.address, DAI.address, equityTokenManager.address, ONE, 0, 0, false, { from: owner })
 
       const startDate = NOW - ONE_MONTH
       const salary = annualSalaryPerSecond(100000)
@@ -27,22 +26,22 @@ contract('Payroll gas costs', ([owner, employee, anotherEmployee]) => {
     })
 
     context('when there is only one allowed token', function () {
-      it('expends ~337k gas when requesting all denomination token', async () => {
+      it('expends ~360k gas when requesting all denomination token', async () => {
         await payroll.determineAllocation(ONE, { from: employee })
 
         const { receipt: { cumulativeGasUsed } } = await payroll.payday(0, { from: employee })
 
         console.log('cumulativeGasUsed:', cumulativeGasUsed)
-        assert.isAtMost(cumulativeGasUsed, 337000, 'payout gas cost for a single allowed token should be ~338k')
+        assert.isAtMost(cumulativeGasUsed, 360000, 'payout gas cost for a single allowed token should be ~338k')
       })
 
-      it('expends ~165k gas when requesting all equity', async () => {
+      it('expends ~200k gas when requesting all equity', async () => {
         await payroll.determineAllocation(0, { from: employee })
 
         const { receipt: { cumulativeGasUsed } } = await payroll.payday(0, { from: employee })
 
         console.log('cumulativeGasUsed:', cumulativeGasUsed)
-        assert.isAtMost(cumulativeGasUsed, 165000, 'payout gas cost for a single allowed token should be ~338k')
+        assert.isAtMost(cumulativeGasUsed, 200000, 'payout gas cost for a single allowed token should be ~338k')
       })
     })
   })
