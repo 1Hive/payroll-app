@@ -17,15 +17,20 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
     * bytes32 constant public ADD_EMPLOYEE_ROLE = keccak256("ADD_EMPLOYEE_ROLE");
     * bytes32 constant public TERMINATE_EMPLOYEE_ROLE = keccak256("TERMINATE_EMPLOYEE_ROLE");
     * bytes32 constant public SET_EMPLOYEE_SALARY_ROLE = keccak256("SET_EMPLOYEE_SALARY_ROLE");
+    * bytes32 constant public SET_FINANCE_ROLE = keccak256("SET_FINANCE_ROLE");
+    * bytes32 constant public SET_DENOMINATION_TOKEN_ROLE = keccak256("SET_DENOMINATION_TOKEN_ROLE");
+    * bytes32 constant public SET_TOKEN_MANAGER_ROLE = keccak256("SET_TOKEN_MANAGER_ROLE");
+    * bytes32 constant public SET_EQUITY_MULTIPLIER_ROLE = keccak256("SET_EQUITY_MULTIPLIER_ROLE");
+    * bytes32 constant public SET_VESTING_SETTINGS_ROLE = keccak256("SET_VESTING_SETTINGS_ROLE");
     */
     bytes32 constant public ADD_EMPLOYEE_ROLE = 0x9ecdc3c63716b45d0756eece5fe1614cae1889ec5a1ce62b3127c1f1f1615d6e;
     bytes32 constant public TERMINATE_EMPLOYEE_ROLE = 0x69c67f914d12b6440e7ddf01961214818d9158fbcb19211e0ff42800fdea9242;
     bytes32 constant public SET_EMPLOYEE_SALARY_ROLE = 0xea9ac65018da2421cf419ee2152371440c08267a193a33ccc1e39545d197e44d;
-    bytes32 constant public SET_FINANCE_ROLE = keccak256("SET_FINANCE_ROLE");
-    bytes32 constant public SET_DENOMINATION_TOKEN_ROLE = keccak256("SET_DENOMINATION_TOKEN_ROLE");
-    bytes32 constant public SET_TOKEN_MANAGER_ROLE = keccak256("SET_TOKEN_MANAGER_ROLE");
-    bytes32 constant public SET_EQUITY_MULTIPLIER_ROLE = keccak256("SET_EQUITY_MULTIPLIER_ROLE");
-    bytes32 constant public SET_VESTING_SETTINGS_ROLE = keccak256("SET_VESTING_SETTINGS_ROLE");
+    bytes32 constant public SET_FINANCE_ROLE = 0x5026a6e66f4418c66689fcfd2b8afe59a2f6bfe3317e3a9ab89a34c742f58481;
+    bytes32 constant public SET_DENOMINATION_TOKEN_ROLE = 0x7e31e6ead72e2d442b946a10ea17b8f55e7aa331f4397c0ef9bb7cf00abdc9f3;
+    bytes32 constant public SET_TOKEN_MANAGER_ROLE = 0x6376e9f03a2a03710fd0134497368b6bb4d6a15f1fab7cecd6ed82366e318479;
+    bytes32 constant public SET_EQUITY_MULTIPLIER_ROLE = 0x1a2a8572fcd2e802a78554c0a218d475e852fab7051e3a39b9de79a7055cee02;
+    bytes32 constant public SET_VESTING_SETTINGS_ROLE = 0x96e4b399ec15809e119d6ead21b968877eb64b6827bd573b712290b0936caaf9;
 
     uint64 public constant PCT_BASE = 10 ** 18; // 0% = 0; 1% = 10^16; 100% = 10^18
 
