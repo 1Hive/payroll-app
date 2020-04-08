@@ -25,7 +25,7 @@ contract MaliciousEmployee {
     }
 
     function determineAllocation(address[] _tokens, uint256[] _distribution) public {
-        payroll.determineAllocation(_tokens, _distribution);
+//        payroll.determineAllocation(_tokens, _distribution);
     }
 
     function reenter() public {
@@ -46,7 +46,7 @@ contract MaliciousEmployee {
             distribution[0] = 100;
             uint256[] memory minRates = new uint256[](1);
             minRates[0] = 1e18;
-            payroll.determineAllocation(tokens, distribution);
+//            payroll.determineAllocation(tokens, distribution);
         }
     }
 }
