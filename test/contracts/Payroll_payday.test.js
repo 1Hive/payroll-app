@@ -573,32 +573,6 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                       })
 
                       it('can be called multiple times between periods of time', async () => {
-
-
-                        // // terminate employee in the future to ensure we can request payroll multiple times
-                        // await payroll.terminateEmployee(employeeId, NOW + TWO_MONTHS + TWO_MONTHS, { from: owner })
-                        //
-                        // const previousDAI = await DAI.balanceOf(employee)
-                        // const previousANT = await ANT.balanceOf(employee)
-                        //
-                        // await payroll.payday(requestedAmount, { from })
-                        //
-                        // const newOwedAmount = salary.mul(ONE_MONTH)
-                        // const newDAIAmount = exchangedAmountLocal(newOwedAmount, allocationDAI)
-                        // const newANTAmount = exchangedAmountLocal(newOwedAmount, allocationANT)
-                        //
-                        // await increaseTime(ONE_MONTH)
-                        // await payroll.payday(newOwedAmount, { from })
-                        //
-                        // const currentDAI = await DAI.balanceOf(employee)
-                        // const expectedDAI = previousDAI.plus(requestedDAI).plus(newDAIAmount)
-                        // assert.equal(currentDAI.toString(), expectedDAI.toString(), 'current DAI balance does not match')
-                        //
-                        // const currentANT = await ANT.balanceOf(employee)
-                        // const expectedANT = previousANT.plus(requestedANT).plus(newANTAmount)
-                        // assert.equal(currentANT.toString(), expectedANT.toString(), 'current ANT balance does not match')
-                        //
-
                         // terminate employee in the future to ensure we can request payroll multiple times
                         await payroll.terminateEmployee(employeeId, NOW + TWO_MONTHS + TWO_MONTHS, { from: owner })
 
@@ -621,14 +595,6 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                     }
 
                     const assertEmployeeIsUpdated = (requestedAmount, minRates = []) => {
-
-                      // address accountAddress,
-                      //   uint256 denominationSalary,
-                      //   uint256 accruedSalary,
-                      //   uint64 lastPayroll,
-                      //   uint64 endDate,
-                      //   uint256 denominationTokenAllocation
-
 
                       it('updates the employee accounting', async () => {
                         const timeDiff = 1 // should be bn(requestedAmount).div(salary).ceil() but BN cannot represent such a small number, hardcoding it to 1
