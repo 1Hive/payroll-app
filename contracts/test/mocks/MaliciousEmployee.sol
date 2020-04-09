@@ -9,6 +9,7 @@ contract MaliciousEmployee {
     Action public action;
     Payroll public payroll;
     uint256 public counter;
+    uint256 public distribution;
 
     enum Action { Payday, ChangeAddress }
 
@@ -20,12 +21,13 @@ contract MaliciousEmployee {
         action = _action;
     }
 
-    function payday() public {
-        payroll.payday(0);
+    function payday(uint256 _distribution) public {
+        distribution = _distribution;
+        payroll.payday(_distribution, 0, "");
     }
 
     function determineAllocation(uint256 _distribution) public {
-        payroll.determineAllocation(_distribution);
+//        payroll.determineAllocation(_distribution);
     }
 
     function reenter() public {
@@ -36,7 +38,7 @@ contract MaliciousEmployee {
         counter++;
 
         if (action == Action.Payday) {
-            payroll.payday(0);
+            payroll.payday(distribution, 0, "");
         } else if (action == Action.ChangeAddress) {
             payroll.changeAddressByEmployee(msg.sender);
         }
