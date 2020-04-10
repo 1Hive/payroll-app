@@ -36,14 +36,13 @@ contract('Payroll employee info', ([owner, employee]) => {
         })
 
         it('adds a new employee', async () => {
-          const [address, employeeSalary, accruedSalary, lastPayroll, endDate, denominationTokenAllocation] = await payroll.getEmployee(employeeId)
+          const [address, employeeSalary, accruedSalary, lastPayroll, endDate] = await payroll.getEmployee(employeeId)
 
           assert.equal(address, employee, 'employee address does not match')
           assert.equal(employeeSalary.toString(), salary.toString(), 'employee salary does not match')
           assert.equal(accruedSalary.toString(), 0, 'employee accrued salary does not match')
           assert.equal(lastPayroll.toString(), (await currentTimestamp()).toString(), 'employee last payroll does not match')
           assert.equal(endDate.toString(), MAX_UINT64, 'employee end date does not match')
-          assert.equal(denominationTokenAllocation.toString(), 0, 'employee denominationTokenAllocation does not match')
         })
       })
 

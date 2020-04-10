@@ -27,18 +27,14 @@ contract('Payroll gas costs', ([owner, employee, anotherEmployee]) => {
 
     context('when there is only one allowed token', function () {
       it('expends ~360k gas when requesting all denomination token', async () => {
-        await payroll.determineAllocation(ONE, { from: employee })
-
-        const { receipt: { cumulativeGasUsed } } = await payroll.payday(0, { from: employee })
+        const { receipt: { cumulativeGasUsed } } = await payroll.payday(ONE, -1, "", { from: employee })
 
         console.log('cumulativeGasUsed:', cumulativeGasUsed)
         assert.isAtMost(cumulativeGasUsed, 360000, 'payout gas cost for a single allowed token should be ~338k')
       })
 
       it('expends ~200k gas when requesting all equity', async () => {
-        await payroll.determineAllocation(0, { from: employee })
-
-        const { receipt: { cumulativeGasUsed } } = await payroll.payday(0, { from: employee })
+        const { receipt: { cumulativeGasUsed } } = await payroll.payday(0, -1, "", { from: employee })
 
         console.log('cumulativeGasUsed:', cumulativeGasUsed)
         assert.isAtMost(cumulativeGasUsed, 200000, 'payout gas cost for a single allowed token should be ~338k')

@@ -79,13 +79,12 @@ contract('Payroll employees addition', ([owner, employee, anotherEmployee, anyon
                 assert.equal(event.startDate.toString(), startDate, 'employee start date does not match')
                 assert.equal(event.role, anotherRole, 'employee role does not match')
 
-                const [address, employeeSalary, accruedSalary, lastPayroll, endDate, denominationTokenAllocation] = await payroll.getEmployee(anotherEmployeeId)
+                const [address, employeeSalary, accruedSalary, lastPayroll, endDate] = await payroll.getEmployee(anotherEmployeeId)
                 assert.equal(address, anotherEmployee, 'employee address does not match')
                 assert.equal(employeeSalary.toString(), anotherSalary.toString(), 'employee salary does not match')
                 assert.equal(accruedSalary.toString(), 0, 'employee accrued salary does not match')
                 assert.equal(lastPayroll.toString(), startDate.toString(), 'employee last payroll does not match')
                 assert.equal(endDate.toString(), MAX_UINT64, 'employee end date does not match')
-                assert.equal(denominationTokenAllocation.toString(), 0, 'employee denominationTokenAllocation does not match')
               })
             })
 

@@ -36,8 +36,6 @@ contract('Payroll reentrancy guards', ([owner]) => {
     beforeEach('add malicious employee, set tokens allocations, and accrue some salary', async () => {
       await employee.setPayroll(payroll.address)
       await payroll.addEmployee(employee.address, annualSalaryPerSecond(100000), await payroll.getTimestampPublic(), 'Malicious Boss', { from: owner })
-
-      await employee.determineAllocation(ONE)
       await increaseTime(ONE_MONTH)
     })
 
@@ -48,7 +46,7 @@ contract('Payroll reentrancy guards', ([owner]) => {
 
       it('reverts', async () => {
         // If reentered directly the error would be REENTRANCY_REENTRANT_CALL. However, the error message received
-        // is that which occurs the highest in the call stack, which in this case is in the Vault.
+        // is that which occurs the highest in the call stack, which in this case is in a call from the Vault.
         await assertRevert(employee.payday(), 'VAULT_TOKEN_TRANSFER_REVERTED')
       })
     })
@@ -60,7 +58,7 @@ contract('Payroll reentrancy guards', ([owner]) => {
 
       it('reverts', async () => {
         // If reentered directly the error would be REENTRANCY_REENTRANT_CALL. However, the error message received
-        // is that which occurs the highest in the call stack, which in this case is in the Vault.
+        // is that which occurs the highest in the call stack, which in this case is in a call from the Vault.
         await assertRevert(employee.payday(), 'VAULT_TOKEN_TRANSFER_REVERTED')
       })
     })

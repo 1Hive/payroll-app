@@ -21,13 +21,8 @@ contract MaliciousEmployee {
         action = _action;
     }
 
-    function payday(uint256 _distribution) public {
-        distribution = _distribution;
-        payroll.payday(_distribution, 0, "");
-    }
-
-    function determineAllocation(uint256 _distribution) public {
-//        payroll.determineAllocation(_distribution);
+    function payday() public {
+        payroll.payday(10**18, -1, "");
     }
 
     function reenter() public {

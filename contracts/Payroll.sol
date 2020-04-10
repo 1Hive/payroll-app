@@ -312,7 +312,7 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
 
         // Reset accrued salary when payday is called
         employee.accruedSalary = 0;
-        employee.lastPayroll = getTimestamp64();
+        employee.lastPayroll = employee.endDate < getTimestamp64() ? employee.endDate : getTimestamp64();
 
         // Actually transfer the owed funds
         require(_transferTokensAmount(employeeId, paymentAmount, _denominationTokenAllocation, _metaData), ERROR_NOTHING_PAID);
