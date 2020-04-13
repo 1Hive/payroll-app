@@ -19,9 +19,10 @@
     "@aragon/ppf-contracts": "^1.2.0"
   },
   "devDependencies": {
-    "@aragon/buidler-aragon": "^0.1.0",
+    "@aragon/buidler-aragon": "^0.2.0",
     "@aragon/test-helpers": "^2.1.0",
     "@nomiclabs/buidler": "^1.0.2",
+    "@nomiclabs/buidler-etherscan": "^1.2.0",
     "@nomiclabs/buidler-truffle5": "^1.1.2",
     "@nomiclabs/buidler-web3": "^1.1.2",
     "bignumber.js": "^9.0.0",

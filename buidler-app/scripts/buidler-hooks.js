@@ -1,118 +1,78 @@
-const { getNewProxyAddress } = require("@aragon/test-helpers/events");
+let anyAcc
+let accounts
+let finance
+let tokens
+let vault
+let token1, token2, token3
 
-let appManager, user, anyAcc;
-
-let acl;
-let priceFeed, finance;
-let token1, token2, token3;
-
-// namehas(vault.aragonpm.eth)
-const vaultAppId =
-  "0xce74f3ee34b4d8bb871ec3628e2c57e30f1df24679790b7b6338e457554c5439";
-// namehas(finance.aragonpm.eth)
-const financeAppId =
-  "0x7e852e0fcfce6551c13800f1e7476f982525c2b5277ba14b24339c68416336d1";
-
-const ANY_ENTITY = "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF";
-
-const USD = "0xFFFfFfffffFFFFFFFfffFFFFFffffFfFfFAAaCbB"; // USD identifier
-const ONE_MONTH = 60 * 60 * 24 * 31;
-const TWO_MONTHS = ONE_MONTH * 2;
-const RATE_EXPIRATION_TIME = TWO_MONTHS;
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 
 module.exports = {
-  postDao: async function({ dao }, bre) {
-    await _getAccounts(bre.web3);
+  postDao: async function({ _experimentalAppInstaller, log }, bre) {
+    const periodDuration = 60 * 60 * 24 * 30 // 30 days
+    const bigExp = (x, y) =>
+      bre.web3.utils
+        .toBN(x)
+        .mul(bre.web3.utils.toBN(10).pow(bre.web3.utils.toBN(y)))
+    const pct16 = x => bigExp(x, 16)
 
-    // Get ACL
-    acl = await bre.artifacts.require("ACL").at(await dao.acl());
+    // Retrieve accounts.
+    accounts = await bre.web3.eth.getAccounts()
 
-    await _installFinance(dao, bre);
-    console.log(`> Finance app proxy installed: ${finance.address}`);
+    vault = await _experimentalAppInstaller('vault')
+    log(`> Vault app installed: ${vault.address}`)
 
-    await _deployTokens(bre.artifacts);
+    finance = await _experimentalAppInstaller('finance', {
+      initializeArgs: [vault.address, periodDuration],
+    })
+    log(`Installed finance: ${finance.address}`)
+
+    // Deploy a minime token an generate tokens to root account
+    const minime = await _deployMinimeToken(bre)
+    await minime.generateTokens(accounts[1], pct16(10))
+    log(`> Minime token deployed: ${minime.address}`)
+
+    tokens = await _experimentalAppInstaller('token-manager', {
+      skipInitialize: true,
+    })
+
+    await minime.changeController(tokens.address)
+    log(`> Change minime controller to tokens app`)
+    await tokens.initialize([minime.address, true, 0])
+    log(`> Tokens app installed: ${tokens.address}`)
+
+    await finance.createPermission('CREATE_PAYMENTS_ROLE', tokens.address)
+    log(`> CREATE_PAYMENTS_ROLE assigned to ${tokens.address}`)
+
+    await _deployTokens(bre.artifacts)
     // await _depositTokens(); TODO: fix, not working yet
   },
 
-  preInit: async function({}, bre) {
-    priceFeed = await _deployContract(bre.artifacts, "PriceFeedMock");
+  preInit: async function({ proxy, log }, bre) {
+    await vault.createPermission('TRANSFER_ROLE', proxy.address)
+    log(`> TRANSFER_ROLE assigned to ${proxy.address}`)
+  },
+  postInit: async function({ proxy, log }, bre) {
+    await finance.createPermission('CREATE_PAYMENTS_ROLE', proxy.address)
+    log(`> CREATE_PAYMENTS_ROLE assigned to ${proxy.address}`)
+    await tokens.createPermission('MINT_ROLE', proxy.address)
+    log(`> MINT_ROLE assigned to ${proxy.address}`)
   },
 
   getInitParams: async function({}, bre) {
-    return [finance.address, USD, priceFeed.address, RATE_EXPIRATION_TIME];
-  }
-};
-
-async function _installFinance(dao, bre) {
-  // Get bases and roles
-  const vaultBase = await _deployContract(bre.artifacts, "Vault");
-  const TRANSFER_ROLE = await vaultBase.TRANSFER_ROLE();
-  const financeBase = await _deployContract(bre.artifacts, "Finance");
-  const CREATE_PAYMENTS_ROLE = await financeBase.CREATE_PAYMENTS_ROLE();
-
-  // Create proxies and permissions
-  const financeReceipt = await dao.newAppInstance(
-    financeAppId,
-    financeBase.address,
-    "0x",
-    false,
-    { from: appManager }
-  );
-  finance = await bre.artifacts
-    .require("Finance")
-    .at(getNewProxyAddress(financeReceipt));
-  await acl.createPermission(
-    ANY_ENTITY,
-    finance.address,
-    CREATE_PAYMENTS_ROLE,
-    appManager,
-    { from: appManager }
-  );
-
-  const vaultReceipt = await dao.newAppInstance(
-    vaultAppId,
-    vaultBase.address,
-    "0x",
-    false,
-    { from: appManager }
-  );
-  const vault = await bre.artifacts
-    .require("Vault")
-    .at(getNewProxyAddress(vaultReceipt));
-  await acl.createPermission(
-    finance.address,
-    vault.address,
-    TRANSFER_ROLE,
-    appManager,
-    { from: appManager }
-  );
-
-  // Initialize
-  await vault.initialize();
-  await finance.initialize(vault.address, ONE_MONTH);
-}
-
-async function _deployContract(artifacts, contractName) {
-  const contractArtifact = artifacts.require(contractName);
-
-  contractInstance = await contractArtifact.new({ from: appManager });
-  console.log(`> ${contractName} deployed: ${contractInstance.address}`);
-  return contractInstance;
-}
-
-async function _getAccounts(web3) {
-  [appManager, user, anyAcc] = await web3.eth.getAccounts();
+    return [finance.address, token1.address, tokens.address, 4, 0, 0, true]
+  },
 }
 
 async function _deployTokens(artifacts) {
-  token1 = await _deployToken("token1", "TK1", 1, 4500, anyAcc, artifacts);
-  console.log(`> Token1 deployed: ${token1.address}`);
+  token1 = await _deployToken('token1', 'TK1', 1, 4500, ZERO_ADDRESS, artifacts)
+  console.log(`> Token1 deployed: ${token1.address}`)
 
-  token2 = await _deployToken("token2", "TK2", 1, 4500, anyAcc, artifacts);
-  console.log(`> Token2 deployed: ${token2.address}`);
+  token2 = await _deployToken('token2', 'TK2', 1, 4500, ZERO_ADDRESS, artifacts)
+  console.log(`> Token2 deployed: ${token2.address}`)
 
-  token3 = await _deployToken("token3", "TK3", 1, 4500, anyAcc, artifacts);
-  console.log(`> Token3 deployed: ${token3.address}`);
+  token3 = await _deployToken('token3', 'TK3', 1, 4500, ZERO_ADDRESS, artifacts)
+  console.log(`> Token3 deployed: ${token3.address}`)
 }
 
 async function _deployToken(
@@ -123,29 +83,25 @@ async function _deployToken(
   fromAccount,
   artifacts
 ) {
-  const ERC20 = artifacts.require("ERC20Mock");
+  const ERC20 = artifacts.require('ERC20Mock')
 
   return ERC20.new(tokenName, tokenSymbol, decimals, initialSupply, {
-    from: fromAccount
-  });
+    from: fromAccount,
+  })
 }
 
-// async function _depositTokens() {
-//   await token1.approve(finance.address, 2000, { from: appManager });
-//   await finance.deposit(token1.address, 2000, "Initial deployment", {
-//     from: appManager
-//   });
-//   console.log(`> Deposit 2000 tk1 on finance.`);
-
-//   await token2.approve(finance.address, 1000, { from: appManager });
-//   await finance.deposit(token2.address, 1000, "Initial deployment", {
-//     from: appManager
-//   });
-//   console.log(`> Deposit 1000 tk2 on finance.`);
-
-//   await token3.approve(finance.address, 3000, { from: appManager });
-//   await finance.deposit(token3.address, 3000, "Initial deployment", {
-//     from: appManager
-//   });
-//   console.log(`> Deposit 3000 tk3 on finance.`);
-// }
+async function _deployMinimeToken(bre) {
+  const MiniMeTokenFactory = await bre.artifacts.require('MiniMeTokenFactory')
+  const MiniMeToken = await bre.artifacts.require('MiniMeToken')
+  const factory = await MiniMeTokenFactory.new()
+  const token = await MiniMeToken.new(
+    factory.address,
+    ZERO_ADDRESS,
+    0,
+    'MiniMe Test Token',
+    18,
+    'MMT',
+    true
+  )
+  return token
+}
