@@ -10,6 +10,7 @@
     "test": "buidler test --network buidlerevm"
   },
   "dependencies": {
+    "@aragon/abis": "^1.1.0",
     "@aragon/apps-finance": "^3.0.0",
     "@aragon/apps-shared-migrations": "^1.0.0",
     "@aragon/apps-shared-minime": "^1.0.2",

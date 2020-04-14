@@ -1,9 +1,8 @@
-let anyAcc
 let accounts
 let finance
 let tokens
 let vault
-let token1, token2, token3
+let token1
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 
@@ -41,18 +40,14 @@ module.exports = {
     await tokens.initialize([minime.address, true, 0])
     log(`> Tokens app installed: ${tokens.address}`)
 
-    await finance.createPermission('CREATE_PAYMENTS_ROLE', tokens.address)
-    log(`> CREATE_PAYMENTS_ROLE assigned to ${tokens.address}`)
-
     await _deployTokens(bre.artifacts)
-    // await _depositTokens(); TODO: fix, not working yet
   },
 
-  preInit: async function({ proxy, log }, bre) {
+  preInit: async function({ proxy, log }, bre) {},
+
+  postInit: async function({ proxy, log }, bre) {
     await vault.createPermission('TRANSFER_ROLE', proxy.address)
     log(`> TRANSFER_ROLE assigned to ${proxy.address}`)
-  },
-  postInit: async function({ proxy, log }, bre) {
     await finance.createPermission('CREATE_PAYMENTS_ROLE', proxy.address)
     log(`> CREATE_PAYMENTS_ROLE assigned to ${proxy.address}`)
     await tokens.createPermission('MINT_ROLE', proxy.address)
@@ -60,19 +55,26 @@ module.exports = {
   },
 
   getInitParams: async function({}, bre) {
-    return [finance.address, token1.address, tokens.address, 4, 0, 0, true]
+    const equityMultiplier = 4
+    const vestingLength = 0
+    const vestingCliffLength = 0
+    const vestingRevokable = true
+
+    return [
+      finance.address,
+      token1.address,
+      tokens.address,
+      equityMultiplier,
+      vestingLength,
+      vestingCliffLength,
+      vestingRevokable,
+    ]
   },
 }
 
 async function _deployTokens(artifacts) {
-  token1 = await _deployToken('token1', 'TK1', 1, 4500, ZERO_ADDRESS, artifacts)
+  token1 = await _deployToken('token1', 'TK1', 1, 4500, accounts[0], artifacts)
   console.log(`> Token1 deployed: ${token1.address}`)
-
-  token2 = await _deployToken('token2', 'TK2', 1, 4500, ZERO_ADDRESS, artifacts)
-  console.log(`> Token2 deployed: ${token2.address}`)
-
-  token3 = await _deployToken('token3', 'TK3', 1, 4500, ZERO_ADDRESS, artifacts)
-  console.log(`> Token3 deployed: ${token3.address}`)
 }
 
 async function _deployToken(
