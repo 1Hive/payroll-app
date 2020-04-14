@@ -15,7 +15,6 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
 
   before('deploy base apps and tokens', async () => {
     ({ dao, finance, vault, payrollBase, equityTokenManager, equityToken: ANT } = await deployContracts(owner))
-    // ANT = await deployANT(owner, finance) // TODO: Replace with equityToken
     DAI = await deployDAI(owner, finance)
   })
 
