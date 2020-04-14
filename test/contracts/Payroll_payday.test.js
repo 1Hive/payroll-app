@@ -32,9 +32,29 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
       context('when the sender is an employee', () => {
         let employeeId
         const from = employee
+        const allocationDAI = 80
+        const allocationANT = 20
+        const allocationDAIBn = bigExp(allocationDAI, 16)
 
         function exchangedAmountLocal(amount, tokenAllocation) {
           return amount.mul(tokenAllocation).div(bn(100)).trunc()
+        }
+
+        const assertTransfersRequestedSalary = async (requestedDAI, requestedANT, requestedAmount) => {
+          const previousDAI = await DAI.balanceOf(employee)
+          const previousANT = await ANT.balanceOf(employee)
+
+          await payroll.payday(allocationDAIBn, requestedAmount, "", { from })
+
+          const currentDAI = await DAI.balanceOf(employee)
+          const expectedDAI = previousDAI.plus(requestedDAI);
+
+          assert.equal(currentDAI.toString(), expectedDAI.toString(), 'current DAI balance does not match')
+
+          const currentANT = await ANT.balanceOf(employee)
+          const expectedANT = previousANT.plus(requestedANT)
+
+          assert.equal(currentANT.toString(), expectedANT.toString(), 'current ANT balance does not match')
         }
 
         context('when the employee has a reasonable salary', () => {
@@ -46,37 +66,20 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
           })
 
           context('when the employee has already set a token allocation', () => {
-            const allocationDAI = 80
-            const allocationANT = 20
-            const allocationDAIBn = bigExp(allocationDAI, 16)
-
             const assertTransferredAmounts = (requestedAmount, expectedRequestedAmount = requestedAmount) => {
 
               const requestedDAI = exchangedAmountLocal(expectedRequestedAmount, allocationDAI) // 80%
               const requestedANT = expectedRequestedAmount.sub(requestedDAI) // 20%
 
               it('transfers the requested salary amount', async () => {
-                const previousDAI = await DAI.balanceOf(employee)
-                const previousANT = await ANT.balanceOf(employee)
-
-                await payroll.payday(allocationDAIBn, requestedAmount, "", { from })
-
-                const currentDAI = await DAI.balanceOf(employee)
-                const expectedDAI = previousDAI.plus(requestedDAI);
-
-                assert.equal(currentDAI.toString(), expectedDAI.toString(), 'current DAI balance does not match')
-
-                const currentANT = await ANT.balanceOf(employee)
-                const expectedANT = previousANT.plus(requestedANT)
-
-                assert.equal(currentANT.toString(), expectedANT.toString(), 'current ANT balance does not match')
+                await assertTransfersRequestedSalary(requestedDAI, requestedANT, requestedAmount)
               })
 
               it('emits correct event', async () => {
                 const receipt = await payroll.payday(allocationDAIBn, requestedAmount, "", { from })
 
-                assertAmountOfEvents(receipt, 'SendPayment', 1)
-                const events = getEvents(receipt, 'SendPayment')
+                assertAmountOfEvents(receipt, 'Payday', 1)
+                const events = getEvents(receipt, 'Payday')
 
                 const eventDAI = events.find(e => e.args.token === DAI.address).args
                 assert.equal(eventDAI.employeeId.toString(), employeeId.toString(), 'employee id does not match')
@@ -147,17 +150,13 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
               })
             }
 
-            const itHandlesPayrollProperly = (requestedAmount, expectedRequestedAmount) => {
-                assertTransferredAmounts(requestedAmount, expectedRequestedAmount)
-                assertEmployeeIsUpdatedCorrectly(requestedAmount, expectedRequestedAmount)
-            }
-
-            const itHandlesPayrollProperlyNeverthelessExtrasOwedAmounts = (requestedAmount, totalOwedAmount) => {
-              const expectedRequestedAmount = requestedAmount.eq(-1) ? totalOwedAmount : requestedAmount
+            const itHandlesPayrollProperly = (requestedAmount, totalOwedAmount) => {
+              const expectedRequestedAmount = requestedAmount.lt(0) ? totalOwedAmount : requestedAmount
 
               context('when the employee is not terminated', () => {
-                  itHandlesPayrollProperly(requestedAmount, expectedRequestedAmount)
-                })
+                assertTransferredAmounts(requestedAmount, expectedRequestedAmount)
+                assertEmployeeIsUpdatedCorrectly(requestedAmount, expectedRequestedAmount)
+              })
 
               context('when the employee is terminated', () => {
                   beforeEach('terminate employee', async () => {
@@ -180,30 +179,40 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                   await increaseTime(ONE_MONTH)
                 })
 
-                context('when the requested amount is zero', () => {
+                context('when the requested amount is negative', () => {
                   const requestedAmount = bn(-1)
 
-                  itHandlesPayrollProperlyNeverthelessExtrasOwedAmounts(requestedAmount, currentOwedSalary)
+                  itHandlesPayrollProperly(requestedAmount, currentOwedSalary)
+                })
+
+                context('when the requested amount is large negative', () => {
+                  const requestedAmount = bn(-99999)
+
+                  itHandlesPayrollProperly(requestedAmount, currentOwedSalary)
+                })
+
+                context('when the requested amount is 0', () => {
+                  const requestedAmount = bn(0)
+
+                  itHandlesPayrollProperly(requestedAmount, currentOwedSalary)
                 })
 
                 context('when the requested amount is lower than the total owed salary', () => {
                   context('when the requested amount represents less than a second of the earnings', () => {
                     const requestedAmount = salary.div(2).floor()
 
-                    itHandlesPayrollProperlyNeverthelessExtrasOwedAmounts(requestedAmount, currentOwedSalary)
+                    itHandlesPayrollProperly(requestedAmount, currentOwedSalary)
                   })
 
                   context('when the requested amount represents more than a second of the earnings', () => {
                     const requestedAmount = currentOwedSalary.div(2).ceil()
 
-                    itHandlesPayrollProperlyNeverthelessExtrasOwedAmounts(requestedAmount, currentOwedSalary)
+                    itHandlesPayrollProperly(requestedAmount, currentOwedSalary)
                   })
                 })
 
                 context('when the requested amount is equal to the total owed salary', () => {
-                  const requestedAmount = currentOwedSalary
-
-                  itHandlesPayrollProperlyNeverthelessExtrasOwedAmounts(requestedAmount, currentOwedSalary)
+                  itHandlesPayrollProperly(currentOwedSalary, currentOwedSalary)
                 })
 
                 context('when the requested amount is greater than the total owed salary', () => {
@@ -214,23 +223,6 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                   })
                 })
 
-                const assertBasicTransferredAmounts = async (requestedDAI, requestedANT) => {
-                  const previousDAI = await DAI.balanceOf(employee)
-                  const previousANT = await ANT.balanceOf(employee)
-
-                  await payroll.payday(allocationDAIBn, currentOwedSalary, "", { from })
-
-                  const currentDAI = await DAI.balanceOf(employee)
-                  const expectedDAI = previousDAI.plus(requestedDAI);
-
-                  assert.equal(currentDAI.toString(), expectedDAI.toString(), 'current DAI balance does not match')
-
-                  const currentANT = await ANT.balanceOf(employee)
-                  const expectedANT = previousANT.plus(requestedANT)
-
-                  assert.equal(currentANT.toString(), expectedANT.toString(), 'current ANT balance does not match')
-                }
-
                 context('when the equityMultiplier is not equal to one', () => {
 
                   it('transfers the requested salary amount when the equityMultiplier is two', async () => {
@@ -238,7 +230,7 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                     const requestedANT = (currentOwedSalary.sub(requestedDAI)).mul(bn(2)) // 20% * 2
 
                     await payroll.setEquityMultiplier(bigExp(2, 18))
-                    await assertBasicTransferredAmounts(requestedDAI, requestedANT)
+                    await assertTransfersRequestedSalary(requestedDAI, requestedANT, currentOwedSalary)
                   })
 
                   it('transfers the requested salary amount when the equityMultiplier is a half', async () => {
@@ -246,7 +238,7 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                     const requestedANT = (currentOwedSalary.sub(requestedDAI)).div(bn(2)) // 20% * 0.5
 
                     await payroll.setEquityMultiplier(bigExp(50, 16))
-                    await assertBasicTransferredAmounts(requestedDAI, requestedANT)
+                    await assertTransfersRequestedSalary(requestedDAI, requestedANT, currentOwedSalary)
                   })
 
                   it('transfers the requested salary amount when the equityMultiplier is zero', async () => {
@@ -254,7 +246,7 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                     const requestedANT = 0 // 20% * 0
 
                     await payroll.setEquityMultiplier(bn(0))
-                    await assertBasicTransferredAmounts(requestedDAI, requestedANT)
+                    await assertTransfersRequestedSalary(requestedDAI, requestedANT, currentOwedSalary)
                   })
                 })
 
@@ -268,7 +260,7 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                     const previousVestings = await equityTokenManager.vestingsLengths(employee)
                     const timeAtPayday = await payroll.getTimestampPublic()
 
-                    await assertBasicTransferredAmounts(requestedDAI, requestedANT)
+                    await assertTransfersRequestedSalary(requestedDAI, requestedANT, currentOwedSalary)
 
                     const accountVestings = await equityTokenManager.vestingsLengths(employee)
                     const expectedVestings = previousVestings.plus(bn(1))
@@ -300,7 +292,7 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                   const requestedAmount = bigExp(100, 18)
 
                   it('reverts', async () => {
-                    await assertRevert(payroll.payday(allocationDAIBn, requestedAmount, "", { from }), 'PAYROLL_NOTHING_PAID')
+                    await assertRevert(payroll.payday(allocationDAIBn, requestedAmount, "", { from }), 'PAYROLL_NO_SALARY')
                   })
                 })
 
@@ -308,7 +300,15 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                   const requestedAmount = bn(0)
 
                   it('reverts', async () => {
-                    await assertRevert(payroll.payday(allocationDAIBn, requestedAmount, "", { from }), 'PAYROLL_NOTHING_PAID')
+                    await assertRevert(payroll.payday(allocationDAIBn, requestedAmount, "", { from }), 'PAYROLL_NO_SALARY')
+                  })
+                })
+
+                context('when the requested amount is negative', () => {
+                  const requestedAmount = bn(-1)
+
+                  it('reverts', async () => {
+                    await assertRevert(payroll.payday(allocationDAIBn, requestedAmount, "", { from }), 'PAYROLL_NO_SALARY')
                   })
                 })
               })
@@ -341,18 +341,25 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                   await increaseTime(ONE_MONTH)
                 })
 
-                context('when the requested amount is zero', () => {
+                context('when the requested amount is negative', () => {
                   const requestedAmount = bn(-1)
 
-                  itHandlesPayrollProperlyNeverthelessExtrasOwedAmounts(requestedAmount, totalOwedSalary)
-                  itHandlesRemainingAccruedSalaryCorrectly(requestedAmount, bn(-1))
+                  itHandlesPayrollProperly(requestedAmount, totalOwedSalary)
+                  itHandlesRemainingAccruedSalaryCorrectly(requestedAmount, requestedAmount)
+                })
+
+                context('when the requested amount is zero', () => {
+                  const requestedAmount = bn(0)
+
+                  itHandlesPayrollProperly(requestedAmount, totalOwedSalary)
+                  itHandlesRemainingAccruedSalaryCorrectly(requestedAmount, requestedAmount)
                 })
 
                 context('when the requested amount is lower than the previous owed salary', () => {
                   const remainingAmount = bn(10)
                   const requestedAmount = previousOwedSalary.minus(remainingAmount)
 
-                  itHandlesPayrollProperlyNeverthelessExtrasOwedAmounts(requestedAmount, totalOwedSalary)
+                  itHandlesPayrollProperly(requestedAmount, totalOwedSalary)
                   itHandlesRemainingAccruedSalaryCorrectly(requestedAmount)
                 })
 
@@ -360,7 +367,7 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                   const remainingAmount = bn(1)
                   const requestedAmount = previousOwedSalary.plus(salary).minus(remainingAmount)
 
-                  itHandlesPayrollProperlyNeverthelessExtrasOwedAmounts(requestedAmount, totalOwedSalary)
+                  itHandlesPayrollProperly(requestedAmount, totalOwedSalary)
 
                   // We're requesting all of the accrued salary and just under one second of salary,
                   // so we should get the remaining bit left over
@@ -371,7 +378,7 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                   const extraAmount = bn(1)
                   const requestedAmount = previousOwedSalary.plus(salary).plus(extraAmount)
 
-                  itHandlesPayrollProperlyNeverthelessExtrasOwedAmounts(requestedAmount, totalOwedSalary)
+                  itHandlesPayrollProperly(requestedAmount, totalOwedSalary)
 
                   // We move the salary up a second, so we should get one full second of salary
                   // minus the extra amount left over
@@ -381,7 +388,7 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                 context('when the requested amount is equal to the total owed salary', () => {
                   const requestedAmount = totalOwedSalary
 
-                  itHandlesPayrollProperlyNeverthelessExtrasOwedAmounts(requestedAmount, totalOwedSalary)
+                  itHandlesPayrollProperly(requestedAmount, totalOwedSalary)
                 })
 
                 context('when the requested amount is greater than the total owed salary', () => {
@@ -394,22 +401,28 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
               })
 
               context('when the employee does not have pending salary', () => {
-                context('when the requested amount is zero', () => {
+                context('when the requested amount is negative', () => {
                   const requestedAmount = bn(-1)
 
-                  itHandlesPayrollProperlyNeverthelessExtrasOwedAmounts(requestedAmount, previousOwedSalary)
+                  itHandlesPayrollProperly(requestedAmount, previousOwedSalary)
+                })
+
+                context('when the requested amount is zero', () => {
+                  const requestedAmount = bn(0)
+
+                  itHandlesPayrollProperly(requestedAmount, previousOwedSalary)
                 })
 
                 context('when the requested amount is lower than the previous owed salary', () => {
                   const requestedAmount = previousOwedSalary.div(2).floor()
 
-                  itHandlesPayrollProperlyNeverthelessExtrasOwedAmounts(requestedAmount, previousOwedSalary)
+                  itHandlesPayrollProperly(requestedAmount, previousOwedSalary)
                 })
 
                 context('when the requested amount is equal to the previous owed salary', () => {
                   const requestedAmount = previousOwedSalary
 
-                  itHandlesPayrollProperlyNeverthelessExtrasOwedAmounts(requestedAmount, previousOwedSalary)
+                  itHandlesPayrollProperly(requestedAmount, previousOwedSalary)
                 })
 
                 context('when the requested amount is greater than the previous owed salary', () => {
@@ -425,19 +438,16 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
         })
 
         context('when the employee does not have a reasonable salary', () => {
+
           const itReverts = (requestedAmount, reason) => {
             it('reverts', async () => {
               await assertRevert(payroll.payday(bigExp(80, 16), requestedAmount, "", { from }), reason)
             })
           }
 
-          const itRevertsHandlingExpiredRates = (requestedAmount, nonExpiredRatesReason, expiredRatesReason) => {
-            itReverts(requestedAmount, nonExpiredRatesReason)
-          }
-
-          const itRevertsToWithdrawPartialPayroll = (requestedAmount, nonExpiredRatesReason, expiredRatesReason) => {
+          const itRevertsToWithdrawPartialPayroll = (requestedAmount, nonExpiredRatesReason) => {
             context('when the employee is not terminated', () => {
-              itRevertsHandlingExpiredRates(requestedAmount, nonExpiredRatesReason, expiredRatesReason)
+              itReverts(requestedAmount, nonExpiredRatesReason)
             })
 
             context('when the employee is terminated', () => {
@@ -445,7 +455,7 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                 await payroll.terminateEmployee(employeeId, await payroll.getTimestampPublic(), { from: owner })
               })
 
-              itRevertsHandlingExpiredRates(requestedAmount, nonExpiredRatesReason, expiredRatesReason)
+              itReverts(requestedAmount, nonExpiredRatesReason)
             })
           }
 
@@ -457,41 +467,43 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
               employeeId = getEventArgument(receipt, 'AddEmployee', 'employeeId')
             })
 
-            const itRevertsAnyAttemptToWithdrawPartialPayroll = revertReason => {
-              context('when the employee has some pending salary', () => {
-                beforeEach('accumulate some pending salary', async () => {
-                  await increaseTime(ONE_MONTH)
-                })
-
-                context('when the requested amount is greater than zero', () => {
-                  const requestedAmount = bigExp(10000, 18)
-
-                  itRevertsToWithdrawPartialPayroll(requestedAmount, revertReason, revertReason)
-                })
-
-                context('when the requested amount is negative', () => {
-                  const requestedAmount = bn(-1)
-
-                  itRevertsToWithdrawPartialPayroll(requestedAmount, revertReason, revertReason)
-                })
+            context('when the employee has some pending salary', () => {
+              beforeEach('accumulate some pending salary', async () => {
+                await increaseTime(ONE_MONTH)
               })
 
-              context('when the employee does not have pending salary', () => {
-                context('when the requested amount is greater than zero', () => {
-                  const requestedAmount = bigExp(1000, 18)
+              context('when the requested amount is zero', () => {
+                const requestedAmount = bn(0)
 
-                  itRevertsToWithdrawPartialPayroll(requestedAmount, revertReason, revertReason)
-                })
-
-                context('when the requested amount is negative', () => {
-                  const requestedAmount = bn(-1)
-
-                  itRevertsToWithdrawPartialPayroll(requestedAmount, revertReason, revertReason)
-                })
+                itRevertsToWithdrawPartialPayroll(requestedAmount, 'PAYROLL_NO_SALARY')
               })
-            }
 
-            itRevertsAnyAttemptToWithdrawPartialPayroll('PAYROLL_NOTHING_PAID')
+              context('when the requested amount is greater than zero', () => {
+                const requestedAmount = bigExp(10000, 18)
+
+                itRevertsToWithdrawPartialPayroll(requestedAmount, 'PAYROLL_NO_SALARY')
+              })
+
+              context('when the requested amount is negative', () => {
+                const requestedAmount = bn(-1)
+
+                itRevertsToWithdrawPartialPayroll(requestedAmount, 'PAYROLL_NO_SALARY')
+              })
+            })
+
+            context('when the employee does not have pending salary', () => {
+              context('when the requested amount is greater than zero', () => {
+                const requestedAmount = bigExp(1000, 18)
+
+                itRevertsToWithdrawPartialPayroll(requestedAmount, 'PAYROLL_NO_SALARY')
+              })
+
+              context('when the requested amount is negative', () => {
+                const requestedAmount = bn(-1)
+
+                itRevertsToWithdrawPartialPayroll(requestedAmount, 'PAYROLL_NO_SALARY')
+              })
+            })
           })
 
           context('when the employee has a huge salary', () => {
@@ -502,172 +514,164 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
               employeeId = getEventArgument(receipt, 'AddEmployee', 'employeeId')
             })
 
-            context('when the employee has already set the token allocation', () => {
-              const allocationDAI = 80
-              const allocationDaiBn = bigExp(allocationDAI, 16)
+            context('when the employee has some pending salary', () => {
+              const owedSalary = MAX_UINT256
 
-              context('when the employee has some pending salary', () => {
-                const owedSalary = MAX_UINT256
+              const itHandlesPayrollNeverthelessTheAccruedSalary = () => {
+                context('when the requested amount is max', () => {
+                  const requestedAmount = bn(-1)
 
-                const itHandlesPayrollNeverthelessTheAccruedSalary = () => {
-                  context('when the requested amount is negative', () => {
-                    const requestedAmount = bn(-1)
+                  itRevertsToWithdrawPartialPayroll(requestedAmount, 'MATH_MUL_OVERFLOW')
+                })
 
-                    itRevertsToWithdrawPartialPayroll(requestedAmount, 'MATH_MUL_OVERFLOW', 'PAYROLL_EXCHANGE_RATE_TOO_LOW')
-                  })
+                context('when the requested amount is lower than the total owed salary', () => {
+                  const requestedAmount = bigExp(1000, 18)
 
-                  context('when the requested amount is lower than the total owed salary', () => {
-                    const requestedAmount = bigExp(1000, 18)
+                  const assertTransferredAmounts = (requestedAmount) => {
+                    const requestedDAI = exchangedAmountLocal(requestedAmount, allocationDAI) // 80%
+                    const requestedANT = requestedAmount.sub(requestedDAI) // 20%
 
-                    const assertTransferredAmounts = (requestedAmount) => {
-                      // const requestedDAI = exchangedAmount(requestedAmount, DAI_RATE, allocationDAI)
-                      // const requestedANT = exchangedAmount(requestedAmount, ANT_RATE, allocationANT)
+                    it('transfers the requested salary amount', async () => {
+                      await assertTransfersRequestedSalary(requestedDAI, requestedANT, requestedAmount)
+                    })
 
-                      const requestedDAI = exchangedAmountLocal(requestedAmount, allocationDAI) // 80%
-                      const requestedANT = requestedAmount.sub(requestedDAI) // 20%
+                    it('emits correct event', async () => {
+                      const receipt = await payroll.payday(allocationDAIBn, requestedAmount, "", { from })
 
-                      it('transfers the requested salary amount', async () => {
-                        const previousDAI = await DAI.balanceOf(employee)
-                        const previousANT = await ANT.balanceOf(employee)
+                      assertAmountOfEvents(receipt, 'Payday', 1)
+                      const events = getEvents(receipt, 'Payday')
 
-                        await payroll.payday(allocationDaiBn, requestedAmount, "", { from })
+                      const eventDAI = events.find(e => e.args.token === DAI.address).args
+                      assert.equal(eventDAI.employeeId.toString(), employeeId.toString(), 'employee id does not match')
+                      assert.equal(eventDAI.accountAddress, employee, 'employee address does not match')
+                      assert.equal(eventDAI.token, DAI.address, 'DAI address does not match')
+                      assert.equal(eventDAI.denominationAmount.toString(), requestedDAI.toString(), 'DAI payment amount does not match')
+                      assert.equal(eventDAI.equityAmount.toString(), requestedANT.toString(), 'ANT payment amount does not match')
+                      assert.equal(eventDAI.metaData, "", 'MetaData does not match')
+                    })
 
-                        const currentDAI = await DAI.balanceOf(employee)
-                        const expectedDAI = previousDAI.plus(requestedDAI)
-                        assert.equal(currentDAI.toString(), expectedDAI.toString(), 'current DAI balance does not match')
+                    it('can be called multiple times between periods of time', async () => {
+                      // terminate employee in the future to ensure we can request payroll multiple times
+                      await payroll.terminateEmployee(employeeId, NOW + TWO_MONTHS + TWO_MONTHS, { from: owner })
 
-                        const currentANT = await ANT.balanceOf(employee)
-                        const expectedANT = previousANT.plus(requestedANT)
-                        assert.equal(currentANT.toString(), expectedANT.toString(), 'current ANT balance does not match')
+                      const previousDAI = await DAI.balanceOf(employee)
+                      const previousANT = await ANT.balanceOf(employee)
+
+                      await payroll.payday(allocationDAIBn, requestedAmount, "", { from })
+
+                      await increaseTime(ONE_MONTH)
+                      await payroll.payday(allocationDAIBn, requestedAmount, "", { from })
+
+                      const currentDAI = await DAI.balanceOf(employee)
+                      const expectedDAI = previousDAI.plus(requestedDAI.mul(2))
+                      assert.equal(currentDAI.toString(), expectedDAI.toString(), 'current DAI balance does not match')
+
+                      const currentANT = await ANT.balanceOf(employee)
+                      const expectedANT = previousANT.plus(requestedANT.mul(2))
+                      assert.equal(currentANT.toString(), expectedANT.toString(), 'current ANT balance does not match')
+                    })
+                  }
+
+                  const assertEmployeeIsUpdated = (requestedAmount, minRates = []) => {
+
+                    it('updates the employee accounting', async () => {
+                      const timeAtPayday = await payroll.getTimestampPublic()
+                      await payroll.payday(allocationDAIBn, requestedAmount, "", { from })
+
+                      const [, , accruedSalary, lastPayrollDate] = (await payroll.getEmployee(employeeId))
+                      assert.equal(accruedSalary.toString(), 0, 'accrued salary does not match')
+                      assert.equal(lastPayrollDate.toString(), timeAtPayday.toString(), 'last payroll date does not match')
+                    })
+
+                    it('does not remove the employee', async () => {
+                      await payroll.payday(allocationDAIBn, requestedAmount, "", { from })
+
+                      const [address, employeeSalary] = await payroll.getEmployee(employeeId)
+
+                      assert.equal(address, employee, 'employee address does not match')
+                      assert.equal(employeeSalary.toString(), salary.toString())
+                    })
+                  }
+
+                  const itHandlesPayrollProperly = requestedAmount => {
+                      assertTransferredAmounts(requestedAmount)
+                      assertEmployeeIsUpdated(requestedAmount)
+                  }
+
+                  context('when the employee does not have pending reimbursements', () => {
+                    context('when the employee is not terminated', () => {
+                      itHandlesPayrollProperly(requestedAmount)
+                    })
+
+                    context('when the employee is terminated', () => {
+                      beforeEach('terminate employee', async () => {
+                        await payroll.terminateEmployee(employeeId, await payroll.getTimestampPublic(), { from: owner })
                       })
 
-                      it('emits correct event', async () => {
-                        const receipt = await payroll.payday(allocationDaiBn, requestedAmount, "", { from })
-
-                        assertAmountOfEvents(receipt, 'SendPayment', 1)
-                        const events = getEvents(receipt, 'SendPayment')
-
-                        const eventDAI = events.find(e => e.args.token === DAI.address).args
-                        assert.equal(eventDAI.employeeId.toString(), employeeId.toString(), 'employee id does not match')
-                        assert.equal(eventDAI.accountAddress, employee, 'employee address does not match')
-                        assert.equal(eventDAI.token, DAI.address, 'DAI address does not match')
-                        assert.equal(eventDAI.denominationAmount.toString(), requestedDAI.toString(), 'DAI payment amount does not match')
-                        assert.equal(eventDAI.equityAmount.toString(), requestedANT.toString(), 'ANT payment amount does not match')
-                        assert.equal(eventDAI.metaData, "", 'MetaData does not match')
-                      })
-
-                      it('can be called multiple times between periods of time', async () => {
-                        // terminate employee in the future to ensure we can request payroll multiple times
-                        await payroll.terminateEmployee(employeeId, NOW + TWO_MONTHS + TWO_MONTHS, { from: owner })
-
-                        const previousDAI = await DAI.balanceOf(employee)
-                        const previousANT = await ANT.balanceOf(employee)
-
-                        await payroll.payday(allocationDaiBn, requestedAmount, "", { from })
-
-                        await increaseTime(ONE_MONTH)
-                        await payroll.payday(allocationDaiBn, requestedAmount, "", { from })
-
-                        const currentDAI = await DAI.balanceOf(employee)
-                        const expectedDAI = previousDAI.plus(requestedDAI.mul(2))
-                        assert.equal(currentDAI.toString(), expectedDAI.toString(), 'current DAI balance does not match')
-
-                        const currentANT = await ANT.balanceOf(employee)
-                        const expectedANT = previousANT.plus(requestedANT.mul(2))
-                        assert.equal(currentANT.toString(), expectedANT.toString(), 'current ANT balance does not match')
-                      })
-                    }
-
-                    const assertEmployeeIsUpdated = (requestedAmount, minRates = []) => {
-
-                      it('updates the employee accounting', async () => {
-                        const timeAtPayday = await payroll.getTimestampPublic()
-                        await payroll.payday(allocationDaiBn, requestedAmount, "", { from })
-
-                        const [, , accruedSalary, lastPayrollDate] = (await payroll.getEmployee(employeeId))
-                        assert.equal(accruedSalary.toString(), 0, 'accrued salary does not match')
-                        assert.equal(lastPayrollDate.toString(), timeAtPayday.toString(), 'last payroll date does not match')
-                      })
-
-                      it('does not remove the employee', async () => {
-                        await payroll.payday(allocationDaiBn, requestedAmount, "", { from })
-
-                        const [address, employeeSalary] = await payroll.getEmployee(employeeId)
-
-                        assert.equal(address, employee, 'employee address does not match')
-                        assert.equal(employeeSalary.toString(), salary.toString())
-                      })
-                    }
-
-                    const itHandlesPayrollProperly = requestedAmount => {
+                      it('removes the employee', async () => {
                         assertTransferredAmounts(requestedAmount)
-                        assertEmployeeIsUpdated(requestedAmount)
-                    }
-
-                    context('when the employee does not have pending reimbursements', () => {
-                      context('when the employee is not terminated', () => {
-                        itHandlesPayrollProperly(requestedAmount)
-                      })
-
-                      context('when the employee is terminated', () => {
-                        beforeEach('terminate employee', async () => {
-                          await payroll.terminateEmployee(employeeId, await payroll.getTimestampPublic(), { from: owner })
-                        })
-
-                        it('removes the employee', async () => {
-                          assertTransferredAmounts(requestedAmount)
-                          await payroll.payday(allocationDaiBn, requestedAmount, "", { from })
-                          await assertRevert(payroll.getEmployee(employeeId), 'PAYROLL_EMPLOYEE_DOESNT_EXIST')
-                        })
+                        await payroll.payday(allocationDAIBn, requestedAmount, "", { from })
+                        await assertRevert(payroll.getEmployee(employeeId), 'PAYROLL_EMPLOYEE_DOESNT_EXIST')
                       })
                     })
                   })
-
-                  context('when the requested amount is equal to the total owed salary', () => {
-                    const requestedAmount = owedSalary
-
-                    itRevertsToWithdrawPartialPayroll(requestedAmount, 'MATH_MUL_OVERFLOW', 'PAYROLL_EXCHANGE_RATE_TOO_LOW')
-                  })
-                }
-
-                context('when the employee does not have accrued salary', () => {
-                  beforeEach('accumulate some pending salary', async () => {
-                    await increaseTime(ONE_MONTH)
-                  })
-
-                  itHandlesPayrollNeverthelessTheAccruedSalary()
                 })
 
-                context('when the employee has accrued salary', () => {
-                  beforeEach('accrue some salary', async () => {
-                    // accrue 100 USD of salary
-                    const previousSalary = bigExp(1, 18)
-                    await payroll.setEmployeeSalary(employeeId, previousSalary, { from: owner })
-                    await increaseTime(100)
+                context('when the requested amount is equal to the total owed salary', () => {
+                  itRevertsToWithdrawPartialPayroll(owedSalary, 'MATH_MUL_OVERFLOW')
+                })
 
-                    // accumulate 1 month of payroll
-                    await payroll.setEmployeeSalary(employeeId, salary, { from: owner })
-                    await increaseTime(ONE_MONTH)
+                context('when the equityMultiplier is two', () => {
+                  itReverts(owedSalary, 'MATH_MUL_OVERFLOW')
+                })
+
+                context('when vesting is enabled', () => {
+
+                  beforeEach('enable vesting', async () => {
+                    await payroll.setVestingSettings(100, 50, false);
                   })
 
-                  itHandlesPayrollNeverthelessTheAccruedSalary()
+                  itReverts(owedSalary, 'MATH_MUL_OVERFLOW')
                 })
+              }
+
+              context('when the employee does not have accrued salary', () => {
+                beforeEach('accumulate some pending salary', async () => {
+                  await increaseTime(ONE_MONTH)
+                })
+
+                itHandlesPayrollNeverthelessTheAccruedSalary()
               })
 
-              context('when the employee does not have pending salary', () => {
+              context('when the employee has accrued salary', () => {
+                beforeEach('accrue some salary', async () => {
+                  // accrue 100 USD of salary
+                  const previousSalary = bigExp(1, 18)
+                  await payroll.setEmployeeSalary(employeeId, previousSalary, { from: owner })
+                  await increaseTime(100)
+
+                  // accumulate 1 month of payroll
+                  await payroll.setEmployeeSalary(employeeId, salary, { from: owner })
+                  await increaseTime(ONE_MONTH)
+                })
+
+                itHandlesPayrollNeverthelessTheAccruedSalary()
+              })
+            })
+
+            context('when the employee does not have pending salary', () => {
                 context('when the requested amount is greater than zero', () => {
                   const requestedAmount = bigExp(100, 18)
 
-                  itRevertsToWithdrawPartialPayroll(requestedAmount, 'PAYROLL_NOTHING_PAID', 'PAYROLL_NOTHING_PAID')
+                  itRevertsToWithdrawPartialPayroll(requestedAmount, 'PAYROLL_NO_SALARY')
                 })
 
                 context('when the requested amount is negative', () => {
                   const requestedAmount = bn(-1)
 
-                  itRevertsToWithdrawPartialPayroll(requestedAmount, 'PAYROLL_NOTHING_PAID', 'PAYROLL_NOTHING_PAID')
+                  itRevertsToWithdrawPartialPayroll(requestedAmount, 'PAYROLL_NO_SALARY')
                 })
               })
-            })
 
           })
         })
@@ -675,21 +679,29 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
 
       context('when the sender is not an employee', () => {
         const from = anyone
-        const allocationDaiBn = bigExp(80, 16)
+        const allocationDAIBn = bigExp(80, 16)
 
         context('when the requested amount is greater than zero', () => {
           const requestedAmount = bigExp(1000, 18)
 
           it('reverts', async () => {
-            await assertRevert(payroll.payday(allocationDaiBn, requestedAmount, "", { from }), 'PAYROLL_SENDER_DOES_NOT_MATCH')
+            await assertRevert(payroll.payday(allocationDAIBn, requestedAmount, "", { from }), 'PAYROLL_SENDER_DOES_NOT_MATCH')
           })
         })
 
         context('when the requested amount is zero', () => {
+          const requestedAmount = bn(0)
+
+          it('reverts', async () => {
+            await assertRevert(payroll.payday(allocationDAIBn, requestedAmount, "", { from }), 'PAYROLL_SENDER_DOES_NOT_MATCH')
+          })
+        })
+
+        context('when the requested amount is negative', () => {
           const requestedAmount = bn(-1)
 
           it('reverts', async () => {
-            await assertRevert(payroll.payday(allocationDaiBn, requestedAmount, "", { from }), 'PAYROLL_SENDER_DOES_NOT_MATCH')
+            await assertRevert(payroll.payday(allocationDAIBn, requestedAmount, "", { from }), 'PAYROLL_SENDER_DOES_NOT_MATCH')
           })
         })
       })
@@ -697,10 +709,10 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
 
   context('when it has not been initialized yet', () => {
     const requestedAmount = bn(-1)
-    const allocationDaiBn = bigExp(80, 16)
+    const allocationDAIBn = bigExp(80, 16)
 
     it('reverts', async () => {
-      await assertRevert(payroll.payday(allocationDaiBn, requestedAmount, "", { from: employee }), 'PAYROLL_SENDER_DOES_NOT_MATCH')
+      await assertRevert(payroll.payday(allocationDAIBn, requestedAmount, "", { from: employee }), 'PAYROLL_SENDER_DOES_NOT_MATCH')
     })
   })
 })

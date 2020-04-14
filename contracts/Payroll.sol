@@ -47,11 +47,11 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
     string private constant ERROR_TOKEN_MANAGER_NOT_CONTRACT = "PAYROLL_TOKEN_MANAGER_NOT_CONTRACT";
     string private constant ERROR_DENOMINATION_TOKEN_NOT_CONTRACT = "PAYROLL_DENOMINATION_TOKEN_NOT_CONTRACT";
     string private constant ERROR_DENOMINATION_TOKEN_TOO_HIGH = "PAYROLL_DENOMINATION_TOKEN_TOO_HIGH";
-    string private constant ERROR_NOTHING_PAID = "PAYROLL_NOTHING_PAID";
     string private constant ERROR_CAN_NOT_FORWARD = "PAYROLL_CAN_NOT_FORWARD";
     string private constant ERROR_EMPLOYEE_NULL_ADDRESS = "PAYROLL_EMPLOYEE_NULL_ADDRESS";
     string private constant ERROR_EMPLOYEE_ALREADY_EXIST = "PAYROLL_EMPLOYEE_ALREADY_EXIST";
     string private constant ERROR_PAST_TERMINATION_DATE = "PAYROLL_PAST_TERMINATION_DATE";
+    string private constant ERROR_NO_SALARY = "PAYROLL_NO_SALARY";
     string private constant ERROR_INVALID_REQUESTED_AMOUNT = "PAYROLL_INVALID_REQUESTED_AMT";
 
     struct Employee {
@@ -86,7 +86,7 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
     event SetEmployeeSalary(uint256 indexed employeeId, uint256 denominationSalary);
     event AddEmployeeAccruedSalary(uint256 indexed employeeId, uint256 amount);
     event ChangeAddressByEmployee(uint256 indexed employeeId, address indexed newAccountAddress, address indexed oldAccountAddress);
-    event SendPayment(
+    event Payday(
         uint256 indexed employeeId,
         address indexed accountAddress,
         address indexed token,
@@ -297,26 +297,30 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
         uint256 employeeId = employeeIds[msg.sender];
         Employee storage employee = employees[employeeId];
 
-        // Do internal employee accounting
         // Salary is capped here to avoid reverting at this point if it becomes too big
         // (so employees aren't DDOSed if their salaries get too large)
-        // If we do use a capped value, the employee's lastPayroll date will be adjusted accordingly
+        // If we do use a capped value, the employee's lastPayroll date will still be reset to now
         uint256 totalOwedSalary = _getTotalOwedCappedSalary(employee);
+        require(totalOwedSalary > 0, ERROR_NO_SALARY);
+
         if (_requestedAmount >= 0) {
             paymentAmount = uint256(_requestedAmount);
         } else {
             paymentAmount = totalOwedSalary;
         }
-        require(totalOwedSalary > 0, ERROR_NOTHING_PAID);
         require(totalOwedSalary >= paymentAmount, ERROR_INVALID_REQUESTED_AMOUNT);
 
-        // Reset accrued salary when payday is called
+        // Reset available salary to zero
         employee.accruedSalary = 0;
         employee.lastPayroll = employee.endDate < getTimestamp64() ? employee.endDate : getTimestamp64();
 
-        // Actually transfer the owed funds
-        require(_transferTokensAmount(employeeId, paymentAmount, _denominationTokenAllocation, _metaData), ERROR_NOTHING_PAID);
+        // Transfer the owed funds
+        if (paymentAmount > 0) {
+            (uint256 denominationTokenAmount, uint256 equityTokenAmount) = _transferTokensAmount(employeeId, paymentAmount, _denominationTokenAllocation, _metaData);
+        }
         _removeEmployeeIfTerminatedAndPaidOut(employeeId);
+
+        emit Payday(employeeId, employee.accountAddress, denominationToken, denominationTokenAmount, equityTokenAmount, _metaData);
     }
 
     // Forwarding fns
@@ -477,35 +481,32 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
      * @param _metaData A reference to some details regarding this payment.
      * @return True if there was at least one token transfer
      */
-    function _transferTokensAmount(uint256 _employeeId, uint256 _totalAmount, uint256 _denominationTokenAllocation, string _metaData) internal returns (bool somethingPaid) {
-        if (_totalAmount == 0) {
-            return false;
-        }
-
+    function _transferTokensAmount(uint256 _employeeId, uint256 _totalAmount, uint256 _denominationTokenAllocation, string _metaData)
+    internal
+    returns (uint256, uint256)
+    {
         Employee storage employee = employees[_employeeId];
-        address employeeAddress = employee.accountAddress;
 
         uint256 denominationTokenAmount = _totalAmount.mul(_denominationTokenAllocation).div(PCT_BASE);
         uint256 equityTokenAmount = (_totalAmount.sub(denominationTokenAmount)).mul(equityMultiplier).div(PCT_BASE);
 
         if (denominationTokenAmount > 0) {
             // Finance reverts if the payment wasn't possible
-            finance.newImmediatePayment(denominationToken, employeeAddress, denominationTokenAmount, PAYMENT_REFERENCE);
+            finance.newImmediatePayment(denominationToken, employee.accountAddress, denominationTokenAmount, PAYMENT_REFERENCE);
         }
 
         if (equityTokenAmount > 0) {
             if (vestingLength > 0) {
                 uint64 vestingCliffTime = getTimestamp64().add(vestingCliffLength);
                 uint64 vestingEnd = getTimestamp64().add(vestingLength);
-                equityTokenManager.assignVested(employeeAddress, equityTokenAmount, getTimestamp64(),
+                equityTokenManager.assignVested(employee.accountAddress, equityTokenAmount, getTimestamp64(),
                     vestingCliffTime, vestingEnd, vestingRevokable);
             } else {
-                equityTokenManager.mint(employeeAddress, equityTokenAmount);
+                equityTokenManager.mint(employee.accountAddress, equityTokenAmount);
             }
         }
 
-        emit SendPayment(_employeeId, employeeAddress, denominationToken, denominationTokenAmount, equityTokenAmount, _metaData);
-        return true;
+        return (denominationTokenAmount, equityTokenAmount);
     }
 
     /**
