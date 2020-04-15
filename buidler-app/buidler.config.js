@@ -20,6 +20,9 @@ module.exports = {
       runs: 10000,
     },
   },
+  gasReporter: {
+    enabled: process.env.GAS_REPORTER ? true : false,
+  },
   aragon: {
     appServePort: 3001,
     clientServePort: 3000,

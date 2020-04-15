@@ -1,14 +1,11 @@
 let accounts
-let finance
-let tokens
-let vault
-let token1
+let finance, tokens, vault
+let token
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 
 module.exports = {
   postDao: async function({ _experimentalAppInstaller, log }, bre) {
-    const periodDuration = 60 * 60 * 24 * 30 // 30 days
     const bigExp = (x, y) =>
       bre.web3.utils
         .toBN(x)
@@ -22,13 +19,16 @@ module.exports = {
     log(`> Vault app installed: ${vault.address}`)
 
     finance = await _experimentalAppInstaller('finance', {
-      initializeArgs: [vault.address, periodDuration],
+      initializeArgs: [
+        vault.address, 
+        60 * 60 * 24 * 30 // 30 days
+      ],
     })
-    log(`Installed finance: ${finance.address}`)
+    log(`> Finance app installed: ${finance.address}`)
 
     // Deploy a minime token an generate tokens to root account
-    const minime = await _deployMinimeToken(bre)
-    await minime.generateTokens(accounts[1], pct16(10))
+    const minime = await deployMinimeToken(bre)
+    await minime.generateTokens(accounts[0], pct16(100))
     log(`> Minime token deployed: ${minime.address}`)
 
     tokens = await _experimentalAppInstaller('token-manager', {
@@ -40,10 +40,8 @@ module.exports = {
     await tokens.initialize([minime.address, true, 0])
     log(`> Tokens app installed: ${tokens.address}`)
 
-    await _deployTokens(bre.artifacts)
+    await deployTokens(bre.artifacts)
   },
-
-  preInit: async function({ proxy, log }, bre) {},
 
   postInit: async function({ proxy, log }, bre) {
     await vault.createPermission('TRANSFER_ROLE', proxy.address)
@@ -62,7 +60,7 @@ module.exports = {
 
     return [
       finance.address,
-      token1.address,
+      token.address,
       tokens.address,
       equityMultiplier,
       vestingLength,
@@ -72,12 +70,12 @@ module.exports = {
   },
 }
 
-async function _deployTokens(artifacts) {
-  token1 = await _deployToken('token1', 'TK1', 1, 4500, accounts[0], artifacts)
-  console.log(`> Token1 deployed: ${token1.address}`)
+async function deployTokens(artifacts) {
+  token = await deployToken('token', 'TKN', 1, 4500, accounts[0], artifacts)
+  console.log(`> ERC20 token deployed: ${token.address}`)
 }
 
-async function _deployToken(
+async function deployToken(
   tokenName,
   tokenSymbol,
   decimals,
@@ -92,15 +90,13 @@ async function _deployToken(
   })
 }
 
-async function _deployMinimeToken(bre) {
-  const MiniMeTokenFactory = await bre.artifacts.require('MiniMeTokenFactory')
+async function deployMinimeToken(bre) {
   const MiniMeToken = await bre.artifacts.require('MiniMeToken')
-  const factory = await MiniMeTokenFactory.new()
   const token = await MiniMeToken.new(
-    factory.address,
+    ZERO_ADDRESS,
     ZERO_ADDRESS,
     0,
-    'MiniMe Test Token',
+    'MiniMe Token',
     18,
     'MMT',
     true
