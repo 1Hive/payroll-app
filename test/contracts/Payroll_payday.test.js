@@ -444,9 +444,9 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
             })
           }
 
-          const itRevertsToWithdrawPartialPayroll = (requestedAmount, nonExpiredRatesReason) => {
+          const itRevertsToWithdrawPartialPayroll = (requestedAmount, noSalaryReason) => {
             context('when the employee is not terminated', () => {
-              itReverts(requestedAmount, nonExpiredRatesReason)
+              itReverts(requestedAmount, noSalaryReason)
             })
 
             context('when the employee is terminated', () => {
@@ -454,7 +454,7 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                 await payroll.terminateEmployee(employeeId, await payroll.getTimestampPublic(), { from: owner })
               })
 
-              itReverts(requestedAmount, nonExpiredRatesReason)
+              itReverts(requestedAmount, noSalaryReason)
             })
           }
 
@@ -571,7 +571,7 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                     })
                   }
 
-                  const assertEmployeeIsUpdated = (requestedAmount, minRates = []) => {
+                  const assertEmployeeIsUpdated = (requestedAmount) => {
 
                     it('updates the employee accounting', async () => {
                       const timeAtPayday = await payroll.getTimestampPublic()
@@ -621,6 +621,11 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                 })
 
                 context('when the equityMultiplier is two', () => {
+
+                  beforeEach('set multiplier', async () => {
+                    await payroll.setEquityMultiplier(bigExp(2, 18))
+                  })
+
                   itReverts(owedSalary, 'MATH_MUL_OVERFLOW')
                 })
 

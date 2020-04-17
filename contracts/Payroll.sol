@@ -279,9 +279,8 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
     }
 
     /**
-     * @notice Request your `_type == 0 ? 'salary' : _type == 1 ? 'reimbursements' : 'bonus'`
-     * @dev Reverts if no payments were made.
-     *      Initialization check is implicitly provided by `employeeMatches` as new employees can
+     * @notice Request `@formatPct(_denominationTokenAllocation)`% of `@tokenAmount(self.denominationToken(), _requestedAmount)` of your salary and the rest as equity
+     * @dev Initialization check is implicitly provided by `employeeMatches` as new employees can
      *      only be added via `addEmployee(),` which requires initialization.
      *      As the employee is allowed to call this, we enforce non-reentrancy.
      * @param _denominationTokenAllocation The percent of payment expected in the denomination token, the rest is
@@ -316,7 +315,7 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
 
         // Transfer the owed funds
         if (paymentAmount > 0) {
-            (uint256 denominationTokenAmount, uint256 equityTokenAmount) = _transferTokensAmount(employeeId, paymentAmount, _denominationTokenAllocation, _metaData);
+            (uint256 denominationTokenAmount, uint256 equityTokenAmount) = _transferTokensAmount(employeeId, paymentAmount, _denominationTokenAllocation);
         }
         _removeEmployeeIfTerminatedAndPaidOut(employeeId);
 
@@ -473,15 +472,14 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
     }
 
     /**
-     * @dev Loop over allowed tokens to send requested amount to the employee in their desired allocation
+     * @dev Transfer denomination and equity tokens to employee dependant on requested allocation.
      * @param _employeeId Employee's identifier
      * @param _totalAmount Total amount to be transferred to the employee distributed in accordance to the employee's token allocation.
      * @param _denominationTokenAllocation The percent of payment expected in the denomination token, the rest is
             expected in the equity token. 0% = 0; 1% = 10^16; 100% = 10^18
-     * @param _metaData A reference to some details regarding this payment.
      * @return True if there was at least one token transfer
      */
-    function _transferTokensAmount(uint256 _employeeId, uint256 _totalAmount, uint256 _denominationTokenAllocation, string _metaData)
+    function _transferTokensAmount(uint256 _employeeId, uint256 _totalAmount, uint256 _denominationTokenAllocation)
     internal
     returns (uint256, uint256)
     {
