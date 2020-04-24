@@ -7,7 +7,9 @@ const MiniMeToken = artifacts.require('MiniMeToken.sol')
 
 const ANY_ADDRESS = '0xffffffffffffffffffffffffffffffffffffffff'
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
-const bigExp = (number, decimals) => new BN(number).mul(new BN(10).pow(new BN(decimals)))
+
+const bn = x => new web3.BigNumber(x)
+const bigExp = (number, decimals) => bn(number).mul(bn(10).pow(bn(decimals)))
 
 const getLog = (receipt, logName, argName) => {
   const log = receipt.logs.find(({ event }) => event === logName)
@@ -42,24 +44,24 @@ contract('TokenManager', ([appManager, user]) => {
     await token.transfer(tokenManager.address, 10000)
   })
 
-  it('gas usage of transfer() less than 117100', async () => {
+  it('gas usage of transfer() less than 143k', async () => {
     const transferReceipt = await token.transfer(user, bigExp(1, 18))
     const gasUsed = transferReceipt.receipt.gasUsed
     console.log(`Gas used: ${gasUsed}`)
-    assert.isBelow(gasUsed, 117100)
+    assert.isBelow(gasUsed, 143000)
   })
 
-  it('gas usage of transfer() with 1 vestings less than 118000', async () => {
+  it('gas usage of transfer() with 1 vestings less than 145k', async () => {
     await tokenManager.assignVested(appManager, 1, 10, 10, 10, true);
 
     const transferReceipt = await token.transfer(user, bigExp(1, 18))
     const gasUsed = transferReceipt.receipt.gasUsed
     console.log(`Gas used: ${transferReceipt.receipt.gasUsed}`)
 
-    assert.isBelow(gasUsed, 118000)
+    assert.isBelow(gasUsed, 145000)
   })
 
-  it('gas usage of transfer() with 10 vestings less than 126500', async () => {
+  it('gas usage of transfer() with 10 vestings less than 164k', async () => {
     for (let i = 0; i < 10; i++) {
       await tokenManager.assignVested(appManager, 1, 10, 10, 10, true);
     }
@@ -68,10 +70,10 @@ contract('TokenManager', ([appManager, user]) => {
     const gasUsed = transferReceipt.receipt.gasUsed
     console.log(`Gas used: ${transferReceipt.receipt.gasUsed}`)
 
-    assert.isBelow(gasUsed, 126500)
+    assert.isBelow(gasUsed, 164000)
   })
 
-  it('gas usage of transfer() with 50 vestings less than 164400', async () => {
+  it('gas usage of transfer() with 50 vestings less than 250k', async () => {
     for (let i = 0; i < 50; i++) {
       if (i % 10 === 0) console.log(`Vestings made: ${i}`)
       await tokenManager.assignVested(appManager, 1, 10, 10, 10, true);
@@ -81,6 +83,6 @@ contract('TokenManager', ([appManager, user]) => {
     const gasUsed = transferReceipt.receipt.gasUsed
     console.log(`Gas used: ${transferReceipt.receipt.gasUsed}`)
 
-    assert.isBelow(gasUsed, 164400)
+    assert.isBelow(gasUsed, 250000)
   })
 })
