@@ -16,29 +16,29 @@
       "params": ["Employee Id", "New yearly salary per second", "Old yearly salary per second"]
     },
     {
-      "name": "Add bonuses for employee",
-      "id": "ADD_BONUS_ROLE",
-      "params": ["Employee Id", "Amount"]
+      "name": "Set finance",
+      "id": "SET_FINANCE_ROLE",
+      "params": []
     },
     {
-      "name": "Add reimbursements for employee",
-      "id": "ADD_REIMBURSEMENT_ROLE",
-      "params": ["Employee Id", "Amount"]
+      "name": "Set denomination token",
+      "id": "SET_DENOMINATION_TOKEN_ROLE",
+      "params": []
     },
     {
-      "name": "Manage allowed tokens",
-      "id": "MANAGE_ALLOWED_TOKENS_ROLE",
-      "params": ["Token", "Allowed"]
+      "name": "Set token manager",
+      "id": "SET_TOKEN_MANAGER_ROLE",
+      "params": []
     },
     {
-      "name": "Modify Price Feed",
-      "id": "MODIFY_PRICE_FEED_ROLE",
-      "params": ["New price feed", "Old price feed"]
+      "name": "Set equity multiplier",
+      "id": "SET_EQUITY_MULTIPLIER_ROLE",
+      "params": []
     },
     {
-      "name": "Modify Rate Expiry Time",
-      "id": "MODIFY_RATE_EXPIRY_ROLE",
-      "params": ["New rate expiry time", "Old rate expiry time"]
+      "name": "Set vestings settings",
+      "id": "SET_VESTING_SETTINGS_ROLE",
+      "params": []
     }
   ],
   "environments": {
