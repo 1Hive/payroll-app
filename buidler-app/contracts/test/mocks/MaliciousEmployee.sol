@@ -9,8 +9,9 @@ contract MaliciousEmployee {
     Action public action;
     Payroll public payroll;
     uint256 public counter;
+    uint256 public distribution;
 
-    enum Action { Payday, ChangeAddress, SetAllocation }
+    enum Action { Payday, ChangeAddress }
 
     function setPayroll(Payroll _payroll) public {
         payroll = _payroll;
@@ -21,11 +22,7 @@ contract MaliciousEmployee {
     }
 
     function payday() public {
-        payroll.payday(0);
-    }
-
-    function determineAllocation(address[] _tokens, uint256[] _distribution) public {
-//        payroll.determineAllocation(_tokens, _distribution);
+        payroll.payday(10**18, -1, "");
     }
 
     function reenter() public {
@@ -36,17 +33,9 @@ contract MaliciousEmployee {
         counter++;
 
         if (action == Action.Payday) {
-            payroll.payday(0);
+            payroll.payday(distribution, 0, "");
         } else if (action == Action.ChangeAddress) {
             payroll.changeAddressByEmployee(msg.sender);
-        } else if (action == Action.SetAllocation) {
-            address[] memory tokens = new address[](1);
-            tokens[0] = address(0);
-            uint256[] memory distribution = new uint256[](1);
-            distribution[0] = 100;
-            uint256[] memory minRates = new uint256[](1);
-            minRates[0] = 1e18;
-//            payroll.determineAllocation(tokens, distribution);
         }
     }
 }
