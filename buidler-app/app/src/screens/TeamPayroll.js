@@ -1,8 +1,8 @@
 import React from 'react'
 
 import { Split } from '@aragon/ui'
-import EmployeeList from './components/EmployeeList'
-import KeyStats from './components/KeyStats'
+import EmployeeList from './components/TeamPayroll/EmployeeList'
+// import KeyStats from './components/KeyStats'
 import TotalPayroll from './components/TotalPayroll'
 
 const TeamPayroll = () => (
@@ -13,11 +13,7 @@ const TeamPayroll = () => (
         <EmployeeList />
       </>
     }
-    secondary={
-      <>
-        <KeyStats />
-      </>
-    }
+    secondary={<>{/* <KeyStats /> */}</>}
   />
 )
 

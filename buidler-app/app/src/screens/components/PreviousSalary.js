@@ -8,9 +8,6 @@ import TokenFilter from './filters/TokenFilter'
 import DateRangeFilter from './filters/DateRangeFilter'
 import { formatCurrency } from '../../utils/formatting'
 
-const StyledFilters = styled.div`
-`
-
 const PreviousSalary = props => {
   const { appState, network, connectedAccount } = useAragonApi()
   const {
@@ -93,5 +90,7 @@ const PreviousSalary = props => {
     </Box>
   )
 }
+
+const StyledFilters = styled.div``
 
 export default PreviousSalary

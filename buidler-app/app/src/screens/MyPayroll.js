@@ -13,11 +13,7 @@ const MyPayroll = () => (
         <PreviousSalary />
       </>
     }
-    secondary={
-      <>
-        <SalaryAllocation />
-      </>
-    }
+    secondary={<SalaryAllocation />}
   />
 )
 
