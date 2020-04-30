@@ -1,10 +1,9 @@
 import { events } from '@aragon/api'
 import app from './app'
 import { getEmployeeById, getSalaryAllocation } from './employees'
-import { getDenominationToken } from './tokens'
+import { getDenominationToken, getEquityTokenManager, getToken } from './tokens'
 import { date, payment } from './marshalling'
 import { addressesEqual } from '../utils/web3-utils'
-import { take } from 'rxjs/operators'
 
 export default function initialize(vaultAddress) {
   async function reducer(state, { event, returnValues, transactionHash }) {
@@ -42,22 +41,25 @@ export default function initialize(vaultAddress) {
   return app.store(reducer, storeOptions)
 }
 
+/***********************
+ *                     *
+ *   Event Handlers    *
+ *                     *
+ ***********************/
+
 function initState({ vaultAddress }) {
   return async cachedState => {
     try {
-      const [denominationToken, network] = await Promise.all([
+      const [denominationToken, equityTokenAddress] = await Promise.all([
         getDenominationToken(),
-        app
-          .network()
-          .pipe(take(1))
-          .toPromise(),
+        getEquityTokenManager(),
       ])
 
       const initialState = {
         ...cachedState,
         vaultAddress,
         denominationToken,
-        network,
+        equityTokenAddress,
       }
       return initialState
     } catch (e) {
@@ -67,21 +69,10 @@ function initState({ vaultAddress }) {
 }
 
 async function onChangeAccount(state, { account }) {
-  const { tokens = [], employees = [] } = state
-  let salaryAllocation = []
-
-  const employee = employees.find(employee =>
-    addressesEqual(employee.accountAddress, account)
-  )
-
-  if (employee) {
-    salaryAllocation = await getSalaryAllocation(employee.id, tokens)
-  }
-
-  return { ...state, salaryAllocation }
+  return { ...state }
 }
 
-async function onAddNewEmployee(state, { employeeId, name, role, startDate }) {
+async function onAddNewEmployee(state, { employeeId, role, startDate }) {
   const { employees = [] } = state
 
   if (!employees.find(e => e.id === employeeId)) {
@@ -90,7 +81,6 @@ async function onAddNewEmployee(state, { employeeId, name, role, startDate }) {
     if (newEmployee) {
       employees.push({
         ...newEmployee,
-        name: name,
         role: role,
         startDate: date(startDate),
       })
@@ -115,29 +105,28 @@ async function onChangeEmployeeAddress(state, { newAddress: accountAddress }) {
   return { ...state, salaryAllocation }
 }
 
+// TODO: Save amount in equity
 async function onPayday(state, returnValues, transactionHash) {
-  const employees = await updateEmployeeById(state, returnValues)
-  const { tokens } = state
   const { token, employeeId } = returnValues
-  const payments = state.payments || []
+  const { denominationToken, payments = [] } = state
+  const employees = await updateEmployeeById(state, returnValues)
 
-  const paymentExists = payments.some(payment => {
-    const { transactionAddress, amount } = payment
+  const paymentExists = payments.some(({ transactionAddress, amount }) => {
     const transactionExists = transactionAddress === transactionHash
     const withSameToken = addressesEqual(amount.token.address, token)
     return transactionExists && withSameToken
   })
 
   if (!paymentExists) {
-    const transactionToken = tokens.find(_token =>
-      addressesEqual(_token.address, token)
-    )
     const employee = employees.find(_employee => +_employee.id === +employeeId)
     const currentPayment = payment({
       returnValues,
       transactionHash,
-      token: transactionToken,
       employee: employee.accountAddress,
+      token:
+        token === denominationToken.address
+          ? denominationToken
+          : getToken(token),
     })
     payments.push(currentPayment)
   }
@@ -149,14 +138,22 @@ async function onSetEmployeeSalary(state, returnValues) {
   const employees = await updateEmployeeById(state, returnValues)
   return { ...state, employees }
 }
+
 async function onAddEmployeeAccruedSalary(state, returnValues) {
   const employees = await updateEmployeeById(state, returnValues)
   return { ...state, employees }
 }
+
 async function onTerminateEmployee(state, returnValues) {
   const employees = await updateEmployeeById(state, returnValues)
   return { ...state, employees }
 }
+
+/***********************
+ *                     *
+ *       Helpers       *
+ *                     *
+ ***********************/
 
 async function updateEmployeeById(state, { employeeId }) {
   const { employees: prevEmployees } = state
@@ -180,7 +177,6 @@ function updateEmployeeBy(employees, employeeData, by) {
       if (by(employee)) {
         nextEmployee = {
           ...employeeData,
-          name: employee.name,
           role: employee.role,
           startDate: employee.startDate,
         }

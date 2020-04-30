@@ -16,7 +16,6 @@ export function employee(data) {
     id,
     employeeId,
     accountAddress,
-    name,
     denominationSalary,
     accruedValue,
     lastPayroll,
@@ -27,27 +26,17 @@ export function employee(data) {
   } = data
   const result = {
     id: id || employeeId,
-    accountAddress: accountAddress,
-    name: name,
+    accountAddress,
     salary: currency(denominationSalary),
     accruedValue: currency(accruedValue),
     lastPayroll: date(lastPayroll),
     startDate: date(startDate),
     endDate: date(endDate),
-    terminated: !!terminated,
-    role: role,
+    terminated: Boolean(terminated),
+    role,
   }
 
   return result
-}
-
-export function tokenAllocation(data) {
-  const { address, symbol, allocation } = data
-  return {
-    address: address,
-    symbol: symbol,
-    allocation: parseInt(allocation) || 0,
-  }
 }
 
 export function payment(data) {
@@ -73,9 +62,6 @@ export function payment(data) {
     transactionAddress: transactionHash,
     date: date(paymentDate),
     status: 'Complete', // FIXME: Find out how the status is calculated - - sgobotta
-    exchangeRate: {
-      amount: exchangeRate,
-    },
     exchanged,
   }
 }

@@ -6,7 +6,6 @@ import app from './store/app'
 import initialize from './store'
 import financeAbi from './abi/finance-vault'
 
-
 retryEvery(async retry => {
   app
     .call('finance')

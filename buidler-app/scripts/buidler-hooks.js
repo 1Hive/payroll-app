@@ -1,12 +1,11 @@
 let accounts
 let finance, tokens, vault
-let token
-
+let denominationToken
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 
 module.exports = {
   postDao: async function({ _experimentalAppInstaller, log }, bre) {
-    const bigExp = (x, y) =>
+    const bigExp = (x, y = 18) =>
       bre.web3.utils
         .toBN(x)
         .mul(bre.web3.utils.toBN(10).pow(bre.web3.utils.toBN(y)))
@@ -40,19 +39,20 @@ module.exports = {
     await tokens.initialize([minime.address, true, 0])
     log(`> Tokens app installed: ${tokens.address}`)
 
-    await deployTokens(bre.artifacts)
+    await deployDenominationToken(bre.artifacts, 18, bigExp(4500))
+    await depositDenominationToken(bre.artifacts, bigExp(2000))
   },
 
   postInit: async function({ proxy, log }, bre) {
-    await vault.createPermission('TRANSFER_ROLE', proxy.address)
-    log(`> TRANSFER_ROLE assigned to ${proxy.address}`)
+    await vault.createPermission('TRANSFER_ROLE', finance.address)
+    log(`> TRANSFER_ROLE assigned to ${finance.address}`)
     await finance.createPermission('CREATE_PAYMENTS_ROLE', proxy.address)
     log(`> CREATE_PAYMENTS_ROLE assigned to ${proxy.address}`)
     await tokens.createPermission('MINT_ROLE', proxy.address)
     log(`> MINT_ROLE assigned to ${proxy.address}`)
   },
 
-  getInitParams: async function({}, bre) {
+  getInitParams: async function(_, bre) {
     const equityMultiplier = 4
     const vestingLength = 0
     const vestingCliffLength = 0
@@ -60,7 +60,7 @@ module.exports = {
 
     return [
       finance.address,
-      token.address,
+      denominationToken.address,
       tokens.address,
       equityMultiplier,
       vestingLength,
@@ -70,16 +70,31 @@ module.exports = {
   },
 }
 
-async function deployTokens(artifacts) {
-  token = await deployToken(
+async function depositDenominationToken(artifacts, amount) {
+  // Experimental app installer doesn't expose the deposit functionality for vault
+  const Vault = artifacts.require('Vault')
+  const vaultContract = await Vault.at(vault.address)
+
+  await denominationToken.approve(vaultContract.address, amount, {
+    from: accounts[0],
+  })
+  await vaultContract.deposit(denominationToken.address, amount, {
+    from: accounts[0],
+  })
+}
+
+async function deployDenominationToken(artifacts, decimals, initialSupply) {
+  denominationToken = await deployToken(
     'Dai Stablecoin',
     'DAI',
-    18,
-    4500,
+    decimals,
+    initialSupply,
     accounts[0],
     artifacts
   )
-  console.log(`> ERC20 token deployed: ${token.address}`)
+  console.log(
+    `> ERC20 denomination token deployed: ${denominationToken.address}`
+  )
 }
 
 async function deployToken(
@@ -103,9 +118,9 @@ async function deployMinimeToken(bre) {
     ZERO_ADDRESS,
     ZERO_ADDRESS,
     0,
-    'MiniMe Token',
+    'Org token',
     18,
-    'MMT',
+    'OGT',
     true
   )
   return token
