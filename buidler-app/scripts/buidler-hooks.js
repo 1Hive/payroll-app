@@ -20,8 +20,8 @@ module.exports = {
 
     finance = await _experimentalAppInstaller('finance', {
       initializeArgs: [
-        vault.address, 
-        60 * 60 * 24 * 30 // 30 days
+        vault.address,
+        60 * 60 * 24 * 30, // 30 days
       ],
     })
     log(`> Finance app installed: ${finance.address}`)
@@ -71,7 +71,14 @@ module.exports = {
 }
 
 async function deployTokens(artifacts) {
-  token = await deployToken('token', 'TKN', 1, 4500, accounts[0], artifacts)
+  token = await deployToken(
+    'Dai Stablecoin',
+    'DAI',
+    18,
+    4500,
+    accounts[0],
+    artifacts
+  )
   console.log(`> ERC20 token deployed: ${token.address}`)
 }
 
