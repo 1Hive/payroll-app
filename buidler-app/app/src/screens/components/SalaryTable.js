@@ -67,7 +67,6 @@ const Amount = styled.span`
 
 const SalaryTable = props => {
   const { data, formatExchanged, formatTokenAmount, network } = props
-  console.log('data', data)
   const columns = initializeColumns(
     data,
     formatExchanged,

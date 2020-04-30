@@ -67,7 +67,6 @@ const AvailableSalary = props => {
   }, [connectedAccount, payments.length, employees.length])
 
   const [data, setData] = useState([])
-  console.log(data, appState, props)
   const formatSalary = amount =>
     formatCurrency(amount, symbol, 10, decimals, SECONDS_IN_A_YEAR)
   const customFormatCurrency = amount => formatCurrency(amount, symbol, 10, 0)

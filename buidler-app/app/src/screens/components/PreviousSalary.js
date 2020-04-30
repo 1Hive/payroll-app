@@ -21,7 +21,6 @@ const PreviousSalary = props => {
   const filteredPayments = payments.filter(
     payment => payment.accountAddress === connectedAccount
   )
-  console.log(filteredPayments, payments, '2')
 
   const customExchangedFormat = exchanged =>
     formatCurrency(exchanged, denominationToken.symbol, 10, 0)
