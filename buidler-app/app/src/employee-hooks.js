@@ -1,5 +1,4 @@
 import BN from 'bn.js'
-import { differenceInSeconds } from 'date-fns'
 import { useNow } from './utils/hooks'
 import { ONE } from './utils/pricefeed'
 
@@ -11,7 +10,7 @@ export function useEmployeeCurrentOwedSalary(employee) {
   }
   const { accruedSalary, denominationSalary, lastPayroll } = employee.data
 
-  const accruedTime = differenceInSeconds(now, lastPayroll)
+  const accruedTime = dayjs(now).diff(lastPayroll, 'seconds')
 
   const currentOwedSalary = new BN(denominationSalary).mul(new BN(accruedTime))
   return accruedSalary.add(currentOwedSalary)

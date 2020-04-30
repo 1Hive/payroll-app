@@ -1,14 +1,6 @@
 import React, { useCallback, useMemo } from 'react'
-import {
-  AragonApi,
-  useApi,
-  useAppState,
-  useConnectedAccount,
-} from '@aragon/api-react'
-import BN from 'bn.js'
-import { getAllocationUpdateKey } from './utils/employee'
-import { usePanelState, usePromise } from './utils/hooks'
-import { addressesEqual } from './utils/web3-utils'
+import { AragonApi, useApi, useAppState } from '@aragon/api-react'
+import { usePanelState } from './utils/hooks'
 import appStateReducer from './app-state-reducer'
 
 // App actions
@@ -32,12 +24,14 @@ export function useAddEmployeeAction(onDone) {
   )
 }
 
-export function useDetermineAllocationAction(onDone) {
+export function usePaydayAction(onDone) {
   const api = useApi()
   return useCallback(
-    (tokenAddresses, allocations) => {
+    (denominationTokenAllocation, requestedAmount, metadata) => {
       if (api) {
-        api.determineAllocation(tokenAddresses, allocations)
+        api
+          .payday(denominationTokenAllocation, requestedAmount, metadata)
+          .toPromise()
         onDone()
       }
     },
@@ -45,12 +39,12 @@ export function useDetermineAllocationAction(onDone) {
   )
 }
 
-export function usePaydayAction(onDone) {
+export function useDetermineAllocationAction(onDone) {
   const api = useApi()
   return useCallback(
-    (denominationTokenAllocation, reuqestedAmount, metadata) => {
+    (tokenAddresses, allocations) => {
       if (api) {
-        api.payday(denominationTokenAllocation, reuqestedAmount, metadata)
+        api.determineAllocation(tokenAddresses, allocations)
         onDone()
       }
     },
@@ -100,49 +94,6 @@ export function useAppPanels() {
   }
 }
 
-// App state
-export function useCurrentEmployee() {
-  const api = useApi()
-  const connectedAccount = useConnectedAccount()
-  const { allowedTokens, employees } = useAppState()
-
-  // May be undefined if current connected account is not an employee
-  const currentEmployee = employees.find(employee =>
-    addressesEqual(employee.accountAddress, connectedAccount)
-  )
-
-  const currentEmployeeSalaryAllocations = usePromise(
-    () => async () => {
-      if (!currentEmployee || currentEmployee.removed) {
-        return []
-      }
-      const { employeeId } = currentEmployee
-
-      const possibleAllocations = await Promise.all(
-        allowedTokens.map(async token => {
-          const allocation = await api
-            .call('getAllocation', employeeId, token.address)
-            .toPromise()
-          return {
-            token,
-            allocation: new BN(allocation),
-          }
-        })
-      )
-      // Employee may only have some of these allowed tokens selected for their allocation
-      return possibleAllocations.filter(
-        ({ allocation }) => !allocation.isZero()
-      )
-    },
-    [getAllocationUpdateKey(currentEmployee), allowedTokens]
-  )
-
-  return {
-    currentEmployee,
-    currentEmployeeSalaryAllocations,
-  }
-}
-
 export function useAppLogic() {
   const { isSyncing } = useAppState()
   const {
@@ -153,7 +104,7 @@ export function useAppLogic() {
 
   const actions = {
     addEmployee: useAddEmployeeAction(addEmployeePanel.requestClose),
-    payday: usePaydayAction(),
+    payday: usePaydayAction(requestSalaryPanel.requestClose),
   }
 
   return {

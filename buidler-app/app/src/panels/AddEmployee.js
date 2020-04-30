@@ -179,9 +179,8 @@ function AddEmployeePanelContent({
           <TextInput value={role} onChange={handleRoleChange} required wide />
         </Field>
       </Fields>
-      <Button type="submit" mode="strong" wide>
-        Add new employee
-      </Button>
+      <Button label="Add new employee" type="submit" mode="strong" wide />
+
       {errorMsg && (
         <Info
           css={`

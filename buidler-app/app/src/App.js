@@ -41,7 +41,7 @@ function App() {
               {screen === MY_PAYROLL.id && (
                 <Button
                   mode="strong"
-                  onClick={actions.requestSalary}
+                  onClick={panels.requestSalaryPanel.requestOpen}
                   label="Request salary"
                   icon={<IconPlus />}
                   display={compactMode ? 'icon' : 'label'}
@@ -73,7 +73,10 @@ function App() {
         onAddEmployee={actions.addEmployee}
         panelState={panels.addEmployeePanel}
       />
-      <RequestSalary />
+      <RequestSalary
+        panelState={panels.requestSalaryPanel}
+        onRequestSalary={actions.payday}
+      />
     </Main>
   )
 }
