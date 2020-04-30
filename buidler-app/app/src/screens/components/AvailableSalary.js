@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react'
-import { differenceInSeconds } from 'date-fns'
-import AvailableSalaryTable from './AvailableSalaryTable'
-
-import { formatCurrency, SECONDS_IN_A_YEAR } from '../../utils/formatting'
-import { summation } from '../../utils/calculations'
-
 import { useAragonApi } from '@aragon/api-react'
 import { Box } from '@aragon/ui'
+
+import AvailableSalaryTable from './AvailableSalaryTable'
+
+import { formatCurrency } from '../../utils/formatting'
+import { dayjs, SECONDS_IN_A_YEAR } from '../../utils/date-utils'
+import { summation } from '../../utils/calculations'
 
 const AVAILABLE_BALANCE_TICK = 10000
 
@@ -32,10 +32,7 @@ const AvailableSalary = props => {
   }
 
   function getAvailableBalance(employee) {
-    const accruedTime = differenceInSeconds(
-      new Date(),
-      new Date(employee.lastPayroll)
-    )
+    const accruedTime = dayjs().diff(dayjs(employee.lastPayroll), 'seconds')
 
     const accruedSalary = accruedTime * employee.salary + employee.accruedValue
     return accruedSalary

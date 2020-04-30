@@ -8,7 +8,8 @@ import {
   summation,
   MONTHS_IN_A_YEAR,
 } from '../../utils/calculations'
-import { formatCurrency, SECONDS_IN_A_YEAR } from '../../utils/formatting'
+import { formatCurrency } from '../../utils/formatting'
+import { SECONDS_IN_A_YEAR } from '../../utils/date-utils'
 
 function TotalPayroll() {
   const {

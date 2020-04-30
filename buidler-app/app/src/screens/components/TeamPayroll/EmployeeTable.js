@@ -10,7 +10,7 @@ import {
 import EmployeeFilters from './EmployeeFilters'
 
 import { employeeType } from '../../../types'
-import { formatDate } from '../../../utils/formatting'
+import { dateFormat } from '../../../utils/date-utils'
 
 const columns = [
   'Employee',
@@ -83,7 +83,7 @@ function EmployeeTable({
       entries={filteredEmployees}
       renderEntry={({ accountAddress, startDate, role, salary, totalPaid }) => [
         <IdentityBadge entity={accountAddress} />,
-        <span>{formatDate(startDate)}</span>,
+        <span>{dateFormat(startDate)}</span>,
         <span>{role}</span>,
         <span>{formatSalary(salary)}</span>,
         <span>{formatCurrency(totalPaid)}</span>,

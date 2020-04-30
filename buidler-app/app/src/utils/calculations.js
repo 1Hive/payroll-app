@@ -1,10 +1,10 @@
-import { differenceInYears } from 'date-fns'
+
 
 export const MONTHS_IN_A_YEAR = 12
 
 export function totalPaidThisYear(payments, accountAddress) {
   const filter = p => {
-    const yearDiff = differenceInYears(new Date(p.date), new Date())
+    const yearDiff = dayjs(employee.lastPayroll).diff(dayjs(), 'years')
     return p.accountAddress === accountAddress && yearDiff === 0
   }
   const field = 'exchanged'

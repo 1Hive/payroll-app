@@ -5,7 +5,7 @@ import { theme } from '@aragon/ui'
 import Table from '../../components/Table'
 import { TransactionBadge } from '../../components/Badge'
 import { salaryType } from '../../types'
-import { formatDate } from '../../utils/formatting'
+import { dateFormat } from '../../utils/date-utils'
 
 const initializeColumns = (
   data,
@@ -18,7 +18,7 @@ const initializeColumns = (
       name: 'date',
       title: 'Date',
       value: data => data.date,
-      formatter: formatDate,
+      formatter: dateFormat,
     },
     {
       name: 'status',

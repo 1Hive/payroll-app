@@ -1,4 +1,4 @@
-import { SECONDS_IN_A_YEAR } from './formatting'
+import { SECONDS_IN_A_YEAR } from './date-utils'
 
 export function getAllocationUpdateKey(employee) {
   if (!employee) {

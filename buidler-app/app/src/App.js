@@ -13,6 +13,7 @@ import { MyPayroll, TeamPayroll } from './screens'
 import { AppLogicProvider, useAppLogic } from './app-logic'
 import { IdentityProvider } from './identity-manager'
 import { AddEmployee } from './panels'
+import RequestSalary from './panels/RequestSalary'
 
 const MY_PAYROLL = { id: 'my-payroll', label: 'My payroll' }
 const TEAM_PAYROLL = { id: 'team-payroll', label: 'Team payroll' }
@@ -28,7 +29,6 @@ function App() {
   const handleScreenChange = useCallback(screenId => {
     setScreen(SCREENS[screenId].id)
   })
-  console.log('hola', screen)
 
   return (
     <Main theme={appearance} assetsUrl="./aragon-ui">
@@ -51,7 +51,7 @@ function App() {
                 <Button
                   mode="strong"
                   onClick={panels.addEmployeePanel.requestOpen}
-                  label="Add new employee"
+                  label="New employee"
                   icon={<IconPlus />}
                   display={compactMode ? 'icon' : 'label'}
                 />
@@ -73,6 +73,7 @@ function App() {
         onAddEmployee={actions.addEmployee}
         panelState={panels.addEmployeePanel}
       />
+      <RequestSalary />
     </Main>
   )
 }

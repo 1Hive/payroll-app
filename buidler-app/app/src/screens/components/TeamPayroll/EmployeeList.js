@@ -1,7 +1,8 @@
 import React, { useCallback } from 'react'
 
 import EmployeeTable from './EmployeeTable'
-import { formatCurrency, SECONDS_IN_A_YEAR } from '../../../utils/formatting'
+import { formatCurrency } from '../../../utils/formatting'
+import { SECONDS_IN_A_YEAR } from '../../../utils/date-utils'
 import { useTotalPayrollData } from '../TotalPayroll'
 import useFilteredEmployees from './useFilteredEmployees'
 

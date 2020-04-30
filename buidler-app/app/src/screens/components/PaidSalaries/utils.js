@@ -1,4 +1,4 @@
-import { subQuarters, subMonths, format } from 'date-fns'
+import { dayjs, dateFormat } from '../../../utils/date-utils'
 
 export const CHART_TYPES = ['Monthly', 'Quarterly', 'Yearly']
 
@@ -18,7 +18,7 @@ const QUARTERS_AGO = 4
 const calculateProportion = (max, value) => (value * MAX_PROPORTION) / max
 
 const getHistoryKey = (date, type) =>
-  format(date, HISTORY_FORMAT[type], { awareOfUnicodeTokens: true })
+  dateFormat(date, HISTORY_FORMAT[type])
 
 const getInitialHistory = {
   [MONTHLY]: () => {
@@ -28,9 +28,9 @@ const getInitialHistory = {
 
     const toDay = new Date()
     return months.reduce((acc, ago) => {
-      const monthAgo = subMonths(toDay, ago)
+      const monthAgo = dayjs(toDay).sub(ago, 'month')
       acc[getHistoryKey(monthAgo, MONTHLY)] = {
-        label: format(monthAgo, 'MMM').toUpperCase(),
+        label: dateFormat(monthAgo, 'MMM').toUpperCase(),
         amount: 0,
       }
 
@@ -44,9 +44,9 @@ const getInitialHistory = {
 
     const toDay = new Date()
     return quartes.reduce((acc, ago) => {
-      const monthAgo = subQuarters(toDay, ago)
-      const year = format(monthAgo, 'yy', { awareOfUnicodeTokens: true })
-      const quarter = format(monthAgo, 'Q')
+      const monthAgo = dayjs(toDay).sub(ago, 'quarter')
+      const year = dateFormat(monthAgo, 'yy', { awareOfUnicodeTokens: true })
+      const quarter = dateFormat(monthAgo, 'Q')
       acc[getHistoryKey(monthAgo, QUARTERLY)] = {
         label: `${year} Q${quarter}`,
         amount: 0,

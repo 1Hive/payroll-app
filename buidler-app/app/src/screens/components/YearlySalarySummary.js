@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react'
 import styled from 'styled-components'
 import { useSpring, animated, config } from 'react-spring'
-import { subYears, isWithinInterval } from 'date-fns'
 import { zip } from 'rxjs'
 import { first, map } from 'rxjs/operators'
 import { useAragonApi } from '@aragon/api-react'
 import { theme, Text } from '@aragon/ui'
 import vaultAbi from '../../abi/vault-balance'
 import priceFeedAbi from '../../abi/price-feed'
-import { formatCurrency, SECONDS_IN_A_YEAR } from '../../utils/formatting'
+import { formatCurrency } from '../../utils/formatting'
+import { SECONDS_IN_A_YEAR } from '../../utils/date-utils'
 
 function YearlySalarySummary() {
   const { api, appState } = useAragonApi()
@@ -36,10 +36,10 @@ function YearlySalarySummary() {
     const totalYearSalaryBill =
       employees.reduce((acc, employee) => acc + employee.salary, 0) *
       SECONDS_IN_A_YEAR
-    const today = new Date()
-    const yearAgo = subYears(today, 1)
+    const today = dayjs()
+    const yearAgo = dayjs(today).sub(1,'year')
     const thisYearPayments = payments.filter(payment =>
-      isWithinInterval(new Date(payment.date), { start: yearAgo, end: today })
+      dayjs(payment.date).isBetween(yearAgo, today)
     )
     const totalPaidThisYear =
       thisYearPayments.reduce((acc, payment) => acc + payment.exchanged, 0) *

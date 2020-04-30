@@ -4,7 +4,7 @@ import PropTypes from 'prop-types'
 import styled from 'styled-components'
 import Table from '../../components/Table'
 import { salaryType } from '../../types'
-import { formatDate } from '../../utils/formatting'
+import { dateFormat } from '../../utils/date-utils'
 
 import { theme, Timer } from '@aragon/ui'
 
@@ -19,7 +19,7 @@ const initializeColumns = (
       name: 'last-payroll',
       title: 'Time since last salary',
       value: data => data.lastPayroll,
-      formatter: formatDate,
+      formatter: dateFormat,
       render: (formattedDate, date, item) => {
         const startDate = new Date(date)
         return <Timer start={startDate} />
