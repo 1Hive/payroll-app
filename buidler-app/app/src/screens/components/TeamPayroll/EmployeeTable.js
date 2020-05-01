@@ -10,7 +10,8 @@ import {
 import EmployeeFilters from './EmployeeFilters'
 
 import { employeeType } from '../../../types'
-import { dateFormat } from '../../../utils/date-utils'
+import { dateFormat, SECONDS_IN_A_YEAR } from '../../../utils/date-utils'
+import { formatTokenAmount } from '../../../utils/formatting'
 
 const columns = [
   'Employee',
@@ -24,14 +25,13 @@ function EmployeeTable({
   emptyResultsViaFilters,
   employees,
   filteredEmployees,
-  formatSalary,
-  formatCurrency,
   filters,
   onClearFilters,
   onRoleChange,
   onStatusChange,
   selectedRole,
   selectedStatus,
+  token,
 }) {
   const theme = useTheme()
   const { layoutName } = useLayout()
@@ -85,8 +85,15 @@ function EmployeeTable({
         <IdentityBadge entity={accountAddress} />,
         <span>{dateFormat(startDate)}</span>,
         <span>{role}</span>,
-        <span>{formatSalary(salary)}</span>,
-        <span>{formatCurrency(totalPaid)}</span>,
+        <span>
+          {formatTokenAmount(salary, true, token.decimals, false, {
+            multiplier: SECONDS_IN_A_YEAR,
+          })}{' '}
+          {token.symbol}
+        </span>,
+        <span>
+          {formatTokenAmount(totalPaid, true, token.decimals)} {token.symbol}
+        </span>,
       ]}
       onStatusEmptyClear={onClearFilters}
     />
@@ -95,7 +102,6 @@ function EmployeeTable({
 
 EmployeeTable.propTypes = {
   filteredEmployees: PropTypes.arrayOf(employeeType).isRequired,
-  formatCurrency: PropTypes.func,
 }
 
 export default EmployeeTable

@@ -1,9 +1,9 @@
 import React from 'react'
 
 import { Split } from '@aragon/ui'
-import SalaryAllocation from './components/SalaryAllocation'
-import PreviousSalary from './components/PreviousSalary'
-import AvailableSalary from './components/AvailableSalary'
+import SalaryAllocation from './components/MyPayroll/SalaryAllocation'
+import PreviousSalary from './components/MyPayroll/PreviousSalary'
+import AvailableSalary from './components/MyPayroll/AvailableSalary'
 
 const MyPayroll = () => (
   <Split

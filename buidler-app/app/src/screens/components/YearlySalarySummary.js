@@ -8,7 +8,7 @@ import { theme, Text } from '@aragon/ui'
 import vaultAbi from '../../abi/vault-balance'
 import priceFeedAbi from '../../abi/price-feed'
 import { formatCurrency } from '../../utils/formatting'
-import { SECONDS_IN_A_YEAR } from '../../utils/date-utils'
+import { SECONDS_IN_A_YEAR, dayjs } from '../../utils/date-utils'
 
 function YearlySalarySummary() {
   const { api, appState } = useAragonApi()
@@ -37,7 +37,7 @@ function YearlySalarySummary() {
       employees.reduce((acc, employee) => acc + employee.salary, 0) *
       SECONDS_IN_A_YEAR
     const today = dayjs()
-    const yearAgo = dayjs(today).sub(1,'year')
+    const yearAgo = dayjs(today).sub(1, 'year')
     const thisYearPayments = payments.filter(payment =>
       dayjs(payment.date).isBetween(yearAgo, today)
     )

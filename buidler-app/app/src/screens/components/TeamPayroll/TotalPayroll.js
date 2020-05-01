@@ -7,9 +7,9 @@ import {
   totalPaidThisYear,
   summation,
   MONTHS_IN_A_YEAR,
-} from '../../utils/calculations'
-import { formatCurrency } from '../../utils/formatting'
-import { SECONDS_IN_A_YEAR } from '../../utils/date-utils'
+} from '../../../utils/calculations'
+import { formatTokenAmount } from '../../../utils/formatting'
+import { SECONDS_IN_A_YEAR } from '../../../utils/date-utils'
 
 function TotalPayroll() {
   const {
@@ -29,15 +29,11 @@ function TotalPayroll() {
   }, [connectedAccount, employeesQty])
 
   const formatSalary = amount =>
-    formatCurrency(
-      amount,
-      denominationToken.symbol,
-      10,
-      denominationToken.decimals,
-      SECONDS_IN_A_YEAR
-    )
+    formatTokenAmount(amount, denominationToken.decimals, {
+      multiplier: SECONDS_IN_A_YEAR,
+    })
   const customFormatCurrency = amount =>
-    formatCurrency(amount, denominationToken.symbol, 10, 0)
+    formatTokenAmount(amount, denominationToken.decimals)
   return (
     <Box heading="Total Payroll">
       <TotalPayrollTable

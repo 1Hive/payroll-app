@@ -1,9 +1,7 @@
-import React, { useCallback } from 'react'
+import React from 'react'
 
 import EmployeeTable from './EmployeeTable'
-import { formatCurrency } from '../../../utils/formatting'
-import { SECONDS_IN_A_YEAR } from '../../../utils/date-utils'
-import { useTotalPayrollData } from '../TotalPayroll'
+import { useTotalPayrollData } from './TotalPayroll'
 import useFilteredEmployees from './useFilteredEmployees'
 
 function EmployeeList() {
@@ -23,35 +21,18 @@ function EmployeeList() {
     selectedStatus,
   } = useFilteredEmployees(employees)
 
-  const customSalaryFormat = useCallback(
-    amount =>
-      formatCurrency(
-        amount,
-        denominationToken.symbol,
-        10,
-        denominationToken.decimals,
-        SECONDS_IN_A_YEAR
-      ),
-    []
-  )
-  const customCurrencyFormat = useCallback(
-    amount => formatCurrency(amount, denominationToken.symbol, 10, 0),
-    []
-  )
-
   return (
     <EmployeeTable
       emptyResultsViaFilters={emptyResultsViaFilters}
       employees={employees}
       filteredEmployees={filteredEmployees}
-      formatSalary={customSalaryFormat}
-      formatCurrency={customCurrencyFormat}
       filters={filters}
       onClearFilters={handleClearFilters}
       onRoleChange={handleRoleChange}
       onStatusChange={handleStatusChange}
       selectedRole={selectedRole}
       selectedStatus={selectedStatus}
+      token={denominationToken}
     />
   )
 }

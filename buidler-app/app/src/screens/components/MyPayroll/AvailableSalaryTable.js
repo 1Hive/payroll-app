@@ -2,9 +2,9 @@ import React from 'react'
 import PropTypes from 'prop-types'
 
 import styled from 'styled-components'
-import Table from '../../components/Table'
-import { salaryType } from '../../types'
-import { dateFormat } from '../../utils/date-utils'
+import Table from '../../../components/Table'
+import { salaryType } from '../../../types'
+import { dateFormat } from '../../../utils/date-utils'
 
 import { theme, Timer } from '@aragon/ui'
 
