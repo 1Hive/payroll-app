@@ -1,24 +1,35 @@
 import { round } from './math-utils'
 
-const formatter = new Intl.NumberFormat('en-US', {
-  minimumFractionDigits: 0,
-})
+export function formatDecimals(value, digits) {
+  try {
+    return value.toLocaleString('en-US', {
+      style: 'decimal',
+      maximumFractionDigits: digits,
+    })
+  } catch (err) {
+    if (err.name === 'RangeError') {
+      // Fallback to Number.prototype.toString()
+      // if the language tag is not supported.
+      return value.toString()
+    }
+    throw err
+  }
+}
 
-export function formatCurrency(
+export function formatTokenAmount(
   amount,
-  symbol,
-  decimals = 10,
-  pow = 18,
-  multiplier = 1,
-  rounding = 2,
-  isIncoming = true,
-  displaySign = false
+  isIncoming,
+  decimals = 0,
+  displaySign = false,
+  { rounding = 2, multiplier = 1 } = {}
 ) {
-  const number = round(
-    (amount / Math.pow(decimals, pow)) * multiplier,
+  const roundedAmount = round(
+    (amount / Math.pow(10, decimals)) * multiplier,
     rounding
   )
-  const formattedNumber = formatter.format(number)
-  const sign = displaySign ? (isIncoming ? '+' : '-') : ''
-  return `${sign}${formattedNumber} ${symbol}`
+
+  return (
+    (displaySign ? (isIncoming ? '+' : '-') : '') +
+    formatDecimals(roundedAmount, 18)
+  )
 }

@@ -23,4 +23,8 @@ function dateFormat(date, format = 'onlyDate') {
   return dayjs(date).format(KNOWN_FORMATS[format] || format)
 }
 
-export { dayjs, dateFormat }
+function dateIsBetween(date, start, end) {
+  dayjs(date).isBetween(dayjs(start).startOf('day'), dayjs(end).endOf('day'))
+}
+
+export { dayjs, dateFormat, dateIsBetween }
