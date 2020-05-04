@@ -13,13 +13,7 @@ import { employeeType } from '../../../types'
 import { dateFormat, SECONDS_IN_A_YEAR } from '../../../utils/date-utils'
 import { formatTokenAmount } from '../../../utils/formatting'
 
-const columns = [
-  'Employee',
-  'Start Date',
-  'Role',
-  'Salary',
-  'Total Paid This Year',
-]
+const columns = ['Employee', 'Start Date', 'Role', 'Base asset salary']
 
 function EmployeeTable({
   emptyResultsViaFilters,
@@ -81,20 +75,19 @@ function EmployeeTable({
       }
       fields={columns}
       entries={filteredEmployees}
-      renderEntry={({ accountAddress, startDate, role, salary, totalPaid }) => [
-        <IdentityBadge entity={accountAddress} />,
-        <span>{dateFormat(startDate)}</span>,
-        <span>{role}</span>,
-        <span>
-          {formatTokenAmount(salary, true, token.decimals, false, {
-            multiplier: SECONDS_IN_A_YEAR,
-          })}{' '}
-          {token.symbol}
-        </span>,
-        <span>
-          {formatTokenAmount(totalPaid, true, token.decimals)} {token.symbol}
-        </span>,
-      ]}
+      renderEntry={({ accountAddress, startDate, role, salary }) => {
+        return [
+          <IdentityBadge entity={accountAddress} />,
+          <span>{dateFormat(startDate)}</span>,
+          <span>{role}</span>,
+          <span>
+            {formatTokenAmount(salary, true, token.decimals, false, {
+              multiplier: SECONDS_IN_A_YEAR,
+            })}{' '}
+            {token.symbol}
+          </span>,
+        ]
+      }}
       onStatusEmptyClear={onClearFilters}
     />
   )
@@ -104,4 +97,4 @@ EmployeeTable.propTypes = {
   filteredEmployees: PropTypes.arrayOf(employeeType).isRequired,
 }
 
-export default EmployeeTable
+export default React.memo(EmployeeTable)

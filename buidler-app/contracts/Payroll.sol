@@ -90,6 +90,7 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
         uint256 indexed employeeId,
         address indexed accountAddress,
         address indexed token,
+        uint256 denominationAllocation,
         uint256 denominationAmount,
         uint256 equityAmount,
         string metaData
@@ -319,7 +320,7 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
         }
         _removeEmployeeIfTerminatedAndPaidOut(employeeId);
 
-        emit Payday(employeeId, employee.accountAddress, denominationToken, denominationTokenAmount, equityTokenAmount, _metaData);
+        emit Payday(employeeId, employee.accountAddress, denominationToken, _denominationTokenAllocation, denominationTokenAmount, equityTokenAmount, _metaData);
     }
 
     // Forwarding fns

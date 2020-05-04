@@ -6,7 +6,10 @@ import { date, payment } from './marshalling'
 import { addressesEqual } from '../utils/web3-utils'
 
 export default function initialize(vaultAddress) {
-  async function reducer(state, { event, returnValues, transactionHash }) {
+  async function reducer(
+    state,
+    { event, returnValues, transactionHash, blockNumber }
+  ) {
     const nextState = {
       ...state,
     }
@@ -23,7 +26,7 @@ export default function initialize(vaultAddress) {
       case 'ChangeAddressByEmployee':
         return onChangeEmployeeAddress(nextState, returnValues)
       case 'Payday':
-        return onPayday(nextState, returnValues, transactionHash)
+        return onPayday(nextState, returnValues, transactionHash, blockNumber)
       case 'SetEmployeeSalary':
         return onSetEmployeeSalary(nextState, returnValues)
       case 'AddEmployeeAccruedSalary':
@@ -50,16 +53,31 @@ export default function initialize(vaultAddress) {
 function initState({ vaultAddress }) {
   return async cachedState => {
     try {
-      const [denominationToken, equityTokenAddress] = await Promise.all([
+      const [
+        denominationToken,
+        equityTokenAddress,
+        pctBase,
+        equityMultiplier,
+        vestingLength,
+        vestingCliffLength,
+      ] = await Promise.all([
         getDenominationToken(),
         getEquityTokenManager(),
+        app.call('PCT_BASE').toPromise(),
+        app.call('equityMultiplier').toPromise(),
+        app.call('vestingLength').toPromise(),
+        app.call('vestingCliffLength').toPromise(),
       ])
 
       const initialState = {
         ...cachedState,
-        vaultAddress,
         denominationToken,
+        equityMultiplier,
         equityTokenAddress,
+        pctBase,
+        vaultAddress,
+        vestingLength,
+        vestingCliffLength,
       }
       return initialState
     } catch (e) {
@@ -81,7 +99,7 @@ async function onAddNewEmployee(state, { employeeId, role, startDate }) {
     if (newEmployee) {
       employees.push({
         ...newEmployee,
-        role: role,
+        role,
         startDate: date(startDate),
       })
     }
@@ -106,27 +124,27 @@ async function onChangeEmployeeAddress(state, { newAddress: accountAddress }) {
 }
 
 // TODO: Save amount in equity
-async function onPayday(state, returnValues, transactionHash) {
-  const { token, employeeId } = returnValues
+async function onPayday(state, returnValues, transactionHash, blockNumber) {
+  const { token } = returnValues
   const { denominationToken, payments = [] } = state
+  const { timestamp } = await app.web3Eth('getBlock', blockNumber).toPromise()
+
   const employees = await updateEmployeeById(state, returnValues)
 
-  const paymentExists = payments.some(({ transactionAddress, amount }) => {
-    const transactionExists = transactionAddress === transactionHash
-    const withSameToken = addressesEqual(amount.token.address, token)
+  const paymentExists = payments.some(payment => {
+    const transactionExists = payment.transactionHash === transactionHash
+    const withSameToken = addressesEqual(payment.token.address, token)
     return transactionExists && withSameToken
   })
 
   if (!paymentExists) {
-    const employee = employees.find(_employee => +_employee.id === +employeeId)
     const currentPayment = payment({
-      returnValues,
+      ...returnValues,
       transactionHash,
-      employee: employee.accountAddress,
-      token:
-        token === denominationToken.address
-          ? denominationToken
-          : getToken(token),
+      paymentDate: timestamp,
+      token: addressesEqual(token, denominationToken.address)
+        ? denominationToken
+        : getToken(token),
     })
     payments.push(currentPayment)
   }

@@ -14,21 +14,21 @@ export function date(epoch) {
 export function employee(data) {
   const {
     id,
-    employeeId,
+    accruedSalary,
     accountAddress,
     denominationSalary,
-    accruedValue,
-    lastPayroll,
-    startDate,
+    employeeId,
     endDate,
-    terminated,
+    lastPayroll,
     role,
+    startDate,
+    terminated,
   } = data
   const result = {
     id: id || employeeId,
     accountAddress,
-    salary: currency(denominationSalary),
-    accruedValue: currency(accruedValue),
+    salary: denominationSalary,
+    accruedSalary,
     lastPayroll: date(lastPayroll),
     startDate: date(startDate),
     endDate: date(endDate),
@@ -39,29 +39,23 @@ export function employee(data) {
   return result
 }
 
-export function payment(data) {
-  const {
-    returnValues: { amount, exchangeRate, paymentDate },
+// TODO: Add equity amount and denomination allocation
+export function payment({
+  accountAddress,
+  denominationAllocation,
+  denominationAmount,
+  metaData,
+  paymentDate,
+  token,
+  transactionHash,
+}) {
+  return {
+    accountAddress,
+    date: date(paymentDate),
+    denominationAllocation,
+    denominationAmount,
+    metaData,
     token,
     transactionHash,
-    employee,
-  } = data
-  const exchanged = amount / exchangeRate
-  return {
-    accountAddress: employee,
-    amount: {
-      amount: amount,
-      isIncoming: true, // FIXME: Assumption: all salaries are incoming - sgobotta
-      displaySign: true, // FIXME: The send payroll event should provide the displaysign option
-      token: {
-        address: token.address,
-        symbol: token.symbol,
-        decimals: token.decimals,
-      },
-    },
-    transactionAddress: transactionHash,
-    date: date(paymentDate),
-    status: 'Complete', // FIXME: Find out how the status is calculated - - sgobotta
-    exchanged,
   }
 }

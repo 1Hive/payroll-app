@@ -1,8 +1,9 @@
 import { round } from './math-utils'
+import BN from 'bn.js'
 
 export function formatDecimals(value, digits) {
   try {
-    return value.toLocaleString('en-US', {
+    return value.toLocaleString('latn', {
       style: 'decimal',
       maximumFractionDigits: digits,
     })
@@ -32,4 +33,16 @@ export function formatTokenAmount(
     (displaySign ? (isIncoming ? '+' : '-') : '') +
     formatDecimals(roundedAmount, 18)
   )
+}
+
+export function splitAllocation(denominationAllocation, pctBase) {
+  const PCT = new BN(100)
+
+  const convertedDenominationAllocation = denominationAllocation.div(
+    pctBase.div(PCT)
+  )
+
+  const convertedEquityAllocation = PCT.sub(convertedDenominationAllocation)
+
+  return `${convertedDenominationAllocation} % / ${convertedEquityAllocation} %`
 }

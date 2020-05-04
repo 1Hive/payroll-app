@@ -1,19 +1,27 @@
 import { useCallback, useMemo, useState } from 'react'
+import { useAppState, useConnectedAccount } from '@aragon/api-react'
 import { dateIsBetween } from '../../../utils/date-utils'
-import { useAppState } from '@aragon/api-react'
 import { addressesEqual } from '../../../utils/web3-utils'
 
 const UNSELECTED_DATE_RANGE_FILTER = { start: null, end: null }
+const UNSELECTED_TOKEN_FILTER = -1
 
 function useFilteredPayments() {
-  const { payments = [], connectedAccount } = useAppState()
+  const { payments = [] } = useAppState()
+  const connectedAccount = useConnectedAccount()
 
   const [selectedDateRange, setSelectedDateRange] = useState(
     UNSELECTED_DATE_RANGE_FILTER
   )
+  const [selectedToken, setSelectedToken] = useState(UNSELECTED_TOKEN_FILTER)
 
   const handleSelectedDateRangeChange = useCallback(range => {
     setSelectedDateRange(range)
+  }, [])
+
+  const handleTokenChange = useCallback(index => {
+    const tokenIndex = index === 0 ? UNSELECTED_TOKEN_FILTER : index
+    setSelectedToken(tokenIndex)
   }, [])
 
   const handleClearFilters = useCallback(() => {
@@ -28,13 +36,11 @@ function useFilteredPayments() {
     [payments]
   )
 
+  const tokens = ['All', ...new Set(payments.map(({ token }) => token.symbol))]
+
   const filteredPayments = useMemo(
     () =>
-      currentEmployeePayments.filter(({ date, accountAddress }) => {
-        if (!addressesEqual(accountAddress, connectedAccount)) {
-          return false
-        }
-
+      currentEmployeePayments.filter(({ date }) => {
         if (
           selectedDateRange.start &&
           selectedDateRange.end &&
@@ -44,11 +50,12 @@ function useFilteredPayments() {
         }
         return true
       }),
-    [currentEmployeePayments]
+    [currentEmployeePayments, selectedDateRange]
   )
 
   const emptyResultsViaFilters =
-    filteredPayments.length === 0 && selectedDateRange.start
+    filteredPayments.length === 0 &&
+    (selectedToken > 0 || Boolean(selectedDateRange.start))
 
   return {
     currentEmployeePayments,
@@ -56,7 +63,10 @@ function useFilteredPayments() {
     filteredPayments,
     handleClearFilters,
     handleSelectedDateRangeChange,
+    handleTokenChange,
     selectedDateRange,
+    selectedToken,
+    tokens,
   }
 }
 

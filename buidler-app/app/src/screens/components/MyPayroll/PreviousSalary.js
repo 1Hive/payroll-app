@@ -1,5 +1,5 @@
 import React from 'react'
-import SalaryTable from './SalaryTable'
+import PaymentsTable from './PaymentsTable'
 import useFilteredPayments from './useFilteredPayments'
 
 const PreviousSalary = React.memo(() => {
@@ -9,17 +9,23 @@ const PreviousSalary = React.memo(() => {
     filteredPayments,
     handleClearFilters,
     handleSelectedDateRangeChange,
+    handleTokenChange,
     selectedDateRange,
+    selectedToken,
+    tokens,
   } = useFilteredPayments()
 
   return (
-    <SalaryTable
+    <PaymentsTable
       emptyResultsViaFilters={emptyResultsViaFilters}
       filteredPayments={filteredPayments}
       onClearFilters={handleClearFilters}
       onSelectDateRange={handleSelectedDateRangeChange}
+      onSelectToken={handleTokenChange}
       payments={currentEmployeePayments}
       selectedDateRange={selectedDateRange}
+      selectedToken={selectedToken}
+      tokens={tokens}
     />
   )
 })

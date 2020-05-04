@@ -66,8 +66,8 @@ function App() {
             onChange={handleScreenChange}
           />
         }
-        {screen === MY_PAYROLL.id && <MyPayroll />}
-        {screen === TEAM_PAYROLL.id && <TeamPayroll />}
+        {screen === MY_PAYROLL.id && <MyPayroll isSyncing={isSyncing} />}
+        {screen === TEAM_PAYROLL.id && <TeamPayroll isSyncing={isSyncing} />}
       </>
       <AddEmployee
         onAddEmployee={actions.addEmployee}

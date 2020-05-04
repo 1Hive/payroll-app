@@ -1,6 +1,8 @@
 import BN from 'bn.js'
+import { useAppState, useConnectedAccount } from '@aragon/api-react'
 import { useNow } from './utils/hooks'
-import { ONE } from './utils/pricefeed'
+import { dayjs } from './utils/date-utils'
+import { addressesEqual } from './utils/web3-utils'
 
 export function useEmployeeCurrentOwedSalary(employee) {
   const now = useNow()
@@ -8,40 +10,23 @@ export function useEmployeeCurrentOwedSalary(employee) {
   if (!employee) {
     return new BN(0)
   }
-  const { accruedSalary, denominationSalary, lastPayroll } = employee.data
+  const { accruedSalary, salary, lastPayroll } = employee
 
   const accruedTime = dayjs(now).diff(lastPayroll, 'seconds')
 
-  const currentOwedSalary = new BN(denominationSalary).mul(new BN(accruedTime))
+  const currentOwedSalary = salary.mul(new BN(accruedTime))
   return accruedSalary.add(currentOwedSalary)
 }
 
-export function useEmployeeSalary(employee, salaryAllocations, exchangeRates) {
-  const owedSalary = useEmployeeCurrentOwedSalary(employee)
+export function useCurrentEmployee() {
+  const { employees = [] } = useAppState()
+  const connectedAccount = useConnectedAccount()
 
-  const allocations =
-    Array.isArray(salaryAllocations) && Array.isArray(exchangeRates)
-      ? salaryAllocations.map(({ allocation, token }) => {
-          const salaryAllocated = owedSalary.mul(allocation).div(100) // apply allocation %
-
-          // Exchange to token amount based on current known rate
-          const { xrt } =
-            exchangeRates.find(({ quote }) => quote === token.address) || {}
-          const expectedSalaryInTokens = xrt
-            ? salaryAllocated.mul(xrt).div(ONE) // xrt has the denomination token as base
-            : null
-
-          return {
-            allocation,
-            expectedSalaryInTokens,
-            salaryAllocated,
-            token,
-          }
-        })
-      : null
-
-  return {
-    allocations,
-    owedSalary,
+  if (!connectedAccount) {
+    return null
   }
+
+  return employees.find(employee =>
+    addressesEqual(employee.accountAddress, connectedAccount)
+  )
 }

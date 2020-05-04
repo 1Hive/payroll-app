@@ -1,7 +1,13 @@
 import React from 'react'
-import { DateRangePicker, GU } from '@aragon/ui'
+import { DateRangePicker, DropDown, GU } from '@aragon/ui'
 
-function PaymentFilters({ dateRangeFilter, onDateRangeChange }) {
+function PaymentFilters({
+  dateRangeFilter,
+  onDateRangeChange,
+  token,
+  tokenFilter,
+  onTokenChange,
+}) {
   return (
     <div
       css={`
@@ -11,6 +17,15 @@ function PaymentFilters({ dateRangeFilter, onDateRangeChange }) {
         grid-template-columns: auto auto auto;
       `}
     >
+      <DropDown
+        placeholder="Token"
+        header="Token"
+        items={token}
+        selected={tokenFilter}
+        onChange={onTokenChange}
+        width="128px"
+      />
+
       <DateRangePicker
         startDate={dateRangeFilter.start}
         endDate={dateRangeFilter.end}

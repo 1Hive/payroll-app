@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react'
 import styled from 'styled-components'
+import { useNetwork, useAppState } from '@aragon/api-react'
 import {
   DataView,
   TransactionBadge,
@@ -9,7 +10,7 @@ import {
 } from '@aragon/ui'
 import PaymentFilters from './PaymentFilters'
 import { dateFormat } from '../../../utils/date-utils'
-import { formatTokenAmount } from '../../../utils/formatting'
+import { formatTokenAmount, splitAllocation } from '../../../utils/formatting'
 
 const columns = [
   'Date',
@@ -18,16 +19,21 @@ const columns = [
   'Split percentage (Base/Equity)',
 ]
 
-function SalaryTable({
+function PaymentsTable({
   emptyResultsViaFilters,
   filteredPayments,
   onClearFilters,
   onSelectDateRange,
+  onSelectToken,
   payments,
   selectedDateRange,
+  selectedToken,
+  tokens,
 }) {
   const theme = useTheme()
+  const network = useNetwork()
   const { layoutName } = useLayout()
+  const { pctBase } = useAppState()
   const compactMode = layoutName === 'small'
 
   const dataViewStatus = useMemo(() => {
@@ -54,6 +60,9 @@ function SalaryTable({
             <PaymentFilters
               dateRangeFilter={selectedDateRange}
               onDateRangeChange={onSelectDateRange}
+              token={tokens}
+              tokenFilter={selectedToken}
+              onTokenChange={onSelectToken}
             />
           )}
         </>
@@ -70,26 +79,35 @@ function SalaryTable({
       }
       fields={columns}
       entries={filteredPayments}
-      renderEntry={({ date, token, transactionHash, amount, split }) => {
+      renderEntry={({
+        date,
+        token,
+        transactionHash,
+        denominationAmount,
+        denominationAllocation,
+      }) => {
         const formattedAmount = formatTokenAmount(
-          amount,
+          denominationAmount,
           true,
           token.decimals,
           true
         )
         return [
           <span>{dateFormat(date)}</span>,
-          <TransactionBadge tx={transactionHash} networkType={network.type}>
-            {rawValue}
+          <TransactionBadge
+            transaction={transactionHash}
+            networkType={network.type}
+          >
+            {transactionHash}
           </TransactionBadge>,
           <Amount
             css={`
               color: ${theme.positive};
             `}
           >
-            {formattedAmount}
+            {formattedAmount} {token.symbol}
           </Amount>,
-          <span>{split}</span>,
+          <span>{splitAllocation(denominationAllocation, pctBase)}</span>,
         ]
       }}
       onStatusEmptyClear={onClearFilters}
@@ -101,4 +119,4 @@ const Amount = styled.span`
   font-weight: 600;
 `
 
-export default SalaryTable
+export default PaymentsTable
