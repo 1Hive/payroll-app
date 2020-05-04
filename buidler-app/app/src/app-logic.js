@@ -39,40 +39,26 @@ export function usePaydayAction(onDone) {
   )
 }
 
-export function useDetermineAllocationAction(onDone) {
-  const api = useApi()
-  return useCallback(
-    (tokenAddresses, allocations) => {
-      if (api) {
-        api.determineAllocation(tokenAddresses, allocations)
-        onDone()
-      }
-    },
-    [api, onDone]
-  )
-}
-
 // App panels
 export function useAppPanels() {
   const addEmployeePanel = usePanelState()
-  const editSalaryAllocationPanel = usePanelState()
+  const editEquityOptionPanel = usePanelState()
   const requestSalaryPanel = usePanelState()
 
   return {
-    // Give the edit allocation priority over the other panels
-    editSalaryAllocationPanel,
+    editEquityOptionPanel,
     addEmployeePanel: useMemo(
       () => ({
         ...addEmployeePanel,
         // ensure there is only one panel opened at a time
         visible:
           addEmployeePanel.visible &&
-          !editSalaryAllocationPanel.visible &&
+          !editEquityOptionPanel.visible &&
           !requestSalaryPanel.visible,
       }),
       [
         addEmployeePanel,
-        editSalaryAllocationPanel.visible,
+        editEquityOptionPanel.visible,
         requestSalaryPanel.visible,
       ]
     ),
@@ -82,12 +68,12 @@ export function useAppPanels() {
         // ensure there is only one panel opened at a time
         visible:
           requestSalaryPanel.visible &&
-          !editSalaryAllocationPanel.visible &&
+          !editEquityOptionPanel.visible &&
           !addEmployeePanel.visible,
       }),
       [
         requestSalaryPanel,
-        editSalaryAllocationPanel.visible,
+        editEquityOptionPanel.visible,
         addEmployeePanel.visible,
       ]
     ),
@@ -98,7 +84,7 @@ export function useAppLogic() {
   const { isSyncing } = useAppState()
   const {
     addEmployeePanel,
-    editSalaryAllocationPanel,
+    editEquityOptionPanel,
     requestSalaryPanel,
   } = useAppPanels()
 
@@ -109,7 +95,7 @@ export function useAppLogic() {
 
   return {
     actions,
-    panels: { addEmployeePanel, editSalaryAllocationPanel, requestSalaryPanel },
+    panels: { addEmployeePanel, editEquityOptionPanel, requestSalaryPanel },
     isSyncing: isSyncing,
   }
 }

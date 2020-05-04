@@ -3,7 +3,7 @@ import BN from 'bn.js'
 
 export function formatDecimals(value, digits) {
   try {
-    return value.toLocaleString('latn', {
+    return value.toLocaleString('en-US', {
       style: 'decimal',
       maximumFractionDigits: digits,
     })
@@ -22,16 +22,21 @@ export function formatTokenAmount(
   isIncoming,
   decimals = 0,
   displaySign = false,
-  { rounding = 2, multiplier = 1 } = {}
+  { rounding = 2, multiplier = 1, commas = true, replaceZeroBy = '0' } = {}
 ) {
   const roundedAmount = round(
     (amount / Math.pow(10, decimals)) * multiplier,
     rounding
   )
+  const formattedAmount = formatDecimals(roundedAmount, 18)
+
+  if (formattedAmount === '0') {
+    return replaceZeroBy
+  }
 
   return (
     (displaySign ? (isIncoming ? '+' : '-') : '') +
-    formatDecimals(roundedAmount, 18)
+    (commas ? formattedAmount : formattedAmount.replace(',', ''))
   )
 }
 

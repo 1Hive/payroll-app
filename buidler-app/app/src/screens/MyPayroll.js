@@ -1,8 +1,16 @@
 import React from 'react'
-import MySalary from './components/MyPayroll/MySalary'
-import PreviousSalary from './components/MyPayroll/PreviousSalary'
+import { RequestSalary } from '../panels'
+import MySalary from '../components/MyPayroll/MySalary'
+import PreviousSalary from '../components/MyPayroll/PreviousSalary'
+import {
+  useEmployeeCurrentOwedSalary,
+  useCurrentEmployee,
+} from '../hooks/employee-hooks'
 
-function MyPayroll({ isSyncing }) {
+function MyPayroll({ isSyncing, onRequestSalary, panelState }) {
+  const employee = useCurrentEmployee()
+  const employeeOwedSalary = useEmployeeCurrentOwedSalary(employee)
+
   return (
     <div>
       {!isSyncing && (
@@ -11,8 +19,13 @@ function MyPayroll({ isSyncing }) {
           <PreviousSalary />
         </>
       )}
+      <RequestSalary
+        onRequestSalary={onRequestSalary}
+        panelState={panelState}
+        employeeOwedSalary={employeeOwedSalary}
+      />
     </div>
   )
 }
 
-export default MyPayroll
+export default React.memo(MyPayroll)

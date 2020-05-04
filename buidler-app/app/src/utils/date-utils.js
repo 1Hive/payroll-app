@@ -8,7 +8,7 @@ export const MINUTE = 60 * SECOND
 export const HOUR = 60 * MINUTE
 export const DAY = 24 * HOUR
 
-export const SECONDS_IN_A_YEAR = new BN((365 * DAY) / 1000)
+export const SECONDS_IN_A_YEAR = new BN((365.25 * DAY) / 1000)
 
 const KNOWN_FORMATS = {
   onlyDate: 'DD/MM/YYYY',

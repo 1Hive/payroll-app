@@ -12,8 +12,6 @@ import {
 import { MyPayroll, TeamPayroll } from './screens'
 import { AppLogicProvider, useAppLogic } from './app-logic'
 import { IdentityProvider } from './identity-manager'
-import { AddEmployee } from './panels'
-import RequestSalary from './panels/RequestSalary'
 
 const MY_PAYROLL = { id: 'my-payroll', label: 'My payroll' }
 const TEAM_PAYROLL = { id: 'team-payroll', label: 'Team payroll' }
@@ -66,17 +64,21 @@ function App() {
             onChange={handleScreenChange}
           />
         }
-        {screen === MY_PAYROLL.id && <MyPayroll isSyncing={isSyncing} />}
-        {screen === TEAM_PAYROLL.id && <TeamPayroll isSyncing={isSyncing} />}
+        {screen === MY_PAYROLL.id && (
+          <MyPayroll
+            isSyncing={isSyncing}
+            panelState={panels.requestSalaryPanel}
+            onRequestSalary={actions.payday}
+          />
+        )}
+        {screen === TEAM_PAYROLL.id && (
+          <TeamPayroll
+            isSyncing={isSyncing}
+            panelState={panels.addEmployeePanel}
+            onAddEmployee={actions.addEmployee}
+          />
+        )}
       </>
-      <AddEmployee
-        onAddEmployee={actions.addEmployee}
-        panelState={panels.addEmployeePanel}
-      />
-      <RequestSalary
-        panelState={panels.requestSalaryPanel}
-        onRequestSalary={actions.payday}
-      />
     </Main>
   )
 }
