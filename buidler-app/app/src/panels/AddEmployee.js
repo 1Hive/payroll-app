@@ -165,6 +165,7 @@ function AddEmployeePanelContent({
           />
         </Field>
 
+        {/* TODO: Use better date picker */}
         <Field label="Start Date">
           <TextInput
             value={dateFormat(startDate, 'iso')}
