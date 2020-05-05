@@ -1,24 +1,31 @@
 import React from 'react'
+import { RequestSalary } from '../panels'
+import MySalary from '../components/MyPayroll/MySalary'
+import PreviousSalary from '../components/MyPayroll/PreviousSalary'
+import {
+  useEmployeeCurrentOwedSalary,
+  useCurrentEmployee,
+} from '../hooks/employee-hooks'
 
-import { Split } from '@aragon/ui'
-import SalaryAllocation from './components/SalaryAllocation'
-import PreviousSalary from './components/PreviousSalary'
-import AvailableSalary from './components/AvailableSalary'
+function MyPayroll({ isSyncing, onRequestSalary, panelState }) {
+  const employee = useCurrentEmployee()
+  const employeeOwedSalary = useEmployeeCurrentOwedSalary(employee)
 
-const MyPayroll = () => (
-  <Split
-    primary={
-      <>
-        <AvailableSalary />
-        <PreviousSalary />
-      </>
-    }
-    secondary={
-      <>
-        <SalaryAllocation />
-      </>
-    }
-  />
-)
+  return (
+    <div>
+      {!isSyncing && (
+        <>
+          <MySalary />
+          <PreviousSalary />
+        </>
+      )}
+      <RequestSalary
+        onRequestSalary={onRequestSalary}
+        panelState={panelState}
+        employeeOwedSalary={employeeOwedSalary}
+      />
+    </div>
+  )
+}
 
-export default MyPayroll
+export default React.memo(MyPayroll)
