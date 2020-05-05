@@ -1,32 +1,32 @@
-const { USD } = require('../helpers/tokens')(artifacts, web3)
+const { deployDAI } = require('../helpers/tokens')(artifacts, web3)
 const { assertRevert } = require('@aragon/test-helpers/assertThrow')
 const { getEvents, getEventArgument } = require('@aragon/test-helpers/events')
-const { NOW, ONE_MONTH, RATE_EXPIRATION_TIME } = require('../helpers/time')
-const { bn, MAX_UINT256, annualSalaryPerSecond } = require('../helpers/numbers')(web3)
-const { deployContracts, createPayrollAndPriceFeed } = require('../helpers/deploy')(artifacts, web3)
+const { NOW, ONE_MONTH } = require('../helpers/time')
+const { bn, MAX_UINT256, annualSalaryPerSecond, ONE } = require('../helpers/numbers')(web3)
+const { deployContracts, createPayroll } = require('../helpers/deploy')(artifacts, web3)
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 
 contract('Payroll employees modification', ([owner, employee, anotherEmployee, anyone]) => {
-  let dao, payroll, payrollBase, finance, vault, priceFeed
+  let dao, payroll, payrollBase, finance, vault, DAI, equityTokenManager
 
   const increaseTime = async seconds => {
     await payroll.mockIncreaseTime(seconds)
-    await priceFeed.mockIncreaseTime(seconds)
   }
 
   before('deploy base apps and tokens', async () => {
-    ({ dao, finance, vault, payrollBase } = await deployContracts(owner))
+    ({ dao, finance, vault, payrollBase, equityTokenManager } = await deployContracts(owner))
+    DAI = await deployDAI(owner, finance)
   })
 
   beforeEach('create payroll and price feed instance', async () => {
-    ({ payroll, priceFeed } = await createPayrollAndPriceFeed(dao, payrollBase, owner, NOW))
+    payroll = await createPayroll(dao, payrollBase, owner, NOW)
   })
 
   describe('setEmployeeSalary', () => {
     context('when it has already been initialized', function () {
-      beforeEach('initialize payroll app using USD as denomination token', async () => {
-        await payroll.initialize(finance.address, USD, priceFeed.address, RATE_EXPIRATION_TIME, { from: owner })
+      beforeEach('initialize payroll app using DAI as denomination token', async () => {
+        await payroll.initialize(finance.address, DAI.address, equityTokenManager.address, ONE, 0, 0, false, { from: owner })
       })
 
       context('when the sender has permissions', () => {
@@ -156,8 +156,8 @@ contract('Payroll employees modification', ([owner, employee, anotherEmployee, a
 
   describe('changeAddressByEmployee', () => {
     context('when it has already been initialized', function () {
-      beforeEach('initialize payroll app using USD as denomination token', async () => {
-        await payroll.initialize(finance.address, USD, priceFeed.address, RATE_EXPIRATION_TIME, { from: owner })
+      beforeEach('initialize payroll app using DAI as denomination token', async () => {
+        await payroll.initialize(finance.address, DAI.address, equityTokenManager.address, ONE, 0, 0, false, { from: owner })
       })
 
       context('when the sender is an employee', () => {
