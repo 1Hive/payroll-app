@@ -1,7 +1,7 @@
-const { assertRevert } = require('@aragon/test-helpers/assertThrow')
+const { assertRevert } = require('../helpers/assertRevert')
 const { getEventArgument } = require('@aragon/test-helpers/events')
 const { annualSalaryPerSecond } = require('../helpers/numbers')(web3)
-const { MAX_UINT256, MAX_UINT64, ONE } = require('../helpers/numbers')(web3)
+const { MAX_UINT256, MAX_UINT64, ONE, bn } = require('../helpers/numbers')(web3)
 const { NOW, ONE_MONTH } = require('../helpers/time')
 const { deployContracts, createPayroll } = require('../helpers/deploy')(artifacts, web3)
 const { deployDAI } = require('../helpers/tokens')(artifacts, web3)
@@ -36,10 +36,10 @@ contract('Payroll employee info', ([owner, employee]) => {
         })
 
         it('adds a new employee', async () => {
-          const [address, employeeSalary, accruedSalary, lastPayroll, endDate] = await payroll.getEmployee(employeeId)
+          const { accountAddress, denominationSalary, accruedSalary, lastPayroll, endDate } = await payroll.getEmployee(employeeId)
 
-          assert.equal(address, employee, 'employee address does not match')
-          assert.equal(employeeSalary.toString(), salary.toString(), 'employee salary does not match')
+          assert.equal(accountAddress, employee, 'employee address does not match')
+          assert.equal(denominationSalary.toString(), salary.toString(), 'employee salary does not match')
           assert.equal(accruedSalary.toString(), 0, 'employee accrued salary does not match')
           assert.equal(lastPayroll.toString(), (await currentTimestamp()).toString(), 'employee last payroll does not match')
           assert.equal(endDate.toString(), MAX_UINT64, 'employee end date does not match')
@@ -82,10 +82,10 @@ contract('Payroll employee info', ([owner, employee]) => {
 
         it('returns the id of the requested employee', async () => {
           const id = await payroll.getEmployeeIdByAddress(address)
-          const [employeeAddress] = await payroll.getEmployee(id)
+          const { accountAddress } = await payroll.getEmployee(id)
 
           assert.equal(id.toString(), employeeId.toString(), 'employee id does not match')
-          assert.equal(employeeAddress, address, 'employee address does not match')
+          assert.equal(accountAddress, address, 'employee address does not match')
         })
       })
 
@@ -131,7 +131,7 @@ contract('Payroll employee info', ([owner, employee]) => {
 
           context('when the employee does not have any other owed amount', () => {
             it('returns the owed payroll', async () => {
-              const expectedOwedSalary = salary.mul(ONE_MONTH)
+              const expectedOwedSalary = salary.mul(bn(ONE_MONTH))
               assert.equal((await payroll.getTotalOwedSalary(employeeId)).toString(), expectedOwedSalary.toString(), 'total owed salary does not match')
             })
           })
@@ -139,12 +139,12 @@ contract('Payroll employee info', ([owner, employee]) => {
           context('when the employee has some accrued salary', () => {
             context('when the total owed amount does not overflow', () => {
               beforeEach('add accrued salary', async () => {
-                await payroll.setEmployeeSalary(employeeId, salary.mul(2), { from: owner })
+                await payroll.setEmployeeSalary(employeeId, salary.mul(bn(2)), { from: owner })
                 await payroll.mockIncreaseTime(ONE_MONTH)
               })
 
               it('returns the owed payroll plus the accrued salary', async () => {
-                const expectedOwedSalary = salary.mul(ONE_MONTH).plus(salary.mul(2).mul(ONE_MONTH))
+                const expectedOwedSalary = salary.mul(bn(ONE_MONTH)).add(salary.mul(bn(2)).mul(bn(ONE_MONTH)))
                 assert.equal((await payroll.getTotalOwedSalary(employeeId)).toString(), expectedOwedSalary.toString(), 'total owed salary does not match')
               })
             })

@@ -1,4 +1,4 @@
-const { assertRevert } = require('@aragon/test-helpers/assertThrow')
+const { assertRevert } = require('../helpers/assertRevert')
 const { getEventArgument } = require('@aragon/test-helpers/events')
 const { encodeCallScript } = require('@aragon/test-helpers/evmScript')
 const { annualSalaryPerSecond, bn, ONE } = require('../helpers/numbers')(web3)
