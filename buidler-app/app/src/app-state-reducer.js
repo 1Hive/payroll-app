@@ -20,7 +20,7 @@ function appStateReducer(state) {
       salary: new BN(salary),
     })),
 
-    pctBase: new BN(pctBase.toString()), 
+    pctBase: new BN(pctBase.toString()),
     payments:
       payments?.map(
         ({ denominationAllocation, denominationAmount, ...payment }) => ({

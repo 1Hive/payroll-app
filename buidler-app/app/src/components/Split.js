@@ -5,7 +5,6 @@ function Split({ children }) {
   const { layoutName } = useLayout()
 
   const columns = useMemo(() => {
-    console.log('layoutname', layoutName)
     if (layoutName === 'small') {
       return '1fr'
     }
