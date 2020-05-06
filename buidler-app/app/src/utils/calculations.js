@@ -21,3 +21,15 @@ export function summation(list, field) {
   const sum = list.reduce(reducer, new BN('0'))
   return sum
 }
+
+export function splitAllocation(denominationAllocation, pctBase) {
+  const PCT = new BN(100)
+
+  const convertedDenominationAllocation = denominationAllocation.div(
+    pctBase.div(PCT)
+  )
+
+  const convertedEquityAllocation = PCT.sub(convertedDenominationAllocation)
+
+  return [convertedDenominationAllocation, convertedEquityAllocation]
+}

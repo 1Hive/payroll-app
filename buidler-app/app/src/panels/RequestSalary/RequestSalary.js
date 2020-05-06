@@ -13,15 +13,23 @@ import {
 } from '@aragon/ui'
 import BN from 'bn.js'
 import { useAppState } from '@aragon/api-react'
-import { formatTokenAmount } from '../utils/formatting'
-import { toDecimals } from '../utils/math-utils'
+import AllocationFields from './AllocationFields'
+
+import { formatTokenAmount } from '../../utils/formatting'
+import { toDecimals } from '../../utils/math-utils'
 
 const RequestSalary = React.memo(function RequestSalary({
   employeeOwedSalary,
   panelState,
   onRequestSalary,
 }) {
-  const { denominationToken } = useAppState()
+  const {
+    denominationToken,
+    equityMultiplier,
+    pctBase,
+    vestingLength,
+    vestingCliffLength,
+  } = useAppState()
 
   const handleClose = useCallback(() => {
     panelState.requestClose()
@@ -34,16 +42,29 @@ const RequestSalary = React.memo(function RequestSalary({
       onClose={handleClose}
     >
       <RequestSalaryContent
+        baseAsset={denominationToken}
+        equityMultiplier={equityMultiplier}
         onRequestSalary={onRequestSalary}
-        token={denominationToken}
+        pctBase={pctBase}
         totalAccruedBalance={employeeOwedSalary}
+        vestingLength={vestingLength}
+        vestingCliffLength={vestingCliffLength}
       />
     </SidePanel>
   )
 })
 
-function RequestSalaryContent({ onRequestSalary, token, totalAccruedBalance }) {
+function RequestSalaryContent({
+  baseAsset,
+  equityMultiplier,
+  onRequestSalary,
+  pctBase,
+  totalAccruedBalance,
+  vestingLength,
+  vestingCliffLength,
+}) {
   const theme = useTheme()
+  const [allocation, setAllocation] = useState(pctBase)
   const [amount, setAmount] = useState({
     value: '0',
     valueBN: new BN(0),
@@ -56,14 +77,20 @@ function RequestSalaryContent({ onRequestSalary, token, totalAccruedBalance }) {
     editMode => {
       setAmount(amount => ({
         ...amount,
-        value: formatTokenAmount(amount.valueBN, false, token.decimals, false, {
-          commas: !editMode,
-          replaceZeroBy: editMode ? '' : '0',
-          rounding: token.decimals,
-        }),
+        value: formatTokenAmount(
+          amount.valueBN,
+          false,
+          baseAsset.decimals,
+          false,
+          {
+            commas: !editMode,
+            replaceZeroBy: editMode ? '' : '0',
+            rounding: baseAsset.decimals,
+          }
+        ),
       }))
     },
-    [token.decimals]
+    [baseAsset.decimals]
   )
 
   // Change amount handler
@@ -73,7 +100,7 @@ function RequestSalaryContent({ onRequestSalary, token, totalAccruedBalance }) {
       let newAmountBN
 
       try {
-        newAmountBN = new BN(toDecimals(newAmount, token.decimals))
+        newAmountBN = new BN(toDecimals(newAmount, baseAsset.decimals))
       } catch (err) {
         newAmountBN = new BN(-1)
       }
@@ -84,7 +111,7 @@ function RequestSalaryContent({ onRequestSalary, token, totalAccruedBalance }) {
         valueBN: newAmountBN,
       }))
     },
-    [token.decimals]
+    [baseAsset.decimals]
   )
 
   const handleOnSelectMaxValue = useCallback(() => {
@@ -93,39 +120,34 @@ function RequestSalaryContent({ onRequestSalary, token, totalAccruedBalance }) {
       value: formatTokenAmount(
         totalAccruedBalance,
         false,
-        token.decimals,
+        baseAsset.decimals,
         false,
         {
           commas: false,
-          rounding: token.decimals,
+          rounding: baseAsset.decimals,
         }
       ),
       valueBN: totalAccruedBalance,
     }))
-  }, [token.decimals, totalAccruedBalance])
+  }, [baseAsset.decimals, totalAccruedBalance])
+
+  const handleAllocationChange = useCallback(newAllocation => {
+    setAllocation(newAllocation)
+  })
 
   const handleSubmit = useCallback(() => {
     event.preventDefault()
 
-    // TODO: UI for choosing allocation
-    const denominationTokenAllocation = '1000000000000000000'
-
-    onRequestSalary(
-      denominationTokenAllocation,
-      amount.valueBN.toString(),
-      'Payday'
-    )
-  }, [amount])
+    onRequestSalary(allocation.toString(), amount.valueBN.toString(), 'Payday')
+  }, [allocation, amount])
 
   return (
     <form onSubmit={handleSubmit}>
-      <Info
-        css={`
-          margin-top: ${3 * GU}px;
-        `}
-      >
-        Info about allocation
-      </Info>
+      <AllocationInfo
+        equityMultiplier={equityMultiplier}
+        vestingCliffLength={vestingCliffLength}
+        vestingLength={vestingLength}
+      />
       <div
         css={`
           margin-top: ${3 * GU}px;
@@ -143,8 +165,8 @@ function RequestSalaryContent({ onRequestSalary, token, totalAccruedBalance }) {
             ${textStyle('title2')}
           `}
         >
-          {formatTokenAmount(totalAccruedBalance, false, token.decimals)}{' '}
-          {token.symbol}
+          {formatTokenAmount(totalAccruedBalance, false, baseAsset.decimals)}{' '}
+          {baseAsset.symbol}
         </span>
       </div>
       <Field
@@ -176,7 +198,24 @@ function RequestSalaryContent({ onRequestSalary, token, totalAccruedBalance }) {
           adornmentPosition="end"
         />
       </Field>
-      {/* TODO: Add allocation % slider and vestings warning */}
+      {/* TODO: Hide when no more vestings or vesting not set */}
+      <AllocationFields
+        amount={amount.valueBN}
+        baseAsset={baseAsset}
+        baseAssetAllocation={allocation}
+        equityMultiplier={equityMultiplier}
+        onAllocationChange={handleAllocationChange}
+        pctBase={pctBase}
+      />
+      <Info
+        css={`
+          margin-top: ${6 * GU}px;
+        `}
+        mode="warning"
+      >
+        Warning about vestings
+        {/* TODO: Complete  */}
+      </Info>
       <Button
         css={`
           margin-top: ${2 * GU}px;
@@ -185,8 +224,45 @@ function RequestSalaryContent({ onRequestSalary, token, totalAccruedBalance }) {
         mode="strong"
         wide
         type="submit"
+        disabled={totalAccruedBalance.isZero()}
       />
     </form>
+  )
+}
+
+const AllocationInfo = ({
+  equityMultiplier,
+  vestingCliffLength,
+  vestingLength,
+}) => {
+  return (
+    <Info
+      css={`
+        margin-top: ${3 * GU}px;
+      `}
+    >
+      <span
+        css={`
+          ${textStyle('label2')};
+          margin-bottom: ${2 * GU}px;
+          display: block;
+        `}
+      >
+        Sallary allocation
+      </span>
+      You have the option to receive your salary in a combination of Base Asset
+      and/or Equity asset. The Equity asset allocation is subject to a{' '}
+      <span
+        css={`
+          ${textStyle('body2')}
+        `}
+      >
+        {equityMultiplier}
+      </span>
+      X multiplier and {vestingLength} vesting period with {vestingCliffLength}{' '}
+      cliff.
+      {/* TODO: Formatt vesting fields */}
+    </Info>
   )
 }
 

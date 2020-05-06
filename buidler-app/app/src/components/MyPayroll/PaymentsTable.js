@@ -10,7 +10,10 @@ import {
 } from '@aragon/ui'
 import PaymentFilters from './PaymentFilters'
 import { dateFormat } from '../../utils/date-utils'
-import { formatTokenAmount, splitAllocation } from '../../utils/formatting'
+import {
+  formatTokenAmount,
+  formatAllocationSplit,
+} from '../../utils/formatting'
 
 const columns = [
   'Date',
@@ -107,7 +110,7 @@ function PaymentsTable({
           >
             {formattedAmount} {token.symbol}
           </Amount>,
-          <span>{splitAllocation(denominationAllocation, pctBase)}</span>,
+          <span>{formatAllocationSplit(denominationAllocation, pctBase)}</span>,
         ]
       }}
       onStatusEmptyClear={onClearFilters}
