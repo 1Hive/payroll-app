@@ -23,10 +23,16 @@ function appStateReducer(state) {
     pctBase: new BN(pctBase.toString()),
     payments:
       payments?.map(
-        ({ denominationAllocation, denominationAmount, ...payment }) => ({
+        ({
+          denominationAllocation,
+          denominationAmount,
+          equityAmount,
+          ...payment
+        }) => ({
           ...payment,
           denominationAllocation: new BN(denominationAllocation),
           denominationAmount: new BN(denominationAmount),
+          equityAmount: new BN(equityAmount),
         })
       ) || [],
   }

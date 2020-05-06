@@ -39,11 +39,12 @@ export function employee(data) {
   return result
 }
 
-// TODO: Add equity amount and denomination allocation
+// TODO: Possibly move all conversions to app-state-reducer
 export function payment({
   accountAddress,
   denominationAllocation,
   denominationAmount,
+  equityAmount,
   metaData,
   paymentDate,
   token,
@@ -54,6 +55,7 @@ export function payment({
     date: date(paymentDate),
     denominationAllocation,
     denominationAmount,
+    equityAmount,
     metaData,
     token,
     transactionHash,
