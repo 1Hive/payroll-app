@@ -1,5 +1,5 @@
 const { deployDAI } = require('../helpers/tokens')(artifacts, web3)
-const { assertRevert } = require('@aragon/test-helpers/assertThrow')
+const { assertRevert } = require('../helpers/assertRevert')
 const { NOW } = require('../helpers/time')
 const { deployContracts, createPayroll } = require('../helpers/deploy')(artifacts, web3)
 const { ONE, bn } = require('../helpers/numbers')(web3)

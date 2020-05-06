@@ -63,7 +63,7 @@ contract('Payroll forwarding', ([owner, employee, anyone]) => {
           const timeUntilTermination = ONE_MONTH + 1
 
           beforeEach('terminate employee', async () => {
-            const terminationDate = (await payroll.getTimestampPublic()).plus(bn(timeUntilTermination))
+            const terminationDate = (await payroll.getTimestampPublic()).add(bn(timeUntilTermination))
             await payroll.terminateEmployee(employeeId, terminationDate, { from: owner })
           })
 
@@ -110,7 +110,7 @@ contract('Payroll forwarding', ([owner, employee, anyone]) => {
 
     beforeEach('build script', async () => {
       executionTarget = await ExecutionTarget.new()
-      const action = { to: executionTarget.address, calldata: executionTarget.contract.execute.getData() }
+      const action = { to: executionTarget.address, calldata: executionTarget.contract.methods.execute().encodeABI() }
       script = encodeCallScript([action])
     })
 
@@ -140,7 +140,7 @@ contract('Payroll forwarding', ([owner, employee, anyone]) => {
           const timeUntilTermination = ONE_MONTH + 1
 
           beforeEach('terminate employee', async () => {
-            const terminationDate = (await payroll.getTimestampPublic()).plus(bn(timeUntilTermination))
+            const terminationDate = (await payroll.getTimestampPublic()).add(bn(timeUntilTermination))
             await payroll.terminateEmployee(employeeId, terminationDate, { from: owner })
           })
 
