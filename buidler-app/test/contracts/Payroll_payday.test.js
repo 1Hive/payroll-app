@@ -1,4 +1,4 @@
-const { assertRevert } = require('@aragon/test-helpers/assertThrow')
+const { assertRevert } = require('../helpers/assertRevert')
 const { assertAmountOfEvents } = require('@aragon/test-helpers/assertEvent')(web3)
 const { bn, MAX_UINT256, bigExp, ONE } = require('../helpers/numbers')(web3)
 const { getEvents, getEventArgument } = require('@aragon/test-helpers/events')
@@ -36,7 +36,7 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
         const allocationDAIBn = bigExp(allocationDAI, 16)
 
         function exchangedAmountLocal(amount, tokenAllocation) {
-          return amount.mul(tokenAllocation).div(bn(100)).trunc()
+          return amount.mul(bn(tokenAllocation)).div(bn(100))
         }
 
         const assertTransfersRequestedSalary = async (requestedDAI, requestedANT, requestedAmount) => {
@@ -46,12 +46,12 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
           await payroll.payday(allocationDAIBn, requestedAmount, "", { from })
 
           const currentDAI = await DAI.balanceOf(employee)
-          const expectedDAI = previousDAI.plus(requestedDAI);
+          const expectedDAI = previousDAI.add(requestedDAI);
 
           assert.equal(currentDAI.toString(), expectedDAI.toString(), 'current DAI balance does not match')
 
           const currentANT = await ANT.balanceOf(employee)
-          const expectedANT = previousANT.plus(requestedANT)
+          const expectedANT = previousANT.add(requestedANT)
 
           assert.equal(currentANT.toString(), expectedANT.toString(), 'current ANT balance does not match')
         }
@@ -98,7 +98,7 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
 
                 await payroll.payday(allocationDAIBn, requestedAmount, "", { from })
 
-                const newOwedAmount = salary.mul(ONE_MONTH)
+                const newOwedAmount = salary.mul(bn(ONE_MONTH))
                 const newDAIAmount = exchangedAmountLocal(newOwedAmount, allocationDAI)
                 const newANTAmount = exchangedAmountLocal(newOwedAmount, allocationANT)
 
@@ -106,35 +106,21 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                 await payroll.payday(allocationDAIBn, newOwedAmount, "", { from })
 
                 const currentDAI = await DAI.balanceOf(employee)
-                const expectedDAI = previousDAI.plus(requestedDAI).plus(newDAIAmount)
+                const expectedDAI = previousDAI.add(requestedDAI).add(newDAIAmount)
                 assert.equal(currentDAI.toString(), expectedDAI.toString(), 'current DAI balance does not match')
 
                 const currentANT = await ANT.balanceOf(employee)
-                const expectedANT = previousANT.plus(requestedANT).plus(newANTAmount)
+                const expectedANT = previousANT.add(requestedANT).add(newANTAmount)
                 assert.equal(currentANT.toString(), expectedANT.toString(), 'current ANT balance does not match')
               })
             }
 
             const assertEmployeeIsUpdatedCorrectly = (requestedAmount, expectedRequestedAmount) => {
               it('updates the employee accounting', async () => {
-                let expectedLastPayrollDate, expectedAccruedSalary
-
-                const [, , previousAccruedSalary, previousPayrollDate, , ] = (await payroll.getEmployee(employeeId))
-
-                if (expectedRequestedAmount.gte(previousAccruedSalary)) {
-                  const currentSalaryPaid = expectedRequestedAmount.minus(previousAccruedSalary)
-                  const extraSalary = currentSalaryPaid.mod(salary)
-                  expectedAccruedSalary = extraSalary.gt(0) ? salary.minus(extraSalary) : 0
-                  expectedLastPayrollDate = previousPayrollDate.plus(currentSalaryPaid.div(salary).ceil())
-                } else {
-                  expectedAccruedSalary = previousAccruedSalary.minus(expectedRequestedAmount).toString()
-                  expectedLastPayrollDate = previousPayrollDate
-                }
-
                 const timeAtPayday = await payroll.getTimestampPublic()
                 await payroll.payday(allocationDAIBn, requestedAmount, "", { from })
 
-                const [, , accruedSalary, lastPayrollDate, , ] = (await payroll.getEmployee(employeeId))
+                const { accruedSalary, lastPayroll: lastPayrollDate } = (await payroll.getEmployee(employeeId))
                 assert.equal(accruedSalary.toString(), 0, 'accrued salary does not match')
                 assert.equal(lastPayrollDate.toString(), timeAtPayday, 'last payroll date does not match')
               })
@@ -142,15 +128,14 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
               it('does not remove the employee', async () => {
                 await payroll.payday(allocationDAIBn, requestedAmount, "", { from })
 
-                const [address, employeeSalary] = await payroll.getEmployee(employeeId)
-
-                assert.equal(address, employee, 'employee address does not match')
+                const { accountAddress, denominationSalary: employeeSalary } = await payroll.getEmployee(employeeId)
+                assert.equal(accountAddress, employee, 'employee address does not match')
                 assert.equal(employeeSalary.toString(), salary.toString(), 'employee salary does not match')
               })
             }
 
             const itHandlesPayrollProperly = (requestedAmount, totalOwedAmount) => {
-              const expectedRequestedAmount = requestedAmount.lt(0) ? totalOwedAmount : requestedAmount
+              const expectedRequestedAmount = requestedAmount.lt(bn(0)) ? totalOwedAmount : requestedAmount
 
               context('when the employee is not terminated', () => {
                 assertTransferredAmounts(requestedAmount, expectedRequestedAmount)
@@ -172,7 +157,7 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
 
             context('when the employee does not have accrued salary', () => {
               context('when the employee has some pending salary', () => {
-                const currentOwedSalary = salary.mul(ONE_MONTH)
+                const currentOwedSalary = salary.mul(bn(ONE_MONTH))
 
                 beforeEach('accumulate some pending salary', async () => {
                   await increaseTime(ONE_MONTH)
@@ -198,13 +183,13 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
 
                 context('when the requested amount is lower than the total owed salary', () => {
                   context('when the requested amount represents less than a second of the earnings', () => {
-                    const requestedAmount = salary.div(2).floor()
+                    const requestedAmount = salary.div(bn(2))
 
                     itHandlesPayrollProperly(requestedAmount, currentOwedSalary)
                   })
 
                   context('when the requested amount represents more than a second of the earnings', () => {
-                    const requestedAmount = currentOwedSalary.div(2).ceil()
+                    const requestedAmount = currentOwedSalary.div(bn(2))
 
                     itHandlesPayrollProperly(requestedAmount, currentOwedSalary)
                   })
@@ -215,7 +200,7 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                 })
 
                 context('when the requested amount is greater than the total owed salary', () => {
-                  const requestedAmount = currentOwedSalary.plus(1)
+                  const requestedAmount = currentOwedSalary.add(bn(1))
 
                   it('reverts', async () => {
                     await assertRevert(payroll.payday(allocationDAIBn, requestedAmount, "", { from }), 'PAYROLL_INVALID_REQUESTED_AMT')
@@ -242,7 +227,7 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
 
                   it('transfers the requested salary amount when the equityMultiplier is zero', async () => {
                     const requestedDAI = exchangedAmountLocal(currentOwedSalary, allocationDAI) // 80%
-                    const requestedANT = 0 // 20% * 0
+                    const requestedANT = bn(0) // 20% * 0
 
                     await payroll.setEquityMultiplier(bn(0))
                     await assertTransfersRequestedSalary(requestedDAI, requestedANT, currentOwedSalary)
@@ -262,8 +247,14 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                     await assertTransfersRequestedSalary(requestedDAI, requestedANT, currentOwedSalary)
 
                     const accountVestings = await equityTokenManager.vestingsLengths(employee)
-                    const expectedVestings = previousVestings.plus(bn(1))
-                    const [vestingAmount, vestingStart, vestingCliff, vestingEnd, vestingRevokable] = await equityTokenManager.getVesting(employee, previousVestings);
+                    const expectedVestings = previousVestings.add(bn(1))
+
+                    const {
+                      start: vestingStart,
+                      cliff: vestingCliff,
+                      vesting: vestingEnd,
+                      revokable: vestingRevokable
+                    } = await equityTokenManager.getVesting(employee, previousVestings);
 
                     assert.equal(accountVestings.toString(), expectedVestings.toString(), 'current vestings do not match')
                     assert.equal(vestingStart.toString(), timeAtPayday.toString(), 'vesting start time is incorrect')
@@ -314,8 +305,8 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
             })
 
             context('when the employee has some accrued salary', () => {
-              const previousSalary = salary.mul(2)
-              const previousOwedSalary = previousSalary.mul(ONE_MONTH)
+              const previousSalary = salary.mul(bn(2))
+              const previousOwedSalary = previousSalary.mul(bn(ONE_MONTH))
 
               beforeEach('accrue some salary', async () => {
                 await payroll.setEmployeeSalary(employeeId, previousSalary, { from: owner })
@@ -327,14 +318,14 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                 it('handles remaining accrued salary correctly', async () => {
                   await payroll.payday(allocationDAIBn, requestedAmount, "", { from })
 
-                  const [accruedSalary] = (await payroll.getEmployee(employeeId)).slice(2)
+                  const { accruedSalary } = (await payroll.getEmployee(employeeId))
                   assert.equal(accruedSalary.toString(), 0, 'accrued salary does not match')
                 })
               }
 
               context('when the employee has some pending salary', () => {
-                const currentOwedSalary = salary.mul(ONE_MONTH)
-                const totalOwedSalary = previousOwedSalary.plus(currentOwedSalary)
+                const currentOwedSalary = salary.mul(bn(ONE_MONTH))
+                const totalOwedSalary = previousOwedSalary.add(currentOwedSalary)
 
                 beforeEach('accumulate some pending salary', async () => {
                   await increaseTime(ONE_MONTH)
@@ -356,7 +347,7 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
 
                 context('when the requested amount is lower than the previous owed salary', () => {
                   const remainingAmount = bn(10)
-                  const requestedAmount = previousOwedSalary.minus(remainingAmount)
+                  const requestedAmount = previousOwedSalary.sub(remainingAmount)
 
                   itHandlesPayrollProperly(requestedAmount, totalOwedSalary)
                   itHandlesRemainingAccruedSalaryCorrectly(requestedAmount)
@@ -364,7 +355,7 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
 
                 context('when the requested amount is greater than the previous owed salary but less than one second of additional salary', () => {
                   const remainingAmount = bn(1)
-                  const requestedAmount = previousOwedSalary.plus(salary).minus(remainingAmount)
+                  const requestedAmount = previousOwedSalary.add(salary).sub(remainingAmount)
 
                   itHandlesPayrollProperly(requestedAmount, totalOwedSalary)
 
@@ -375,7 +366,7 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
 
                 context('when the requested amount is greater than the previous owed salary but greater than one second of additional salary', () => {
                   const extraAmount = bn(1)
-                  const requestedAmount = previousOwedSalary.plus(salary).plus(extraAmount)
+                  const requestedAmount = previousOwedSalary.add(salary).add(extraAmount)
 
                   itHandlesPayrollProperly(requestedAmount, totalOwedSalary)
 
@@ -391,7 +382,7 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                 })
 
                 context('when the requested amount is greater than the total owed salary', () => {
-                  const requestedAmount = totalOwedSalary.plus(1)
+                  const requestedAmount = totalOwedSalary.add(bn(1))
 
                   it('reverts', async () => {
                     await assertRevert(payroll.payday(allocationDAIBn, requestedAmount, "", { from }), 'PAYROLL_INVALID_REQUESTED_AMT')
@@ -413,7 +404,7 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                 })
 
                 context('when the requested amount is lower than the previous owed salary', () => {
-                  const requestedAmount = previousOwedSalary.div(2).floor()
+                  const requestedAmount = previousOwedSalary.div(bn(2))
 
                   itHandlesPayrollProperly(requestedAmount, previousOwedSalary)
                 })
@@ -425,7 +416,7 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                 })
 
                 context('when the requested amount is greater than the previous owed salary', () => {
-                  const requestedAmount = previousOwedSalary.plus(1)
+                  const requestedAmount = previousOwedSalary.add(bn(1))
 
                   it('reverts', async () => {
                     await assertRevert(payroll.payday(allocationDAIBn, requestedAmount, "", { from }), 'PAYROLL_INVALID_REQUESTED_AMT')
@@ -562,11 +553,11 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                       await payroll.payday(allocationDAIBn, requestedAmount, "", { from })
 
                       const currentDAI = await DAI.balanceOf(employee)
-                      const expectedDAI = previousDAI.plus(requestedDAI.mul(2))
+                      const expectedDAI = previousDAI.add(requestedDAI.mul(bn(2)))
                       assert.equal(currentDAI.toString(), expectedDAI.toString(), 'current DAI balance does not match')
 
                       const currentANT = await ANT.balanceOf(employee)
-                      const expectedANT = previousANT.plus(requestedANT.mul(2))
+                      const expectedANT = previousANT.add(requestedANT.mul(bn(2)))
                       assert.equal(currentANT.toString(), expectedANT.toString(), 'current ANT balance does not match')
                     })
                   }
@@ -577,7 +568,7 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                       const timeAtPayday = await payroll.getTimestampPublic()
                       await payroll.payday(allocationDAIBn, requestedAmount, "", { from })
 
-                      const [, , accruedSalary, lastPayrollDate] = (await payroll.getEmployee(employeeId))
+                      const { accruedSalary, lastPayroll: lastPayrollDate } = (await payroll.getEmployee(employeeId))
                       assert.equal(accruedSalary.toString(), 0, 'accrued salary does not match')
                       assert.equal(lastPayrollDate.toString(), timeAtPayday.toString(), 'last payroll date does not match')
                     })
@@ -585,9 +576,8 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                     it('does not remove the employee', async () => {
                       await payroll.payday(allocationDAIBn, requestedAmount, "", { from })
 
-                      const [address, employeeSalary] = await payroll.getEmployee(employeeId)
-
-                      assert.equal(address, employee, 'employee address does not match')
+                      const { accountAddress, denominationSalary: employeeSalary } = await payroll.getEmployee(employeeId)
+                      assert.equal(accountAddress, employee, 'employee address does not match')
                       assert.equal(employeeSalary.toString(), salary.toString())
                     })
                   }
