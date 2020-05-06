@@ -16,8 +16,9 @@ function SalaryChart({ payments }) {
   return (
     <div
       css={`
-        display: flex;
-      `}
+          display: flex;
+          a;ign-items: flex-start
+        `}
     >
       <LineChart
         color={index => colors[index]}

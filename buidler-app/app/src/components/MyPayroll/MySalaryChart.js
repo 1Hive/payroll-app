@@ -12,7 +12,7 @@ function MySalaryChart() {
       payments.filter(({ accountAddress }) =>
         addressesEqual(accountAddress, connectedAccount)
       ),
-    []
+    [connectedAccount, payments]
   )
 
   return (
