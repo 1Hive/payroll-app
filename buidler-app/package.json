@@ -10,7 +10,7 @@
     "devchain": "buidler node",
     "build": "cd app && npm run build",
     "lint": "buidler check && echo 'Lint complete.'",
-    "test": "npm run ganache-cli:test",
+    "test": "buidler test --network buidlerevm",
     "test:gas": "GAS_REPORTER=true npm run ganache-cli:test",
     "coverage": "SOLIDITY_COVERAGE=true npm run ganache-cli:test",
     "ganache-cli:test": "./node_modules/@aragon/test-helpers/ganache-cli.sh",
