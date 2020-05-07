@@ -20,8 +20,7 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
     * bytes32 constant public SET_FINANCE_ROLE = keccak256("SET_FINANCE_ROLE");
     * bytes32 constant public SET_DENOMINATION_TOKEN_ROLE = keccak256("SET_DENOMINATION_TOKEN_ROLE");
     * bytes32 constant public SET_TOKEN_MANAGER_ROLE = keccak256("SET_TOKEN_MANAGER_ROLE");
-    * bytes32 constant public SET_EQUITY_MULTIPLIER_ROLE = keccak256("SET_EQUITY_MULTIPLIER_ROLE");
-    * bytes32 constant public SET_VESTING_SETTINGS_ROLE = keccak256("SET_VESTING_SETTINGS_ROLE");
+    * bytes32 constant public SET_EQUITY_SETTINGS_ROLE = keccak256("SET_EQUITY_SETTINGS_ROLE");
     */
     bytes32 constant public ADD_EMPLOYEE_ROLE = 0x9ecdc3c63716b45d0756eece5fe1614cae1889ec5a1ce62b3127c1f1f1615d6e;
     bytes32 constant public TERMINATE_EMPLOYEE_ROLE = 0x69c67f914d12b6440e7ddf01961214818d9158fbcb19211e0ff42800fdea9242;
@@ -29,8 +28,7 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
     bytes32 constant public SET_FINANCE_ROLE = 0x5026a6e66f4418c66689fcfd2b8afe59a2f6bfe3317e3a9ab89a34c742f58481;
     bytes32 constant public SET_DENOMINATION_TOKEN_ROLE = 0x7e31e6ead72e2d442b946a10ea17b8f55e7aa331f4397c0ef9bb7cf00abdc9f3;
     bytes32 constant public SET_TOKEN_MANAGER_ROLE = 0x6376e9f03a2a03710fd0134497368b6bb4d6a15f1fab7cecd6ed82366e318479;
-    bytes32 constant public SET_EQUITY_MULTIPLIER_ROLE = 0x1a2a8572fcd2e802a78554c0a218d475e852fab7051e3a39b9de79a7055cee02;
-    bytes32 constant public SET_VESTING_SETTINGS_ROLE = 0x96e4b399ec15809e119d6ead21b968877eb64b6827bd573b712290b0936caaf9;
+    bytes32 constant public SET_EQUITY_SETTINGS_ROLE = 0x98ac53226edb559aa863afb7e3ca4cae136504f75748ebb240d6da92fe86b9fd;
 
     uint64 public constant PCT_BASE = 10 ** 18; // 0% = 0; 1% = 10^16; 100% = 10^18
 
@@ -184,25 +182,19 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
     }
 
     /**
-     * @notice Set the equity multiplier to `_equityMultiplier`
+     * @notice Set the equity settings to multiplier: `_equityMultiplier`, length: `@transformTime(_vestingLength)`, cliff: `@transformTime(_vestingCliff)`, revokable: `_vestingRevokable`
      * @param _equityMultiplier The new equity multiplier represented as a multiple of 10^18. 0.5x = 5^18; 1x = 10^18; 2x = 20^18
-     */
-    function setEquityMultiplier(uint64 _equityMultiplier) external auth(SET_EQUITY_MULTIPLIER_ROLE) {
-        equityMultiplier = _equityMultiplier;
-    }
-
-    /**
-     * @notice Set the vesting settings to length: `_vestingLength`, cliff: `_vestingCliff`, revokable: `_vestingRevokable`
      * @param _vestingLength The length of vestings in seconds, the time when vestings can be completely claimed. Set to 0 to disable vestings
      * @param _vestingCliffLength The vesting cliff in seconds, the time until which vestings cannot be claimed
      * @param _vestingRevokable Whether vestings can be revoked
      */
-    function setVestingSettings(uint64 _vestingLength, uint64 _vestingCliffLength, bool _vestingRevokable)
+    function setEquitySettings(uint64 _equityMultiplier, uint64 _vestingLength, uint64 _vestingCliffLength, bool _vestingRevokable)
         external
-        auth(SET_VESTING_SETTINGS_ROLE)
+        auth(SET_EQUITY_SETTINGS_ROLE)
     {
         require(_vestingCliffLength <= _vestingLength, ERROR_CLIFF_PERIOD_TOO_HIGH);
 
+        equityMultiplier = _equityMultiplier;
         vestingLength = _vestingLength;
         vestingCliffLength = _vestingCliffLength;
         vestingRevokable = _vestingRevokable;
