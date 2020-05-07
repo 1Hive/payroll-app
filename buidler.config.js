@@ -21,7 +21,7 @@ module.exports = {
     },
   },
   gasReporter: {
-    enabled: process.env.GAS_REPORTER ? true : false,
+    enabled: !!process.env.GAS_REPORTER,
   },
   aragon: {
     appServePort: 3001,

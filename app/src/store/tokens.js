@@ -13,6 +13,14 @@ export function getDenominationToken() {
     .toPromise()
 }
 
+export function getEquityTokenManager() {
+  return app
+    .call('equityTokenManager')
+    .pipe(first())
+    .toPromise()
+}
+
+
 export async function getToken(address) {
   if (!tokenCache.has(address)) {
     const [decimals, symbol] = await Promise.all([

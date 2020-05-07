@@ -64,7 +64,7 @@ function EquityOption({ readOnly = true }) {
               margin-top: ${2 * GU}px;
             `}
             icon={<IconEdit />}
-            label="Ediit Equity Option"
+            label="Edit Equity Option"
             display="all"
             wide
           />

@@ -1,33 +1,50 @@
-import { format as dateFormatter } from 'date-fns'
 import { round } from './math-utils'
+import { splitAllocation } from './calculations'
 
-const DEFAULT_DATE_FORMAT = 'LL/dd/yyyy'
-
-export const SECONDS_IN_A_YEAR = 31557600 // 365.25 days
-
-export function formatDate(date, format = DEFAULT_DATE_FORMAT) {
-  return dateFormatter(date, format)
+export function formatDecimals(value, digits) {
+  try {
+    return value.toLocaleString('en-US', {
+      style: 'decimal',
+      maximumFractionDigits: digits,
+    })
+  } catch (err) {
+    if (err.name === 'RangeError') {
+      // Fallback to Number.prototype.toString()
+      // if the language tag is not supported.
+      return value.toString()
+    }
+    throw err
+  }
 }
 
-const formatter = new Intl.NumberFormat('en-US', {
-  minimumFractionDigits: 0,
-})
-
-export function formatCurrency(
+export function formatTokenAmount(
   amount,
-  symbol,
-  decimals = 10,
-  pow = 18,
-  multiplier = 1,
-  rounding = 2,
-  isIncoming = true,
-  displaySign = false
+  isIncoming,
+  decimals = 0,
+  displaySign = false,
+  { rounding = 2, multiplier = 1, commas = true, replaceZeroBy = '0' } = {}
 ) {
-  const number = round(
-    (amount / Math.pow(decimals, pow)) * multiplier,
+  const roundedAmount = round(
+    (amount / Math.pow(10, decimals)) * multiplier,
     rounding
   )
-  const formattedNumber = formatter.format(number)
-  const sign = displaySign ? (isIncoming ? '+' : '-') : ''
-  return `${sign}${formattedNumber} ${symbol}`
+  const formattedAmount = formatDecimals(roundedAmount, 18)
+
+  if (formattedAmount === '0') {
+    return replaceZeroBy
+  }
+
+  return (
+    (displaySign ? (isIncoming ? '+' : '-') : '') +
+    (commas ? formattedAmount : formattedAmount.replace(',', ''))
+  )
+}
+
+export function formatAllocationSplit(denominationAllocation, pctBase) {
+  const [
+    convertedDenominationAllocation,
+    convertedEquityAllocation,
+  ] = splitAllocation(denominationAllocation, pctBase)
+
+  return `${convertedDenominationAllocation} % / ${convertedEquityAllocation} %`
 }
