@@ -90,6 +90,7 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
         uint256 indexed employeeId,
         address indexed accountAddress,
         address indexed token,
+        uint256 denominationAllocation,
         uint256 denominationAmount,
         uint256 equityAmount,
         string metaData
@@ -208,7 +209,7 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
     }
 
     /**
-     * @notice Add employee with address `_accountAddress` to payroll with an salary of `_initialDenominationSalary` per second, starting on `@formatDate(_startDate)`
+     * @notice Add employee with address `_accountAddress` to payroll with a salary of `@tokenAmount(self.denominationToken(): address, _initialDenominationSalary)` per second, starting on `@formatDate(_startDate)`
      * @param _accountAddress Employee's address to receive payroll
      * @param _initialDenominationSalary Employee's salary, per second in denomination token
      * @param _startDate Employee's starting timestamp in seconds (it actually sets their initial lastPayroll value)
@@ -222,7 +223,7 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
     }
 
     /**
-     * @notice Set employee #`_employeeId`'s salary to `_denominationSalary` per second
+     * @notice Set employee #`_employeeId`'s salary to `@tokenAmount(self.denominationToken(): address, _denominationSalary)` per second
      * @dev This reverts if either the employee's owed salary or accrued salary overflows, to avoid
      *      losing any accrued salary for an employee due to the employer changing their salary.
      * @param _employeeId Employee's identifier
@@ -279,7 +280,7 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
     }
 
     /**
-     * @notice Request `@formatPct(_denominationTokenAllocation)`% of `@tokenAmount(self.denominationToken(), _requestedAmount)` of your salary and the rest as equity
+     * @notice Request `@formatPct(_denominationTokenAllocation)`% of `@tokenAmount(self.denominationToken(): address, _requestedAmount)` of your salary and the rest as equity
      * @dev Initialization check is implicitly provided by `employeeMatches` as new employees can
      *      only be added via `addEmployee(),` which requires initialization.
      *      As the employee is allowed to call this, we enforce non-reentrancy.
@@ -319,7 +320,7 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
         }
         _removeEmployeeIfTerminatedAndPaidOut(employeeId);
 
-        emit Payday(employeeId, employee.accountAddress, denominationToken, denominationTokenAmount, equityTokenAmount, _metaData);
+        emit Payday(employeeId, employee.accountAddress, denominationToken, _denominationTokenAllocation, denominationTokenAmount, equityTokenAmount, _metaData);
     }
 
     // Forwarding fns

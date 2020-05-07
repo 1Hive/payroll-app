@@ -1,6 +1,6 @@
-import app from './app'
-import { employee, tokenAllocation } from './marshalling'
 import { first, map } from 'rxjs/operators'
+import app from './app'
+import { employee } from './marshalling'
 
 export function getEmployeeById(id) {
   return app
@@ -18,16 +18,3 @@ export function getEmployeeIdByAddress(accountAddress) {
     .toPromise()
 }
 
-export async function getSalaryAllocation(employeeId, tokens) {
-  const salaryAllocation = await Promise.all(
-    tokens.map(token =>
-      app
-        .call('getAllocation', employeeId, token.address)
-        .pipe(first())
-        .pipe(map(allocation => tokenAllocation({ ...token, allocation })))
-        .toPromise()
-    )
-  )
-
-  return salaryAllocation.filter(({ allocation }) => allocation)
-}
