@@ -1,5 +1,5 @@
 const { deployDAI } = require('../helpers/tokens')(artifacts, web3)
-const { assertRevert } = require('@aragon/test-helpers/assertThrow')
+const { assertRevert } = require('../helpers/assertRevert')
 const { getEvents, getEventArgument } = require('@aragon/test-helpers/events')
 const { NOW, ONE_MONTH } = require('../helpers/time')
 const { bn, MAX_UINT256, annualSalaryPerSecond, ONE } = require('../helpers/numbers')(web3)
@@ -58,7 +58,7 @@ contract('Payroll employees modification', ([owner, employee, anotherEmployee, a
                 await increaseTime(ONE_MONTH)
 
                 const accruedSalary = (await payroll.getEmployee(employeeId))[2]
-                const expectedAccruedSalary = previousSalary.mul(ONE_MONTH)
+                const expectedAccruedSalary = previousSalary.mul(bn(ONE_MONTH))
                 assert.equal(accruedSalary.toString(), expectedAccruedSalary.toString(), 'accrued salary does not match')
 
                 const events = getEvents(receipt, 'AddEmployeeAccruedSalary')
@@ -71,10 +71,10 @@ contract('Payroll employees modification', ([owner, employee, anotherEmployee, a
                 await increaseTime(ONE_MONTH)
                 await payroll.setEmployeeSalary(employeeId, newSalary, { from })
                 await increaseTime(ONE_MONTH)
-                await payroll.setEmployeeSalary(employeeId, newSalary.mul(2), { from })
+                await payroll.setEmployeeSalary(employeeId, newSalary.mul(bn(2)), { from })
 
                 const accruedSalary = (await payroll.getEmployee(employeeId))[2]
-                const expectedAccruedSalary = previousSalary.mul(ONE_MONTH).plus(newSalary.mul(ONE_MONTH))
+                const expectedAccruedSalary = previousSalary.mul(bn(ONE_MONTH)).add(newSalary.mul(bn(ONE_MONTH)))
                 assert.equal(accruedSalary.toString(), expectedAccruedSalary.toString(), 'accrued salary does not match')
               })
 
@@ -89,7 +89,7 @@ contract('Payroll employees modification', ([owner, employee, anotherEmployee, a
             }
 
             context('when the given value greater than zero', () => {
-              const newSalary = previousSalary.mul(2)
+              const newSalary = previousSalary.mul(bn(2))
 
               context('when the employee is not owed a huge salary amount', () => {
                 itSetsSalarySuccessfully(newSalary)
@@ -176,8 +176,8 @@ contract('Payroll employees modification', ([owner, employee, anotherEmployee, a
             it('changes the address of the employee', async () => {
               await payroll.changeAddressByEmployee(newAddress, { from })
 
-              const [address] = await payroll.getEmployee(employeeId)
-              assert.equal(address, newAddress, 'employee address does not match')
+              const { accountAddress } = await payroll.getEmployee(employeeId)
+              assert.equal(accountAddress, newAddress, 'employee address does not match')
             })
 
             it('emits an event', async () => {

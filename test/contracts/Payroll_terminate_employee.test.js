@@ -1,4 +1,4 @@
-const { assertRevert } = require('@aragon/test-helpers/assertThrow')
+const { assertRevert } = require('../helpers/assertRevert')
 const { getEvents, getEventArgument } = require('@aragon/test-helpers/events')
 const { NOW, ONE_MONTH } = require('../helpers/time')
 const { deployContracts, createPayroll } = require('../helpers/deploy')(artifacts, web3)
@@ -46,7 +46,7 @@ contract('Payroll employees termination', ([owner, employee, anyone]) => {
 
             context('when the given end date is in the future ', () => {
               beforeEach('set future end date', async () => {
-                endDate = (await currentTimestamp()).plus(ONE_MONTH)
+                endDate = (await currentTimestamp()).add(bn(ONE_MONTH))
               })
 
               it('sets the end date of the employee', async () => {
@@ -81,10 +81,10 @@ contract('Payroll employees termination', ([owner, employee, anyone]) => {
                 await payroll.payday(ONE, -1, "", { from: employee })
                 await assertRevert(payroll.getEmployee(employeeId), 'PAYROLL_EMPLOYEE_DOESNT_EXIST')
 
-                const owedSalaryInDai = exchangedAmount(salary.times(ONE_MONTH), DAI_RATE, 100)
+                const owedSalaryInDai = exchangedAmount(salary.mul(bn(ONE_MONTH)), DAI_RATE, 100)
 
                 const currentDAI = await DAI.balanceOf(employee)
-                const expectedDAI = previousDAI.plus(owedSalaryInDai)
+                const expectedDAI = previousDAI.add(owedSalaryInDai)
                 assert.equal(currentDAI.toString(), expectedDAI.toString(), 'current balance does not match')
               })
 
@@ -103,12 +103,12 @@ contract('Payroll employees termination', ([owner, employee, anyone]) => {
                 const receipt = await payroll.addEmployee(employee, salary, await payroll.getTimestampPublic(), 'Boss')
                 const newEmployeeId = getEventArgument(receipt, 'AddEmployee', 'employeeId')
 
-                const [address, employeeSalary, accruedSalary, lastPayroll, date] = await payroll.getEmployee(newEmployeeId)
-                assert.equal(address, employee, 'employee account does not match')
-                assert.equal(employeeSalary.toString(), salary.toString(), 'employee salary does not match')
+                const { accountAddress, denominationSalary, accruedSalary, lastPayroll, endDate: end } = await payroll.getEmployee(newEmployeeId)
+                assert.equal(accountAddress, employee, 'employee account does not match')
+                assert.equal(denominationSalary.toString(), salary.toString(), 'employee salary does not match')
                 assert.equal(accruedSalary.toString(), 0, 'employee accrued salary does not match')
                 assert.equal(lastPayroll.toString(), (await currentTimestamp()).toString(), 'employee last payroll date does not match')
-                assert.equal(date.toString(), MAX_UINT64, 'employee end date does not match')
+                assert.equal(end.toString(), MAX_UINT64, 'employee end date does not match')
               })
             })
 
@@ -126,12 +126,12 @@ contract('Payroll employees termination', ([owner, employee, anyone]) => {
 
           context('when the employee end date was already set', () => {
             beforeEach('terminate employee', async () => {
-              await payroll.terminateEmployee(employeeId, (await currentTimestamp()).plus(ONE_MONTH), { from })
+              await payroll.terminateEmployee(employeeId, (await currentTimestamp()).add(bn(ONE_MONTH)), { from })
             })
 
             context('when the previous end date was not reached yet', () => {
               it('changes the employee end date', async () => {
-                const newEndDate = bn(await currentTimestamp()).plus(ONE_MONTH * 2)
+                const newEndDate = bn(await currentTimestamp()).add(bn(ONE_MONTH * 2))
                 await payroll.terminateEmployee(employeeId, newEndDate, { from })
 
                 const endDate = (await payroll.getEmployee(employeeId))[4]

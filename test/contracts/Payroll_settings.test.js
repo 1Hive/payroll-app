@@ -1,5 +1,5 @@
 const { deployDAI } = require('../helpers/tokens')(artifacts, web3)
-const { assertRevert } = require('@aragon/test-helpers/assertThrow')
+const { assertRevert } = require('../helpers/assertRevert')
 const { NOW } = require('../helpers/time')
 const { deployContracts, createPayroll } = require('../helpers/deploy')(artifacts, web3)
 const { ONE, bn } = require('../helpers/numbers')(web3)
@@ -58,35 +58,29 @@ contract('Payroll settings', ([owner, nonContractAddress]) => {
     })
   })
 
-  describe('setEquityMultiplier', () => {
+  describe('setEquitySettings', () => {
 
     it('sets correctly', async () => {
       const expectedEquityMultiplier = bn(2000)
-      await payroll.setEquityMultiplier(expectedEquityMultiplier)
-      const newEquityMultiplier = await payroll.equityMultiplier()
-      assert.equal(newEquityMultiplier.toString(), expectedEquityMultiplier.toString())
-    })
-  })
-
-  describe('setVestingSettings', () => {
-
-    it('sets correctly', async () => {
       const expectedVestingLength = 1000
       const expectedVestingCliff = 10
       const expectedVestingRevokable = true
 
-      await payroll.setVestingSettings(expectedVestingLength, expectedVestingCliff, expectedVestingRevokable)
+      await payroll.setEquitySettings(expectedEquityMultiplier, expectedVestingLength, expectedVestingCliff, expectedVestingRevokable)
 
+      const newEquityMultiplier = await payroll.equityMultiplier()
       const vestingLength = await payroll.vestingLength()
       const vestingCliffLength = await payroll.vestingCliffLength()
       const vestingRevokable = await payroll.vestingRevokable()
+
+      assert.equal(newEquityMultiplier.toString(), expectedEquityMultiplier.toString())
       assert.equal(vestingLength, expectedVestingLength)
       assert.equal(vestingCliffLength, expectedVestingCliff)
       assert.equal(vestingRevokable, expectedVestingRevokable)
     })
 
     it('reverts when cliff is greater than length', async () => {
-      await assertRevert(payroll.setVestingSettings(100, 101, false), 'PAYROLL_CLIFF_PERIOD_TOO_HIGH')
+      await assertRevert(payroll.setEquitySettings(ONE, 100, 101, false), 'PAYROLL_CLIFF_PERIOD_TOO_HIGH')
     })
   })
 

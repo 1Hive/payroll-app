@@ -1,4 +1,4 @@
-const { assertRevert } = require('@aragon/test-helpers/assertThrow')
+const { assertRevert } = require('../helpers/assertRevert')
 const { getEvents, getEventArgument } = require('@aragon/test-helpers/events')
 const { deployDAI } = require('../helpers/tokens')(artifacts, web3)
 const { NOW, TWO_MONTHS } = require('../helpers/time')
@@ -7,7 +7,7 @@ const { deployContracts, createPayroll } = require('../helpers/deploy')(artifact
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 
-contract('Payroll employees addition', ([owner, employee, anotherEmployee, anyone, unusedAddress]) => {
+contract('Payroll employees addition', ([owner, employee, anotherEmployee, anyone]) => {
   let dao, payroll, payrollBase, finance, vault, DAI, equityTokenManager, equityToken
 
   before('deploy base apps and tokens', async () => {
@@ -48,8 +48,8 @@ contract('Payroll employees addition', ([owner, employee, anotherEmployee, anyon
               })
 
               it('adds a new employee and emits an event', async () => {
-                const [address] = await payroll.getEmployee(employeeId)
-                assert.equal(address, employee, 'employee address does not match')
+                const { accountAddress } = await payroll.getEmployee(employeeId)
+                assert.equal(accountAddress, employee, 'employee address does not match')
 
                 const events = getEvents(receipt, 'AddEmployee');
                 assert.equal(events.length, 1, 'number of AddEmployee events does not match')
@@ -79,9 +79,9 @@ contract('Payroll employees addition', ([owner, employee, anotherEmployee, anyon
                 assert.equal(event.startDate.toString(), startDate, 'employee start date does not match')
                 assert.equal(event.role, anotherRole, 'employee role does not match')
 
-                const [address, employeeSalary, accruedSalary, lastPayroll, endDate] = await payroll.getEmployee(anotherEmployeeId)
-                assert.equal(address, anotherEmployee, 'employee address does not match')
-                assert.equal(employeeSalary.toString(), anotherSalary.toString(), 'employee salary does not match')
+                const { accountAddress, denominationSalary, accruedSalary, lastPayroll, endDate } = await payroll.getEmployee(anotherEmployeeId)
+                assert.equal(accountAddress, anotherEmployee, 'employee address does not match')
+                assert.equal(denominationSalary.toString(), anotherSalary.toString(), 'employee salary does not match')
                 assert.equal(accruedSalary.toString(), 0, 'employee accrued salary does not match')
                 assert.equal(lastPayroll.toString(), startDate.toString(), 'employee last payroll does not match')
                 assert.equal(endDate.toString(), MAX_UINT64, 'employee end date does not match')

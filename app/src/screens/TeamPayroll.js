@@ -1,24 +1,18 @@
 import React from 'react'
+import { AddEmployee } from '../panels'
+import EmployeeList from '../components/TeamPayroll/EmployeeList'
+import KeyStats from '../components/TeamPayroll/KeyStats'
+import SalaryStats from '../components/TeamPayroll/SalaryStats'
 
-import { Split } from '@aragon/ui'
-import EmployeeList from './components/EmployeeList'
-import KeyStats from './components/KeyStats'
-import TotalPayroll from './components/TotalPayroll'
+function TeamPayroll({ panelState, onAddEmployee }) {
+  return (
+    <div>
+      <KeyStats />
+      <SalaryStats />
+      <EmployeeList />
+      <AddEmployee onAddEmployee={onAddEmployee} panelState={panelState} />
+    </div>
+  )
+}
 
-const TeamPayroll = () => (
-  <Split
-    primary={
-      <>
-        <TotalPayroll />
-        <EmployeeList />
-      </>
-    }
-    secondary={
-      <>
-        <KeyStats />
-      </>
-    }
-  />
-)
-
-export default TeamPayroll
+export default React.memo(TeamPayroll)
