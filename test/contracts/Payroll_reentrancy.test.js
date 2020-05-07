@@ -1,4 +1,4 @@
-const { assertRevert } = require('@aragon/test-helpers/assertThrow')
+const { assertRevert } = require('../helpers/assertRevert')
 const { bigExp, annualSalaryPerSecond, ONE } = require('../helpers/numbers')(web3)
 const { NOW, ONE_MONTH } = require('../helpers/time')
 const { deployContracts, createPayroll } = require('../helpers/deploy')(artifacts, web3)
@@ -14,7 +14,7 @@ contract('Payroll reentrancy guards', ([owner]) => {
   const increaseTime = async seconds => {
     await payroll.mockIncreaseTime(seconds)
   }
-
+ 
   before('deploy base apps', async () => {
     ({ dao, finance, vault, payrollBase, equityTokenManager } = await deployContracts(owner))
   })

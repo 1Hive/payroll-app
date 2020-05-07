@@ -1,45 +1,4 @@
 {
-  "environments": {
-    "default": {
-      "registry": "0x5f6f7e8cc7346a11ca2def8f827b7a0b612c56a1",
-      "appName": "payroll.open.aragonpm.eth",
-      "network": "rpc"
-    },
-    "rinkeby": {
-      "registry": "0x98Df287B6C145399Aaa709692c8D308357bC085D",
-      "appName": "payroll.open.aragonpm.eth",
-      "network": "rinkeby"
-    },
-    "staging": {
-      "registry": "0xfe03625ea880a8cba336f9b5ad6e15b0a3b5a939",
-      "appName": "payroll.open.aragonpm.eth",
-      "network": "rinkeby"
-    },
-    "mainnet": {
-      "registry": "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e",
-      "appName": "payroll.open.aragonpm.eth",
-      "network": "mainnet"
-    },
-    "ropsten": {
-      "registry": "0x6afe2cacee211ea9179992f89dc61ff25c61e923",
-      "appName": "payroll.open.aragonpm.eth",
-      "network": "ropsten"
-    }
-  },
-  "dependencies": [
-    {
-      "appName": "finance.aragonpm.eth",
-      "version": "^3.0.0",
-      "initParam": "_finance",
-      "state": "finance",
-      "requiredPermissions": [
-        {
-          "name": "CREATE_PAYMENTS_ROLE",
-          "params": "*"
-        }
-      ]
-    }
-  ],
   "roles": [
     {
       "name": "Add employees",
@@ -57,30 +16,31 @@
       "params": ["Employee Id", "New yearly salary per second", "Old yearly salary per second"]
     },
     {
-      "name": "Add bonuses for employee",
-      "id": "ADD_BONUS_ROLE",
-      "params": ["Employee Id", "Amount"]
+      "name": "Set finance",
+      "id": "SET_FINANCE_ROLE",
+      "params": []
     },
     {
-      "name": "Add reimbursements for employee",
-      "id": "ADD_REIMBURSEMENT_ROLE",
-      "params": ["Employee Id", "Amount"]
+      "name": "Set denomination token",
+      "id": "SET_DENOMINATION_TOKEN_ROLE",
+      "params": []
     },
     {
-      "name": "Manage allowed tokens",
-      "id": "MANAGE_ALLOWED_TOKENS_ROLE",
-      "params": ["Token", "Allowed"]
+      "name": "Set token manager",
+      "id": "SET_TOKEN_MANAGER_ROLE",
+      "params": []
     },
     {
-      "name": "Modify Price Feed",
-      "id": "MODIFY_PRICE_FEED_ROLE",
-      "params": ["New price feed", "Old price feed"]
-    },
-    {
-      "name": "Modify Rate Expiry Time",
-      "id": "MODIFY_RATE_EXPIRY_ROLE",
-      "params": ["New rate expiry time", "Old rate expiry time"]
+      "name": "Set equity settings",
+      "id": "SET_EQUITY_SETTINGS_ROLE",
+      "params": []
     }
   ],
+  "environments": {
+    "default": {
+      "network": "rpc",
+      "appName": "payroll.aragonpm.eth"
+    }
+  },
   "path": "contracts/Payroll.sol"
 }

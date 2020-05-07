@@ -30,14 +30,14 @@ contract('Payroll gas costs', ([owner, employee, anotherEmployee]) => {
         const { receipt: { cumulativeGasUsed } } = await payroll.payday(ONE, -1, "", { from: employee })
 
         console.log('cumulativeGasUsed:', cumulativeGasUsed)
-        assert.isAtMost(cumulativeGasUsed, 361000, 'payout gas cost for a single allowed token should be ~338k')
+        assert.isAtMost(cumulativeGasUsed, 361000, 'payout gas cost for a single allowed token should be ~361k')
       })
 
       it('expends ~201k gas when requesting all equity', async () => {
         const { receipt: { cumulativeGasUsed } } = await payroll.payday(0, -1, "", { from: employee })
 
         console.log('cumulativeGasUsed:', cumulativeGasUsed)
-        assert.isAtMost(cumulativeGasUsed, 201000, 'payout gas cost for a single allowed token should be ~338k')
+        assert.isAtMost(cumulativeGasUsed, 201160, 'payout gas cost for a single allowed token should be ~201k')
       })
     })
   })

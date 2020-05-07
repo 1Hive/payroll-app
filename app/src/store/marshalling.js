@@ -14,68 +14,48 @@ export function date(epoch) {
 export function employee(data) {
   const {
     id,
-    employeeId,
+    accruedSalary,
     accountAddress,
-    name,
     denominationSalary,
-    accruedValue,
-    lastPayroll,
-    startDate,
+    employeeId,
     endDate,
-    terminated,
+    lastPayroll,
     role,
+    startDate,
+    terminated,
   } = data
   const result = {
     id: id || employeeId,
-    accountAddress: accountAddress,
-    name: name,
-    salary: currency(denominationSalary),
-    accruedValue: currency(accruedValue),
+    accountAddress,
+    salary: denominationSalary,
+    accruedSalary,
     lastPayroll: date(lastPayroll),
     startDate: date(startDate),
     endDate: date(endDate),
-    terminated: !!terminated,
-    role: role,
+    terminated: Boolean(terminated),
+    role,
   }
 
   return result
 }
 
-export function tokenAllocation(data) {
-  const { address, symbol, allocation } = data
+// TODO: Add equity amount and denomination allocation
+export function payment({
+  accountAddress,
+  denominationAllocation,
+  denominationAmount,
+  metaData,
+  paymentDate,
+  token,
+  transactionHash,
+}) {
   return {
-    address: address,
-    symbol: symbol,
-    allocation: parseInt(allocation) || 0,
-  }
-}
-
-export function payment(data) {
-  const {
-    returnValues: { amount, exchangeRate, paymentDate },
+    accountAddress,
+    date: date(paymentDate),
+    denominationAllocation,
+    denominationAmount,
+    metaData,
     token,
     transactionHash,
-    employee,
-  } = data
-  const exchanged = amount / exchangeRate
-  return {
-    accountAddress: employee,
-    amount: {
-      amount: amount,
-      isIncoming: true, // FIXME: Assumption: all salaries are incoming - sgobotta
-      displaySign: true, // FIXME: The send payroll event should provide the displaysign option
-      token: {
-        address: token.address,
-        symbol: token.symbol,
-        decimals: token.decimals,
-      },
-    },
-    transactionAddress: transactionHash,
-    date: date(paymentDate),
-    status: 'Complete', // FIXME: Find out how the status is calculated - - sgobotta
-    exchangeRate: {
-      amount: exchangeRate,
-    },
-    exchanged,
   }
 }

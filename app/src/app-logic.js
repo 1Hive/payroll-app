@@ -1,67 +1,102 @@
-import React, { useCallback } from 'react'
-import { AragonApi, useAppState, useApi, useAragonApi } from '@aragon/api-react'
-import { toDecimals } from './utils/math-utils'
-import { SECONDS_IN_A_YEAR } from './utils/formatting'
+import React, { useCallback, useMemo } from 'react'
+import { AragonApi, useApi, useAppState } from '@aragon/api-react'
+import { usePanelState } from './utils/hooks'
+import appStateReducer from './app-state-reducer'
 
-import usePanelState from './hooks/usePanelState'
-
-const appStateReducer = state => {
-  if (state === null) {
-    return { isSyncing: true }
-  }
-  return state
-}
-
-export function useAddEmployeeAction(onDone = f => f) {
-  const { api, appState } = useAragonApi()
-  const { denominationToken } = appState
+// App actions
+export function useAddEmployeeAction(onDone) {
+  const api = useApi()
   return useCallback(
-    (address, salary, name, role, startDate) => {
-      const initialDenominationSalary = salary / SECONDS_IN_A_YEAR
-
-      const adjustedAmount = toDecimals(
-        initialDenominationSalary.toString(),
-        denominationToken.decimals,
-        {
-          truncate: true,
-        }
-      )
-      const _startDate = Math.floor(startDate.getTime() / 1000).toString()
-      // Don't care about response
-      console.log(address, adjustedAmount, _startDate, role)
-      api.addEmployee(address, adjustedAmount, _startDate, role).toPromise()
-      onDone()
+    (accountAddress, initialSalaryPerSecond, startDateInSeconds, role) => {
+      if (api) {
+        api
+          .addEmployee(
+            accountAddress,
+            initialSalaryPerSecond,
+            startDateInSeconds,
+            role
+          )
+          .toPromise()
+        onDone()
+      }
     },
-    [api, onDone, denominationToken]
+    [api, onDone]
   )
 }
 
-export function useRequestSalaryAction(onDone = f => f) {
+export function usePaydayAction(onDone) {
   const api = useApi()
-  return useCallback(() => {
-    // Don't care about response
-    api.payday(0, 0, []).toPromise()
-    onDone()
-  }, [api, onDone])
+  return useCallback(
+    (denominationTokenAllocation, requestedAmount, metadata) => {
+      if (api) {
+        api
+          .payday(denominationTokenAllocation, requestedAmount, metadata)
+          .toPromise()
+        onDone()
+      }
+    },
+    [api, onDone]
+  )
 }
 
-// Handles the main logic of the app.
+// App panels
+export function useAppPanels() {
+  const addEmployeePanel = usePanelState()
+  const editEquityOptionPanel = usePanelState()
+  const requestSalaryPanel = usePanelState()
+
+  return {
+    editEquityOptionPanel,
+    addEmployeePanel: useMemo(
+      () => ({
+        ...addEmployeePanel,
+        // ensure there is only one panel opened at a time
+        visible:
+          addEmployeePanel.visible &&
+          !editEquityOptionPanel.visible &&
+          !requestSalaryPanel.visible,
+      }),
+      [
+        addEmployeePanel,
+        editEquityOptionPanel.visible,
+        requestSalaryPanel.visible,
+      ]
+    ),
+    requestSalaryPanel: useMemo(
+      () => ({
+        ...requestSalaryPanel,
+        // ensure there is only one panel opened at a time
+        visible:
+          requestSalaryPanel.visible &&
+          !editEquityOptionPanel.visible &&
+          !addEmployeePanel.visible,
+      }),
+      [
+        requestSalaryPanel,
+        editEquityOptionPanel.visible,
+        addEmployeePanel.visible,
+      ]
+    ),
+  }
+}
+
 export function useAppLogic() {
   const { isSyncing } = useAppState()
-
-  const addEmployeePanel = usePanelState()
-  // const requestSalaryPanel = usePanelState()
+  const {
+    addEmployeePanel,
+    editEquityOptionPanel,
+    requestSalaryPanel,
+  } = useAppPanels()
 
   const actions = {
     addEmployee: useAddEmployeeAction(addEmployeePanel.requestClose),
-    requestSalary: useRequestSalaryAction(),
+    payday: usePaydayAction(requestSalaryPanel.requestClose),
   }
 
   return {
     actions,
+    panels: { addEmployeePanel, editEquityOptionPanel, requestSalaryPanel },
     isSyncing: isSyncing,
-    addEmployeePanel,
-    // requestSalaryPanel,
   }
 }
 

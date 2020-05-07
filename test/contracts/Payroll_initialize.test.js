@@ -1,5 +1,5 @@
 const { deployDAI } = require('../helpers/tokens')(artifacts, web3)
-const { assertRevert } = require('@aragon/test-helpers/assertThrow')
+const { assertRevert } = require('../helpers/assertRevert')
 const { NOW } = require('../helpers/time')
 const { deployContracts, createPayroll } = require('../helpers/deploy')(artifacts, web3)
 const { ONE } = require('../helpers/numbers')(web3)
@@ -53,7 +53,7 @@ contract('Payroll initialization', ([owner]) => {
 
       it('has a price feed instance, a finance instance, a denomination token and a rate expiration time', async () => {
         assert.equal(await payroll.finance(), finance.address, 'finance address should match')
-        assert.equal((await payroll.denominationToken()).toLowerCase(), DAI.address, 'denomination token address does not match')
+        assert.equal(await payroll.denominationToken(), DAI.address, 'denomination token address does not match')
         assert.equal(await payroll.equityTokenManager(), equityTokenManager.address, 'equityTokenManager address should match')
         assert.equal((await payroll.equityMultiplier()).toString(), ONE.toString(), 'equityMultiplier does not match')
         assert.equal(await payroll.vestingLength(), 0, 'vestingLength does not match')
