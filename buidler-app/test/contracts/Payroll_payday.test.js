@@ -213,7 +213,7 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                     const requestedDAI = exchangedAmountLocal(currentOwedSalary, allocationDAI) // 80%
                     const requestedANT = (currentOwedSalary.sub(requestedDAI)).mul(bn(2)) // 20% * 2
 
-                    await payroll.setEquityMultiplier(bigExp(2, 18))
+                    await payroll.setEquitySettings(bigExp(2, 18), 0, 0, false)
                     await assertTransfersRequestedSalary(requestedDAI, requestedANT, currentOwedSalary)
                   })
 
@@ -221,7 +221,7 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                     const requestedDAI = exchangedAmountLocal(currentOwedSalary, allocationDAI) // 80%
                     const requestedANT = (currentOwedSalary.sub(requestedDAI)).div(bn(2)) // 20% * 0.5
 
-                    await payroll.setEquityMultiplier(bigExp(50, 16))
+                    await payroll.setEquitySettings(bigExp(50, 16), 0, 0, false)
                     await assertTransfersRequestedSalary(requestedDAI, requestedANT, currentOwedSalary)
                   })
 
@@ -229,7 +229,7 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                     const requestedDAI = exchangedAmountLocal(currentOwedSalary, allocationDAI) // 80%
                     const requestedANT = bn(0) // 20% * 0
 
-                    await payroll.setEquityMultiplier(bn(0))
+                    await payroll.setEquitySettings(bn(0), 0, 0, false)
                     await assertTransfersRequestedSalary(requestedDAI, requestedANT, currentOwedSalary)
                   })
                 })
@@ -239,7 +239,7 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                     const requestedDAI = exchangedAmountLocal(currentOwedSalary, allocationDAI) // 80%
                     const requestedANT = (currentOwedSalary.sub(requestedDAI)) // 20% * 2
 
-                    await payroll.setVestingSettings(vestingLength, expectedVestingCliff, expectedVestingRevokable);
+                    await payroll.setEquitySettings(ONE, vestingLength, expectedVestingCliff, expectedVestingRevokable);
 
                     const previousVestings = await equityTokenManager.vestingsLengths(employee)
                     const timeAtPayday = await payroll.getTimestampPublic()
@@ -613,7 +613,7 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                 context('when the equityMultiplier is two', () => {
 
                   beforeEach('set multiplier', async () => {
-                    await payroll.setEquityMultiplier(bigExp(2, 18))
+                    await payroll.setEquitySettings(bigExp(2, 18), 0, 0, false)
                   })
 
                   itReverts(owedSalary, 'MATH_MUL_OVERFLOW')
@@ -622,7 +622,7 @@ contract('Payroll payday', ([owner, employee, anyone]) => {
                 context('when vesting is enabled', () => {
 
                   beforeEach('enable vesting', async () => {
-                    await payroll.setVestingSettings(100, 50, false);
+                    await payroll.setEquitySettings(ONE, 100, 50, false);
                   })
 
                   itReverts(owedSalary, 'MATH_MUL_OVERFLOW')

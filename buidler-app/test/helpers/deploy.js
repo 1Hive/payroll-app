@@ -98,8 +98,7 @@ module.exports = (artifacts, web3) => {
     const SET_FINANCE_ROLE = await payroll.SET_FINANCE_ROLE()
     const SET_DENOMINATION_TOKEN_ROLE = await payroll.SET_DENOMINATION_TOKEN_ROLE()
     const SET_TOKEN_MANAGER_ROLE = await payroll.SET_TOKEN_MANAGER_ROLE()
-    const SET_EQUITY_MULTIPLIER_ROLE = await payroll.SET_EQUITY_MULTIPLIER_ROLE()
-    const SET_VESTING_SETTINGS_ROLE = await payroll.SET_VESTING_SETTINGS_ROLE()
+    const SET_EQUITY_SETTINGS_ROLE = await payroll.SET_EQUITY_SETTINGS_ROLE()
 
     await acl.createPermission(owner, payroll.address, ADD_EMPLOYEE_ROLE, owner, { from: owner })
     await acl.createPermission(owner, payroll.address, TERMINATE_EMPLOYEE_ROLE, owner, { from: owner })
@@ -107,8 +106,7 @@ module.exports = (artifacts, web3) => {
     await acl.createPermission(owner, payroll.address, SET_FINANCE_ROLE, owner, { from: owner })
     await acl.createPermission(owner, payroll.address, SET_DENOMINATION_TOKEN_ROLE, owner, { from: owner })
     await acl.createPermission(owner, payroll.address, SET_TOKEN_MANAGER_ROLE, owner, { from: owner })
-    await acl.createPermission(owner, payroll.address, SET_EQUITY_MULTIPLIER_ROLE, owner, { from: owner })
-    await acl.createPermission(owner, payroll.address, SET_VESTING_SETTINGS_ROLE, owner, { from: owner })
+    await acl.createPermission(owner, payroll.address, SET_EQUITY_SETTINGS_ROLE, owner, { from: owner })
 
     await payroll.mockSetTimestamp(currentTimestamp)
 
