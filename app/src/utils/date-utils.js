@@ -1,7 +1,8 @@
+import BN from 'bn.js'
 import dayjs from 'dayjs'
+import duration  from 'dayjs/plugin/duration'
 import isBetween from 'dayjs/plugin/isBetween'
 import relativeTime from 'dayjs/plugin/relativeTime'
-import BN from 'bn.js'
 
 export const SECOND = 1000
 export const MINUTE = 60 * SECOND
@@ -16,6 +17,7 @@ const KNOWN_FORMATS = {
 }
 
 // dayjs plugins
+dayjs.extend(duration)
 dayjs.extend(isBetween)
 dayjs.extend(relativeTime)
 
@@ -32,4 +34,8 @@ function dateIsBetween(date, start, end) {
   )
 }
 
-export { dayjs, dateFormat, dateIsBetween }
+function durationTime(seconds) {
+  return dayjs.duration(seconds, 'seconds').humanize()
+}
+
+export { dayjs, dateFormat, dateIsBetween, durationTime }

@@ -17,6 +17,7 @@ import AllocationFields from './AllocationFields'
 
 import { formatTokenAmount } from '../../utils/formatting'
 import { toDecimals } from '../../utils/math-utils'
+import { durationTime } from '../../utils/date-utils'
 
 const RequestSalary = React.memo(function RequestSalary({
   employeeOwedSalary,
@@ -259,9 +260,14 @@ const AllocationInfo = ({
       >
         {equityMultiplier}
       </span>
-      X multiplier and {vestingLength} vesting period with {vestingCliffLength}{' '}
-      cliff.
-      {/* TODO: Formatt vesting fields */}
+      X multiplier{' '}
+      {vestingCliffLength > 0
+        ? `and ${durationTime(
+            vestingLength
+          )} vesting period with ${durationTime(vestingCliffLength)} 
+      cliff`
+        : `with no vesting`}
+      .
     </Info>
   )
 }
