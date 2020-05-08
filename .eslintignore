@@ -1,6 +1,7 @@
 node_modules
 app/node_modules
 build
-.cache
+cache
+app/.cache
 dist
 coverage
