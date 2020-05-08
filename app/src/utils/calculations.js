@@ -33,3 +33,7 @@ export function splitAllocation(denominationAllocation, pctBase) {
 
   return [convertedDenominationAllocation, convertedEquityAllocation]
 }
+
+export function convertMultiplier(multiplier, pctBase) {
+  return parseInt(multiplier.div(pctBase.div(new BN(100)))) / 100
+}
