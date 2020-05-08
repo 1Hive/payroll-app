@@ -26,7 +26,7 @@ function App() {
 
   const handleScreenChange = useCallback(screenId => {
     setScreen(SCREENS[screenId].id)
-  })
+  }, [])
 
   return (
     <Main theme={appearance} assetsUrl="./aragon-ui">
