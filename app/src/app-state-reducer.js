@@ -5,13 +5,14 @@ function appStateReducer(state) {
     return { isSyncing: true }
   }
 
-  const { employees, payments, pctBase } = state
+  const { equityMultiplier, employees, payments, pctBase } = state
 
   return {
     ...state,
 
     numData: {
       pctBase: parseInt(pctBase, 10),
+      equityMultiplier: parseInt(equityMultiplier, 10),
     },
 
     employees: employees?.map(({ accruedSalary, salary, ...employee }) => ({
@@ -21,6 +22,7 @@ function appStateReducer(state) {
     })),
 
     pctBase: new BN(pctBase.toString()),
+    equityMultiplier: new BN(equityMultiplier.toString()),
     payments:
       payments?.map(
         ({ denominationAllocation, denominationAmount, ...payment }) => ({
