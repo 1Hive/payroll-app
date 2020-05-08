@@ -1,5 +1,3 @@
-import BN from 'bn.js'
-
 /**
  * Generic round function, see:
  *  - https://stackoverflow.com/a/18358056/1375656
