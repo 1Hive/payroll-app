@@ -12,12 +12,14 @@ import {
   useTheme,
 } from '@aragon/ui'
 import BN from 'bn.js'
-import { useAppState } from '@aragon/api-react'
+import { useAppState, useConnectedAccount } from '@aragon/api-react'
 import AllocationFields from './AllocationFields'
 
-import { formatTokenAmount } from '../../utils/formatting'
 import { toDecimals } from '../../utils/math-utils'
 import { durationTime } from '../../utils/date-utils'
+import { formatTokenAmount } from '../../utils/formatting'
+import { convertMultiplier } from '../../utils/calculations'
+import { useEmployeeTotalVestings } from '../../hooks/employee-hooks'
 
 const RequestSalary = React.memo(function RequestSalary({
   employeeOwedSalary,
@@ -27,6 +29,7 @@ const RequestSalary = React.memo(function RequestSalary({
   const {
     denominationToken,
     equityMultiplier,
+    equityTokenManager,
     pctBase,
     vestingLength,
     vestingCliffLength,
@@ -45,6 +48,7 @@ const RequestSalary = React.memo(function RequestSalary({
       <RequestSalaryContent
         baseAsset={denominationToken}
         equityMultiplier={equityMultiplier}
+        equityTokenManager={equityTokenManager}
         onRequestSalary={onRequestSalary}
         pctBase={pctBase}
         totalAccruedBalance={employeeOwedSalary}
@@ -58,6 +62,7 @@ const RequestSalary = React.memo(function RequestSalary({
 function RequestSalaryContent({
   baseAsset,
   equityMultiplier,
+  equityTokenManager,
   onRequestSalary,
   pctBase,
   totalAccruedBalance,
@@ -65,12 +70,17 @@ function RequestSalaryContent({
   vestingCliffLength,
 }) {
   const theme = useTheme()
+  const connectedAccount = useConnectedAccount()
+
   const [allocation, setAllocation] = useState(pctBase)
   const [amount, setAmount] = useState({
     value: '0',
     valueBN: new BN(0),
     error: null,
   })
+
+  const maxEmployeeVestings = equityTokenManager.maxVestings
+  const totalVestings = useEmployeeTotalVestings(connectedAccount)
 
   const inputRef = useSidePanelFocusOnReady()
 
@@ -134,18 +144,25 @@ function RequestSalaryContent({
 
   const handleAllocationChange = useCallback(newAllocation => {
     setAllocation(newAllocation)
-  })
+  }, [])
 
   const handleSubmit = useCallback(() => {
     event.preventDefault()
 
     onRequestSalary(allocation.toString(), amount.valueBN.toString(), 'Payday')
-  }, [allocation, amount])
+  }, [allocation, amount, onRequestSalary])
+
+  // Employees will be able to choose allocation of salary if:
+  //   - Payroll is configured with no vesting
+  //   - Payroll is configured with vesting and employee didn't reach the maximum allowed vestings
+  const canChooseAllocation =
+    vestingLength === 0 || totalVestings < maxEmployeeVestings
 
   return (
     <form onSubmit={handleSubmit}>
       <AllocationInfo
         equityMultiplier={equityMultiplier}
+        pctBase={pctBase}
         vestingCliffLength={vestingCliffLength}
         vestingLength={vestingLength}
       />
@@ -199,24 +216,34 @@ function RequestSalaryContent({
           adornmentPosition="end"
         />
       </Field>
-      {/* TODO: Hide when no more vestings or vesting not set */}
-      <AllocationFields
-        amount={amount.valueBN}
-        baseAsset={baseAsset}
-        baseAssetAllocation={allocation}
-        equityMultiplier={equityMultiplier}
-        onAllocationChange={handleAllocationChange}
-        pctBase={pctBase}
-      />
-      <Info
-        css={`
-          margin-top: ${6 * GU}px;
-        `}
-        mode="warning"
-      >
-        Warning about vestings
-        {/* TODO: Complete  */}
-      </Info>
+
+      {canChooseAllocation && (
+        <AllocationFields
+          amount={amount.valueBN}
+          baseAsset={baseAsset}
+          baseAssetAllocation={allocation}
+          equityAsset={equityTokenManager.token}
+          equityMultiplier={equityMultiplier}
+          onAllocationChange={handleAllocationChange}
+          pctBase={pctBase}
+        />
+      )}
+      {vestingLength > 0 && (
+        <Info
+          css={`
+            margin-top: ${6 * GU}px;
+          `}
+          mode="warning"
+        >
+          {totalVestings === maxEmployeeVestings
+            ? `You don’t have available vestings to do with this
+          address, if you want to get paid with Equity again, you need to change
+          your adress.`
+            : `You have ${maxEmployeeVestings -
+                totalVestings} remaining vestings available to do with
+          this address.`}
+        </Info>
+      )}
       <Button
         css={`
           margin-top: ${2 * GU}px;
@@ -233,9 +260,12 @@ function RequestSalaryContent({
 
 const AllocationInfo = ({
   equityMultiplier,
+  pctBase,
   vestingCliffLength,
   vestingLength,
 }) => {
+  const formattedMultiplier = convertMultiplier(equityMultiplier, pctBase)
+
   return (
     <Info
       css={`
@@ -258,15 +288,17 @@ const AllocationInfo = ({
           ${textStyle('body2')}
         `}
       >
-        {equityMultiplier}
+        {formattedMultiplier}
       </span>
       X multiplier{' '}
-      {vestingCliffLength > 0
-        ? `and ${durationTime(
-            vestingLength
-          )} vesting period with ${durationTime(vestingCliffLength)} 
-      cliff`
-        : `with no vesting`}
+      {vestingCliffLength > 0 ? (
+        <span>
+          and {durationTime(vestingLength)} vesting period with{' '}
+          {durationTime(vestingCliffLength)} cliff
+        </span>
+      ) : (
+        `with no vesting`
+      )}
       .
     </Info>
   )
