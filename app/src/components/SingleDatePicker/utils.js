@@ -1,4 +1,5 @@
-import dayjs from 'dayjs'
+import { dayjs } from '../../utils/date-utils'
+
 function handleSingleDateSelect({ date, startDate }) {
   // clicking on start date resets it, so it can be re-picked
   if (startDate && dayjs(date).isSame(startDate, 'day')) {
@@ -15,4 +16,5 @@ function handleSingleDateSelect({ date, startDate }) {
     }
   }
 }
+
 export default handleSingleDateSelect

@@ -1,6 +1,7 @@
 import React, { forwardRef } from 'react'
 import PropTypes from 'prop-types'
-import ButtonBase, {
+import {
+  ButtonBase,
   IconCalendar,
   GU,
   RADIUS,

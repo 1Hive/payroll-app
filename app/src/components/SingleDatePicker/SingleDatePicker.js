@@ -1,11 +1,11 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react'
 import PropTypes from 'prop-types'
-import dayjs from 'dayjs'
-import Popover, { useTheme, GU, RADIUS } from '@aragon/ui'
+import { Popover, GU, RADIUS, useTheme } from '@aragon/ui'
 import DatePicker from './DatePicker'
 import Labels from './Labels'
 import { SINGLE_DATE } from './consts'
-import { handleSingleDateSelect } from './utils'
+import { dayjs, dateFormat } from '../../utils/date-utils'
+import handleSingleDateSelect from './utils'
 
 function SingleDatePicker({ format, onChange, startDate: startDateProp }) {
   const theme = useTheme()
@@ -31,7 +31,7 @@ function SingleDatePicker({ format, onChange, startDate: startDateProp }) {
   const labelProps = useMemo(() => {
     const _startDate = startDate
     return {
-      startText: _startDate ? dayjs(_startDate).format(format) : SINGLE_DATE,
+      startText: _startDate ? dateFormat(_startDate, format) : SINGLE_DATE,
     }
   }, [format, startDate])
 

@@ -1,10 +1,9 @@
 import React, { useState } from 'react'
 import PropTypes from 'prop-types'
-import dayjs from 'dayjs'
-import { GU, eachDayOfInterval } from '@aragon/ui'
+import { eachDayOfInterval, GU } from '@aragon/ui'
 import MonthDay from './MonthDay'
-
-const { Selector } = require('@aragon/ui/dist/components')
+import { Selector } from './components'
+import { dayjs } from '../../utils/date-utils'
 
 function DatePicker({
   initialDate,
