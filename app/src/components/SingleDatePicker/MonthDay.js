@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import PropTypes from 'prop-types'
 import { css } from 'styled-components'
 import { useTheme, textStyle, GU } from '@aragon/ui'
-const { HoverIndicator } = require('@aragon/ui/dist/components')
+import { HoverIndicator } from './components'
 
 function MonthDay({ children, disabled, selected, today, weekDay, ...props }) {
   const theme = useTheme()

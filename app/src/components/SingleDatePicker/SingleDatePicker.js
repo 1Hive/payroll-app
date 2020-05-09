@@ -1,10 +1,10 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react'
 import PropTypes from 'prop-types'
-import dayjs from 'dayjs'
 import Popover, { useTheme, GU, RADIUS } from '@aragon/ui'
 import DatePicker from './DatePicker'
 import Labels from './Labels'
 import { SINGLE_DATE } from './consts'
+import { dayjs } from '../../utils/date-utils'
 import { handleSingleDateSelect } from './utils'
 
 function SingleDatePicker({ format, onChange, startDate: startDateProp }) {
