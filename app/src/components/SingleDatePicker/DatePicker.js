@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import PropTypes from 'prop-types'
-import { GU, eachDayOfInterval } from '@aragon/ui'
+import { eachDayOfInterval, GU } from '@aragon/ui'
 import MonthDay from './MonthDay'
 import { Selector } from './components'
 import { dayjs } from '../../utils/date-utils'

@@ -16,4 +16,5 @@ function handleSingleDateSelect({ date, startDate }) {
     }
   }
 }
+
 export default handleSingleDateSelect
