@@ -2,10 +2,11 @@ import React from 'react'
 import { Box, Button, GU, IconEdit, textStyle, useTheme } from '@aragon/ui'
 import { useAppState } from '@aragon/api-react'
 
+import { secondsToMonths } from '../utils/calculations'
+
 function EquityOption({ readOnly = true }) {
   const theme = useTheme()
   const { equityMultiplier, vestingLength, vestingCliffLength } = useAppState()
-
   return (
     <div>
       <Box heading="Equity option">
@@ -44,8 +45,11 @@ function EquityOption({ readOnly = true }) {
           >
             Vesting period
           </h3>
-          {/* TODO: Formatt field */}
-          <div>{vestingLength}</div>
+          {vestingLength !== '0' ? (
+            <div>{secondsToMonths(vestingLength)} Month</div>
+          ) : (
+            <div>No vesting</div>
+          )}
         </div>
         <div>
           <h3
@@ -55,8 +59,11 @@ function EquityOption({ readOnly = true }) {
           >
             Vesting cliff
           </h3>
-          {/* TODO: Formatt field */}
-          <div>{vestingCliffLength}</div>
+          {vestingCliffLength !== '0' ? (
+            <div>{secondsToMonths(vestingCliffLength)} Month</div>
+          ) : (
+            <div>No vesting</div>
+          )}
         </div>
         {!readOnly && (
           <Button
