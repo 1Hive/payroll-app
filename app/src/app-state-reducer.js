@@ -1,4 +1,5 @@
 import BN from 'bn.js'
+import { getYearlySalary } from './utils/employee'
 
 function appStateReducer(state) {
   if (state === null) {
@@ -18,6 +19,7 @@ function appStateReducer(state) {
       ...employee,
       accruedSalary: new BN(accruedSalary),
       salary: new BN(salary),
+      yearlySalary: getYearlySalary(new BN(salary)),
     })),
 
     pctBase: new BN(pctBase.toString()),

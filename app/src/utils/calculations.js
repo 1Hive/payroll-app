@@ -4,16 +4,33 @@ import { addressesEqual } from './web3-utils'
 
 export const MONTHS_IN_A_YEAR = 12
 
-export function totalPaidThisYear(payments, accountAddress) {
+export function totalPaidThisYearByEmployee(payments, employeeAddress) {
   const filter = payment => {
     const yearDiff = dayjs(payment.date).diff(dayjs(), 'years')
     return (
-      addressesEqual(payment.accountAddress, accountAddress) && yearDiff === 0
+      addressesEqual(payment.accountAddress, employeeAddress) && yearDiff === 0
     )
   }
 
   const totalPaid = summation(payments.filter(filter), 'denominationAmount')
   return totalPaid
+}
+
+export function getAverageSalary(employees) {
+  if (!employees.length) {
+    return new BN(0)
+  }
+
+  const sum = summation(employees, 'yearlySalary')
+  return sum.div(new BN(employees.length))
+}
+
+export function getTotalPaidThisYear(employees) {
+  return summation(employees, 'totalPaid')
+}
+
+export function getMonthlyLiability(total) {
+  return total.div(new BN(MONTHS_IN_A_YEAR))
 }
 
 export function summation(list, field) {
