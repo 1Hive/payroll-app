@@ -1,46 +1,34 @@
-import { useAragonApi } from '@aragon/api-react'
+import { useAppState } from '@aragon/api-react'
+import { parseEmployees } from '../utils/employee'
 import {
-  totalPaidThisYear,
-  summation,
-  MONTHS_IN_A_YEAR,
+  getAverageSalary,
+  getMonthlyLiability,
+  getTotalPaidThisYear,
 } from '../utils/calculations'
 
-function parseEmployees(payments, employees) {
-  return employees.map(e => {
-    const totalPaid = totalPaidThisYear(payments, e.accountAddress)
-    return { ...e, totalPaid }
-  })
-}
-
-function getAverageSalary(employees) {
-  const field = 'salary'
-  const sum = summation(employees, field)
-  return sum / employees.length
-}
-
-function getTotalPaidThisYear(employees) {
-  const field = 'totalPaid'
-  return summation(employees, field)
-}
-
-function getMonthlyBurnRate(total) {
-  return total / MONTHS_IN_A_YEAR
-}
-
-export function useTotalPayrollData() {
-  const { appState, connectedAccount } = useAragonApi()
-  const { employees = [], denominationToken = {}, payments = [] } = appState
-
+export function useParsedEmployees() {
+  const { employees = [], payments = [] } = useAppState()
   const parsedEmployees = parseEmployees(payments, employees)
+
+  return parsedEmployees
+}
+
+export function usePayrollStats() {
+  const { denominationToken, equityTokenManager } = useAppState()
+  const parsedEmployees = useParsedEmployees()
   const totalPaidThisYear = getTotalPaidThisYear(parsedEmployees)
 
   return {
-    parsedEmployees,
-    employeesQty: parsedEmployees.length,
-    averageSalary: getAverageSalary(parsedEmployees),
-    monthlyBurnRate: getMonthlyBurnRate(totalPaidThisYear),
-    totalPaidThisYear,
-    denominationToken,
-    connectedAccount,
+    employeesQty: { value: parsedEmployees.length },
+    averageSalary: {
+      value: getAverageSalary(parsedEmployees),
+      token: denominationToken,
+    },
+    monthlyBurnRate: {
+      value: getMonthlyLiability(totalPaidThisYear),
+      token: denominationToken,
+    },
+    totalPaidThisYear: { value: totalPaidThisYear, token: denominationToken },
+    issuance: { value: 0, token: equityTokenManager?.token }, // TODO: Calculate yearly issuance
   }
 }
