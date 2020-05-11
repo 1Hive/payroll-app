@@ -64,7 +64,7 @@ function AddEmployeePanelContent({
   const [address, setAddress] = useState('')
   const [role, setRole] = useState('')
   const [salary, setSalary] = useState('')
-  const [startDate, setStartDate] = useState(dayjs())
+  const [startDate, setStartDate] = useState(dayjs().toDate())
   const [error, setError] = useState(null)
 
   const inputRef = useSidePanelFocusOnReady()
@@ -166,8 +166,6 @@ function AddEmployeePanelContent({
             type="number"
           />
         </Field>
-
-        {/* TODO: Use better date picker */}
         <Field label="Start Date">
           <SingleDatePicker
             startDate={startDate}
