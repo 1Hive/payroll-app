@@ -24,9 +24,10 @@ export function usePayrollStats() {
       value: getAverageSalary(parsedEmployees),
       token: denominationToken,
     },
-    monthlyBurnRate: {
+    monthlyLiability: {
       value: getMonthlyLiability(totalPaidThisYear),
       token: denominationToken,
+      negative: true,
     },
     totalPaidThisYear: { value: totalPaidThisYear, token: denominationToken },
     issuance: { value: 0, token: equityTokenManager?.token }, // TODO: Calculate yearly issuance

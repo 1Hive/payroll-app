@@ -31,7 +31,7 @@ function KeyStats() {
           padding-bottom: ${2 * GU}px;
         `}
       >
-        {Object.values(stats).map(({ value, token }, index) => {
+        {Object.values(stats).map(({ value, token, negative }, index) => {
           const metadata = statsMetadata[index]
           const stat = token
             ? formatTokenAmount(value, false, token.decimals)
@@ -53,6 +53,7 @@ function KeyStats() {
                   css={`
                     ${textStyle('title2')};
                     font-weight: 200;
+                    color: ${negative ? theme.negative : theme.content};
                   `}
                 >
                   {stat}
