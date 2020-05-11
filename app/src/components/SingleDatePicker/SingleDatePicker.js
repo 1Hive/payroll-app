@@ -7,7 +7,7 @@ import { SINGLE_DATE } from './consts'
 import { dayjs, dateFormat } from '../../utils/date-utils'
 import handleSingleDateSelect from './utils'
 
-function SingleDatePicker({ format, onChange, startDate: startDateProp }) {
+function SingleDatePicker({ format, startDate: startDateProp }) {
   const theme = useTheme()
   const labelsRef = useRef()
   const [showPicker, setShowPicker] = useState(false)
