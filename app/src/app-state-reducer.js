@@ -18,6 +18,7 @@ function appStateReducer(state) {
       ...employee,
       accruedSalary: new BN(accruedSalary),
       salary: new BN(salary),
+      terminated: Boolean(employee.endDate),
     })),
 
     pctBase: new BN(pctBase.toString()),
