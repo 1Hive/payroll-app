@@ -20,7 +20,6 @@ export function getEquityTokenManager() {
     .toPromise()
 }
 
-
 export async function getToken(address) {
   if (!tokenCache.has(address)) {
     const [decimals, symbol] = await Promise.all([
