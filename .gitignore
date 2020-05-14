@@ -6,3 +6,4 @@ dist
 ipfs.cmd
 package-lock.json
 yarn.lock
+.prettierrc
