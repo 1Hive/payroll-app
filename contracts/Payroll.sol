@@ -336,10 +336,11 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
         require(canForward(msg.sender, _evmScript), ERROR_CAN_NOT_FORWARD);
         bytes memory input = new bytes(0);
 
-        // Add the Finance app to the blacklist to disallow employees from executing actions on the
-        // Finance app from Payroll's context (since Payroll requires permissions on Finance)
-        address[] memory blacklist = new address[](1);
+        // Add the Finance and Token Manager apps to the blacklist to disallow employees from executing actions on
+        // the apps from Payroll's context (since Payroll requires permissions on both apps)
+        address[] memory blacklist = new address[](2);
         blacklist[0] = address(finance);
+        blacklist[1] = address(equityTokenManager);
 
         runScript(_evmScript, input, blacklist);
     }
