@@ -93,6 +93,7 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
         uint256 equityAmount,
         string metaData
     );
+    event EditEquitySettings(uint64 equityMultiplier, uint64 vestingLength, uint64 vestingCliffLength, bool vestingRevokable);
 
     // Check employee exists by ID
     modifier employeeIdExists(uint256 _employeeId) {
@@ -198,6 +199,8 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
         vestingLength = _vestingLength;
         vestingCliffLength = _vestingCliffLength;
         vestingRevokable = _vestingRevokable;
+
+        emit EditEquitySettings(_equityMultiplier, _vestingLength, _vestingCliffLength, _vestingRevokable);
     }
 
     /**
