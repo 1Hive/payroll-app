@@ -1,9 +1,13 @@
-import React, { useMemo } from 'react'
+import React, { useCallback, useMemo } from 'react'
 import styled from 'styled-components'
 import { useNetwork, useAppState } from '@aragon/api-react'
 import {
+  blockExplorerUrl,
+  ContextMenu,
+  ContextMenuItem,
   DataView,
-  TransactionBadge,
+  GU,
+  IconToken,
   textStyle,
   useLayout,
   useTheme,
@@ -12,12 +16,7 @@ import PaymentFilters from './PaymentFilters'
 import { dateFormat } from '../../utils/date-utils'
 import { formatTokenAmount, splitAllocation } from '../../utils/formatting'
 
-const columns = [
-  'Date',
-  'Transaction Address',
-  'Base asset',
-  'Split percentage (Base/Equity)',
-]
+const columns = ['Date', 'Base asset', 'Split percentage (Base/Equity)']
 
 function PaymentsTable({
   emptyResultsViaFilters,
@@ -31,7 +30,6 @@ function PaymentsTable({
   tokens,
 }) {
   const theme = useTheme()
-  const network = useNetwork()
   const { layoutName } = useLayout()
   const { pctBase } = useAppState()
   const compactMode = layoutName === 'small'
@@ -68,6 +66,7 @@ function PaymentsTable({
         </>
       }
       status={dataViewStatus}
+      onStatusEmptyClear={onClearFilters}
       statusEmpty={
         <p
           css={`
@@ -82,7 +81,6 @@ function PaymentsTable({
       renderEntry={({
         date,
         token,
-        transactionHash,
         denominationAmount,
         denominationAllocation,
       }) => {
@@ -94,12 +92,6 @@ function PaymentsTable({
         )
         return [
           <span>{dateFormat(date)}</span>,
-          <TransactionBadge
-            transaction={transactionHash}
-            networkType={network.type}
-          >
-            {transactionHash}
-          </TransactionBadge>,
           <Amount
             css={`
               color: ${theme.positive};
@@ -110,8 +102,45 @@ function PaymentsTable({
           <span>{splitAllocation(denominationAllocation, pctBase)}</span>,
         ]
       }}
-      onStatusEmptyClear={onClearFilters}
+      renderEntryActions={({ transactionHash }) => (
+        <ContextMenu zIndex={1}>
+          <ContextMenuViewTransaction transactionHash={transactionHash} />
+        </ContextMenu>
+      )}
     />
+  )
+}
+
+const ContextMenuViewTransaction = ({ transactionHash }) => {
+  const theme = useTheme()
+  const network = useNetwork()
+  const handleViewTransaction = useCallback(() => {
+    if (network && network.type) {
+      window.open(
+        blockExplorerUrl('transaction', transactionHash, {
+          networkType: network.type,
+        }),
+        '_blank',
+        'noopener'
+      )
+    }
+  }, [network, transactionHash])
+
+  return (
+    <ContextMenuItem onClick={handleViewTransaction}>
+      <IconToken
+        css={`
+          color: ${theme.surfaceContentSecondary};
+        `}
+      />
+      <span
+        css={`
+          margin-left: ${1 * GU}px;
+        `}
+      >
+        View transaction
+      </span>
+    </ContextMenuItem>
   )
 }
 
