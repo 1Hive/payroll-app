@@ -2,8 +2,8 @@ import React from 'react'
 import { DateRangePicker, DropDown, GU } from '@aragon/ui'
 
 function PaymentFilters({
-  dateFilter,
-  onDateChange,
+  dateRangeFilter,
+  onDateRangeChange,
   token,
   tokenFilter,
   onTokenChange,
@@ -25,7 +25,11 @@ function PaymentFilters({
         onChange={onTokenChange}
         width="140px"
       />
-      <DateRangePicker startDate={dateFilter} onChange={onDateChange} />
+      <DateRangePicker
+        startDate={dateRangeFilter.start}
+        endDate={dateRangeFilter.end}
+        onChange={onDateRangeChange}
+      />
     </div>
   )
 }
