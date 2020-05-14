@@ -100,9 +100,9 @@ function AddEmployeePanelContent({
     setSalary(event.target.value)
   }, [])
 
-  const handleStartDateChange = useCallback(event => {
+  const handleStartDateChange = useCallback(startDate => {
     setError(null)
-    setStartDate(dayjs(event.target.value))
+    setStartDate(startDate)
   }, [])
 
   const handleSubmit = useCallback(
