@@ -22,8 +22,10 @@ export function employee(data) {
     lastPayroll,
     role,
     startDate,
-    terminated,
   } = data
+
+  const terminationDate = date(endDate)
+
   const result = {
     id: id || employeeId,
     accountAddress,
@@ -31,8 +33,8 @@ export function employee(data) {
     accruedSalary,
     lastPayroll: date(lastPayroll),
     startDate: date(startDate),
-    endDate: date(endDate),
-    terminated: Boolean(terminated),
+    endDate: terminationDate,
+    terminated: Boolean(terminationDate),
     role,
   }
 
