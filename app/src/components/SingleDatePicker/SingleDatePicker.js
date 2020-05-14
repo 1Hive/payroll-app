@@ -7,11 +7,10 @@ import { SINGLE_DATE } from './consts'
 import { dayjs, dateFormat } from '../../utils/date-utils'
 import handleSingleDateSelect from './utils'
 
-function SingleDatePicker({ format, startDate: startDateProp }) {
+function SingleDatePicker({ format, onChange, startDate: startDateProp }) {
   const theme = useTheme()
   const labelsRef = useRef()
   const [showPicker, setShowPicker] = useState(false)
-  const [startDate, setStartDate] = useState(startDateProp)
 
   const handlePopoverClose = useCallback(() => setShowPicker(false), [])
 
@@ -21,19 +20,24 @@ function SingleDatePicker({ format, startDate: startDateProp }) {
 
   const handleDateClick = useCallback(
     date => {
-      const result = handleSingleDateSelect({ date, startDate })
-      setStartDate(result.startDate)
       setShowPicker(false)
+      if (date) {
+        const result = handleSingleDateSelect({
+          date,
+          startDate: startDateProp,
+        })
+        onChange(result.startDate)
+      }
     },
-    [startDate]
+    [onChange, startDateProp]
   )
 
   const labelProps = useMemo(() => {
-    const _startDate = startDate
+    const _startDate = startDateProp
     return {
       startText: _startDate ? dateFormat(_startDate, format) : SINGLE_DATE,
     }
-  }, [format, startDate])
+  }, [format, startDateProp])
 
   return (
     <div>
@@ -74,7 +78,7 @@ function SingleDatePicker({ format, startDate: startDateProp }) {
             `}
           >
             <DatePicker
-              initialDate={dayjs(startDate || undefined)
+              initialDate={dayjs(startDateProp || undefined)
                 .subtract(0, 'month')
                 .toDate()}
               onSelect={handleDateClick}
