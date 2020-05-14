@@ -64,7 +64,7 @@ function AddEmployeePanelContent({
   const [address, setAddress] = useState('')
   const [role, setRole] = useState('')
   const [salary, setSalary] = useState('')
-  const [startDate, setStartDate] = useState(dayjs().toDate())
+  const [startDate, setStartDate] = useState(null)
   const [error, setError] = useState(null)
 
   const inputRef = useSidePanelFocusOnReady()
