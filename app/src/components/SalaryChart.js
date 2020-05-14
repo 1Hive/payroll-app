@@ -16,14 +16,15 @@ function SalaryChart({ payments }) {
   return (
     <div
       css={`
-          display: flex;
-          a;ign-items: flex-start
-        `}
+        display: flex;
+        align-items: flex-start;
+      `}
     >
       <LineChart
         color={index => colors[index]}
         label={index => labels[index]}
         lines={[denominationAmountValues, equityAmountValues]}
+        height={240}
       />
       <div
         css={`

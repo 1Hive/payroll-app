@@ -13,6 +13,10 @@ const HISTORY_FORMAT = {
 const MAX_PROPORTION = 4 / 5
 const MONTHS_AGO = 12
 const QUARTERS_AGO = 4
+const initialAmounts = {
+  denominationAmount: new BN(0),
+  equityAmount: new BN(0),
+}
 
 // Object whose keys map to a function which generates the initial past year history relative to today
 // e.g Current date = MAY2020 => monthly generates from "MAY2020" to "MAY2019" initializing all amounts to zero
@@ -36,8 +40,7 @@ const INITIAL_HISTORY = {
       // Add monthly entry to history
       acc[historyKey] = {
         label: monthAgoFormatted,
-        denominationAmount: new BN(0),
-        equityAmount: new BN(0),
+        ...initialAmounts,
       }
 
       return acc
@@ -64,8 +67,7 @@ const INITIAL_HISTORY = {
       // Add quarter entry to history
       acc[historyKey] = {
         label: `${formattedYear} Q${formattedQuarter}`,
-        denominationAmount: new BN(0),
-        equityAmount: new BN(0),
+        ...initialAmounts,
       }
 
       return acc
@@ -83,8 +85,6 @@ const GROUPED_PAYMENTS = {
       denomination: new BN(0),
       equity: new BN(0),
     }
-
-    console.log('histort', history)
 
     payments.forEach(({ date, denominationAmount, equityAmount }) => {
       const paymentDate = dayjs(date)
@@ -105,7 +105,7 @@ const GROUPED_PAYMENTS = {
       }
 
       if (newEquityAmount.gt(max.equity)) {
-        max.equityAmount = newEquityAmount
+        max.equity = newEquityAmount
       }
     })
 
@@ -138,7 +138,7 @@ const GROUPED_PAYMENTS = {
       }
 
       if (newEquityAmount.gt(max.equity)) {
-        max.equityAmount = newEquityAmount
+        max.equity = newEquityAmount
       }
     })
 
@@ -159,8 +159,7 @@ const GROUPED_PAYMENTS = {
       if (!history[key]) {
         history[key] = {
           label: key,
-          denominationAmount: new BN(0),
-          equityAmount: new BN(0),
+          ...initialAmounts,
         }
       }
 
@@ -179,7 +178,7 @@ const GROUPED_PAYMENTS = {
       }
 
       if (newEquityAmount.gt(max.equity)) {
-        max.equityAmount = newEquityAmount
+        max.equity = newEquityAmount
       }
     })
 
@@ -189,7 +188,9 @@ const GROUPED_PAYMENTS = {
 
 const LABELS = {
   [MONTHLY]: (sorted, history) =>
-    sorted.map((key, i) => (i % 2 ? history[key].label : '')),
+    sorted.map((key, i) =>
+      i > 0 && i < sorted.length - 1 ? history[key].label : ''
+    ),
   [QUARTERLY]: (sorted, history) =>
     [''].concat(sorted.map(key => history[key].label).slice(1)),
   [YEARLY]: (sorted, history) =>
