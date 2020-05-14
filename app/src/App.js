@@ -76,6 +76,7 @@ function App() {
             isSyncing={isSyncing}
             panelState={panels.addEmployeePanel}
             onAddEmployee={actions.addEmployee}
+            editEquityOptionPanel={panels.editEquityOptionPanel}
           />
         )}
       </>

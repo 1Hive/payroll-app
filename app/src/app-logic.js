@@ -46,7 +46,21 @@ export function useAppPanels() {
   const requestSalaryPanel = usePanelState()
 
   return {
-    editEquityOptionPanel,
+    editEquityOptionPanel: useMemo(
+      () => ({
+        ...editEquityOptionPanel,
+        // ensure there is only one panel opened at a time
+        visible:
+          editEquityOptionPanel.visible &&
+          !addEmployeePanel.visible &&
+          !requestSalaryPanel.visible,
+      }),
+      [
+        editEquityOptionPanel,
+        addEmployeePanel.visible,
+        requestSalaryPanel.visible,
+      ]
+    ),
     addEmployeePanel: useMemo(
       () => ({
         ...addEmployeePanel,

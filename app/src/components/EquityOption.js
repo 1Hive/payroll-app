@@ -4,7 +4,7 @@ import { useAppState } from '@aragon/api-react'
 
 import { secondsToMonths } from '../utils/calculations'
 
-function EquityOption({ readOnly = true }) {
+function EquityOption({ readOnly = true, editEquityOptionPanel }) {
   const theme = useTheme()
   const { equityMultiplier, vestingLength, vestingCliffLength } = useAppState()
   return (
@@ -72,6 +72,7 @@ function EquityOption({ readOnly = true }) {
             `}
             icon={<IconEdit />}
             label="Edit Equity Option"
+            onClick={editEquityOptionPanel.requestOpen}
             display="all"
             wide
           />
