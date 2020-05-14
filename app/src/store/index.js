@@ -25,6 +25,8 @@ export default function initialize(vaultAddress) {
         return onAddNewEmployee(nextState, returnValues)
       case 'ChangeAddressByEmployee':
         return onChangeEmployeeAddress(nextState, returnValues)
+      case 'EditEquitySettings':
+        return onEditEquitySettings(nextState, returnValues)
       case 'Payday':
         return onPayday(nextState, returnValues, transactionHash, blockNumber)
       case 'SetEmployeeSalary':
@@ -121,6 +123,13 @@ async function onChangeEmployeeAddress(state, { newAddress: accountAddress }) {
   }
 
   return { ...state, salaryAllocation }
+}
+
+async function onEditEquitySettings(
+  state,
+  { equityMultiplier, vestingLength, vestingCliffLength }
+) {
+  return { ...state, equityMultiplier, vestingLength, vestingCliffLength }
 }
 
 async function onPayday(state, returnValues, transactionHash, blockNumber) {
