@@ -2,7 +2,7 @@ import React from 'react'
 import { Box, Button, GU, IconEdit, textStyle, useTheme } from '@aragon/ui'
 import { useAppState } from '@aragon/api-react'
 
-import { secondsToMonths } from '../utils/calculations'
+import { durationTime } from '../utils/date-utils'
 
 function EquityOption({ readOnly = true, editEquityOptionPanel }) {
   const theme = useTheme()
@@ -45,8 +45,8 @@ function EquityOption({ readOnly = true, editEquityOptionPanel }) {
           >
             Vesting period
           </h3>
-          {vestingLength !== '0' ? (
-            <div>{secondsToMonths(vestingLength)} Month</div>
+          {vestingLength > 0 ? (
+            <div>{durationTime(vestingLength)}</div>
           ) : (
             <div>No vesting</div>
           )}
@@ -59,8 +59,8 @@ function EquityOption({ readOnly = true, editEquityOptionPanel }) {
           >
             Vesting cliff
           </h3>
-          {vestingCliffLength !== '0' ? (
-            <div>{secondsToMonths(vestingCliffLength)} Month</div>
+          {vestingCliffLength > 0 ? (
+            <div>{durationTime(vestingCliffLength)}</div>
           ) : (
             <div>No vesting</div>
           )}
