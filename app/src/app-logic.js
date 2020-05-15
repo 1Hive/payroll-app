@@ -4,6 +4,26 @@ import { usePanelState } from './utils/hooks'
 import appStateReducer from './app-state-reducer'
 
 // App actions
+export function useEditEquityOptionAction(onDone) {
+  const api = useApi()
+  return useCallback(
+    (equityMultiplier, vestingLength, vestingCliffLength) => {
+      if (api) {
+        api
+          .setEquitySettings(
+            equityMultiplier,
+            vestingLength,
+            vestingCliffLength,
+            true
+          )
+          .toPromise()
+        onDone()
+      }
+    },
+    [api, onDone]
+  )
+}
+
 export function useAddEmployeeAction(onDone) {
   const api = useApi()
   return useCallback(
@@ -103,6 +123,9 @@ export function useAppLogic() {
   } = useAppPanels()
 
   const actions = {
+    editEquityOption: useEditEquityOptionAction(
+      editEquityOptionPanel.requestClose
+    ),
     addEmployee: useAddEmployeeAction(addEmployeePanel.requestClose),
     payday: usePaydayAction(requestSalaryPanel.requestClose),
   }
