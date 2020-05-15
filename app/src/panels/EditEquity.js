@@ -1,25 +1,83 @@
-import React, { useCallback } from 'react'
-import { Button, Field, TextInput, GU, SidePanel } from '@aragon/ui'
+import React, { useCallback, useState } from 'react'
+import { useAppState } from '@aragon/api-react'
+import PropTypes from 'prop-types'
+import {
+  Button,
+  Field,
+  TextInput,
+  GU,
+  SidePanel,
+  useSidePanelFocusOnReady,
+} from '@aragon/ui'
 
-const EditEquity = React.memo(function EditEquity({ editEquityOptionPanel }) {
+import { monthsToSeconds, secondsToMonths } from '../utils/calculations'
+
+const EditEquityPanel = React.memo(function EditEquity({
+  editEquityOptionPanel,
+  onEditEquityOption,
+}) {
+  const { equityMultiplier, vestingLength, vestingCliffLength } = useAppState()
+
   const handleClose = useCallback(() => {
     editEquityOptionPanel.requestClose()
   }, [editEquityOptionPanel])
+
   return (
     <SidePanel
       title="Edit Equity Option"
       opened={editEquityOptionPanel && editEquityOptionPanel.visible}
       onClose={handleClose}
     >
-      <EditEquityContent />
+      <EditEquityContent
+        equityMultiplier={equityMultiplier}
+        vestingLength={vestingLength}
+        vestingCliffLength={vestingCliffLength}
+        onEditEquityOption={onEditEquityOption}
+      />
     </SidePanel>
   )
 })
 
-function EditEquityContent() {
-  const handleSubmit = useCallback(() => {
-    // some logic goes here
+function EditEquityContent({
+  equityMultiplier: equityMultiplierProp,
+  vestingLength: vestingLengthProp,
+  vestingCliffLength: vestingCliffLengthProp,
+  onEditEquityOption,
+}) {
+  const inputRef = useSidePanelFocusOnReady()
+
+  const [equityMultiplier, setEquityMultiplier] = useState(equityMultiplierProp)
+  const [vestingLength, setVestingLength] = useState(
+    secondsToMonths(vestingLengthProp)
+  )
+  const [vestingCliffLength, setVestingCliffLength] = useState(
+    secondsToMonths(vestingCliffLengthProp)
+  )
+
+  const handleEquityMultiplierChange = useCallback(event => {
+    setEquityMultiplier(event.target.value)
   }, [])
+
+  const handleVestingLengthChange = useCallback(event => {
+    setVestingLength(event.target.value)
+  }, [])
+
+  const handleVestingCliffLengthChange = useCallback(event => {
+    setVestingCliffLength(event.target.value)
+  }, [])
+
+  const handleSubmit = useCallback(
+    event => {
+      event.preventDefault()
+
+      onEditEquityOption(
+        equityMultiplier,
+        monthsToSeconds(vestingLength),
+        monthsToSeconds(vestingCliffLength)
+      )
+    },
+    [equityMultiplier, onEditEquityOption, vestingCliffLength, vestingLength]
+  )
 
   return (
     <form onSubmit={handleSubmit}>
@@ -30,7 +88,13 @@ function EditEquityContent() {
         `}
         label="Multiplier"
       >
-        <TextInput wide />
+        <TextInput
+          value={equityMultiplier}
+          onChange={handleEquityMultiplierChange}
+          ref={inputRef}
+          required
+          wide
+        />
       </Field>
       <Field
         css={`
@@ -39,7 +103,12 @@ function EditEquityContent() {
         `}
         label="Vesting period (in months)"
       >
-        <TextInput wide />
+        <TextInput
+          value={vestingLength}
+          onChange={handleVestingLengthChange}
+          required
+          wide
+        />
       </Field>
       <Field
         css={`
@@ -48,7 +117,12 @@ function EditEquityContent() {
         `}
         label="Vesting cliff (in months)"
       >
-        <TextInput wide />
+        <TextInput
+          value={vestingCliffLength}
+          onChange={handleVestingCliffLengthChange}
+          required
+          wide
+        />
       </Field>
 
       <Button
@@ -64,4 +138,14 @@ function EditEquityContent() {
   )
 }
 
-export default EditEquity
+EditEquityContent.propTypes = {
+  equityMultiplier: PropTypes.number,
+  vestingLength: PropTypes.number,
+  vestingCliffLength: PropTypes.number,
+}
+
+EditEquityContent.defaultProps = {
+  onEditEquityOption: () => {},
+}
+
+export default EditEquityPanel
