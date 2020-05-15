@@ -5,7 +5,7 @@ import SalaryBurnRate from './SalaryBurnRate'
 import Split from '../Split'
 import EditEquity from '../../panels/EditEquity'
 
-function SalaryStats({ editEquityOptionPanel }) {
+function SalaryStats({ editEquityOptionPanel, onEditEquityOption }) {
   return (
     <Split>
       <SalaryBurnRate />
@@ -13,7 +13,10 @@ function SalaryStats({ editEquityOptionPanel }) {
         readOnly={false}
         editEquityOptionPanel={editEquityOptionPanel}
       />
-      <EditEquity editEquityOptionPanel={editEquityOptionPanel} />
+      <EditEquity
+        editEquityOptionPanel={editEquityOptionPanel}
+        onEditEquityOption={onEditEquityOption}
+      />
       <PaidSalariesChart />
     </Split>
   )

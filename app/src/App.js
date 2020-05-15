@@ -77,6 +77,7 @@ function App() {
             panelState={panels.addEmployeePanel}
             onAddEmployee={actions.addEmployee}
             editEquityOptionPanel={panels.editEquityOptionPanel}
+            onEditEquityOption={actions.editEquityOption}
           />
         )}
       </>
