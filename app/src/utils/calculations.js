@@ -29,3 +29,11 @@ export function secondsToMonths(seconds) {
   const months = days / 30
   return Math.round(months)
 }
+
+export function monthsToSeconds(months) {
+  const days = months * 30
+  const hours = days * 24
+  const minutes = hours * 60
+  const seconds = minutes * 60
+  return Math.round(seconds)
+}
