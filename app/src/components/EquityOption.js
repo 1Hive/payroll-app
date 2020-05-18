@@ -1,14 +1,27 @@
 import React from 'react'
 import { Box, Button, GU, IconEdit, textStyle, useTheme } from '@aragon/ui'
 import { useAppState } from '@aragon/api-react'
+import { convertMultiplier } from '../utils/calculations'
 
 function EquityOption({ readOnly = true }) {
   const theme = useTheme()
-  const { equityMultiplier, vestingLength, vestingCliffLength } = useAppState()
+  const {
+    equityMultiplier,
+    pctBase,
+    vestingLength,
+    vestingCliffLength,
+  } = useAppState()
+
+  const formattedMultiplier = convertMultiplier(equityMultiplier, pctBase)
 
   return (
     <div>
-      <Box heading="Equity option">
+      <Box
+        heading="Equity option"
+        css={`
+          height: 100%;
+        `}
+      >
         <div
           css={`
             margin-bottom: ${2 * GU}px;
@@ -27,7 +40,7 @@ function EquityOption({ readOnly = true }) {
                 ${textStyle('title2')}
               `}
             >
-              {equityMultiplier}
+              {formattedMultiplier}
             </span>{' '}
             X
           </div>

@@ -108,47 +108,61 @@ contract('Payroll forwarding', ([owner, employee, anyone]) => {
   describe('forward', () => {
     let executionTarget, script
 
-    beforeEach('build script', async () => {
-      executionTarget = await ExecutionTarget.new()
-      const action = { to: executionTarget.address, calldata: executionTarget.contract.methods.execute().encodeABI() }
-      script = encodeCallScript([action])
+    context('When the execution target is black listed', function() {
+      const from = employee
+    
+      beforeEach('initialize payroll app and add employee', async () => {
+        await payroll.initialize(finance.address, DAI.address, equityTokenManager.address, ONE, 0, 0, false, { from: owner })
+        await payroll.addEmployee(employee, annualSalaryPerSecond(100000), await payroll.getTimestampPublic(), 'Boss', { from: owner })
+      })
+    
+      context('Execution target is finance', function () {
+        beforeEach('build script', async () => {
+          executionTarget = await ExecutionTarget.new()
+          const action = { to: finance.address, calldata: finance.contract.methods.setPeriodDuration(0).encodeABI() }
+          script = encodeCallScript([action])
+        })
+    
+        it('reverts', async () =>  {
+          await assertRevert(payroll.forward(script, { from }), 'EVMCALLS_BLACKLISTED_CALL')
+        })
+      })
+    
+      context('Execution target is equity token manager', function () {
+        beforeEach('build script', async () => {
+          executionTarget = await ExecutionTarget.new()
+          const action = { to: equityTokenManager.address, calldata: equityTokenManager.contract.methods.issue('0').encodeABI() }
+          script = encodeCallScript([action])
+        })
+    
+        it('reverts', async () =>  {
+          await assertRevert(payroll.forward(script, { from }), 'EVMCALLS_BLACKLISTED_CALL')
+        })
+      })
     })
 
-    context('when it has already been initialized', function () {
-      beforeEach('initialize payroll app using DAI as denomination token', async () => {
-        await payroll.initialize(finance.address, DAI.address, equityTokenManager.address, ONE, 0, 0, false, { from: owner })
+    context('When the execution target is not black listed', function() {
+      beforeEach('build script', async () => {
+        executionTarget = await ExecutionTarget.new()
+        const action = { to: executionTarget.address, calldata: executionTarget.contract.methods.execute().encodeABI() }
+        script = encodeCallScript([action])
       })
 
-      context('when the sender is an employee', () => {
-        let employeeId
-        const from = employee
-
-        beforeEach('add employee', async () => {
-          const receipt = await payroll.addEmployee(employee, annualSalaryPerSecond(100000), await payroll.getTimestampPublic(), 'Boss', { from: owner })
-          employeeId = getEventArgument(receipt, 'AddEmployee', 'employeeId').toString()
+      context('when it has already been initialized', function () {
+        beforeEach('initialize payroll app using DAI as denomination token', async () => {
+          await payroll.initialize(finance.address, DAI.address, equityTokenManager.address, ONE, 0, 0, false, { from: owner })
         })
 
-        context('when the employee was not terminated', () => {
-          it('executes the given script', async () =>  {
-            await payroll.forward(script, { from })
+        context('when the sender is an employee', () => {
+          let employeeId
+          const from = employee
 
-            assert.equal(await executionTarget.counter(), 1, 'should have received execution calls')
-          })
-        })
-
-        context('when the employee has termination date', () => {
-          const timeUntilTermination = ONE_MONTH + 1
-
-          beforeEach('terminate employee', async () => {
-            const terminationDate = (await payroll.getTimestampPublic()).add(bn(timeUntilTermination))
-            await payroll.terminateEmployee(employeeId, terminationDate, { from: owner })
+          beforeEach('add employee', async () => {
+            const receipt = await payroll.addEmployee(employee, annualSalaryPerSecond(100000), await payroll.getTimestampPublic(), 'Boss', { from: owner })
+            employeeId = getEventArgument(receipt, 'AddEmployee', 'employeeId').toString()
           })
 
-          context('when the termination date has not been reached', () => {
-            beforeEach('increase time to before termination date', async () => {
-              await payroll.mockIncreaseTime(timeUntilTermination)
-            })
-
+          context('when the employee was not terminated', () => {
             it('executes the given script', async () =>  {
               await payroll.forward(script, { from })
 
@@ -156,34 +170,55 @@ contract('Payroll forwarding', ([owner, employee, anyone]) => {
             })
           })
 
-          context('when the termination date has been reached', () => {
-            beforeEach('increase time to after termination date', async () => {
-              await payroll.mockIncreaseTime(timeUntilTermination + 1)
+          context('when the employee has termination date', () => {
+            const timeUntilTermination = ONE_MONTH + 1
+
+            beforeEach('terminate employee', async () => {
+              const terminationDate = (await payroll.getTimestampPublic()).add(bn(timeUntilTermination))
+              await payroll.terminateEmployee(employeeId, terminationDate, { from: owner })
             })
 
-            it('reverts', async () =>  {
-              await assertRevert(payroll.forward(script, { from }), 'PAYROLL_CAN_NOT_FORWARD')
+            context('when the termination date has not been reached', () => {
+              beforeEach('increase time to before termination date', async () => {
+                await payroll.mockIncreaseTime(timeUntilTermination)
+              })
 
-              assert.equal(await executionTarget.counter(), 0, 'should not have received execution calls')
+              it('executes the given script', async () =>  {
+                await payroll.forward(script, { from })
+
+                assert.equal(await executionTarget.counter(), 1, 'should have received execution calls')
+              })
             })
+
+            context('when the termination date has been reached', () => {
+              beforeEach('increase time to after termination date', async () => {
+                await payroll.mockIncreaseTime(timeUntilTermination + 1)
+              })
+
+              it('reverts', async () =>  {
+                await assertRevert(payroll.forward(script, { from }), 'PAYROLL_CAN_NOT_FORWARD')
+
+                assert.equal(await executionTarget.counter(), 0, 'should not have received execution calls')
+              })
+            })
+          })
+        })
+
+        context('when the sender is not an employee', () => {
+          const from = anyone
+
+          it('reverts', async () =>  {
+            await assertRevert(payroll.forward(script, { from }), 'PAYROLL_CAN_NOT_FORWARD')
+
+            assert.equal(await executionTarget.counter(), 0, 'should not have received execution calls')
           })
         })
       })
 
-      context('when the sender is not an employee', () => {
-        const from = anyone
-
-        it('reverts', async () =>  {
-          await assertRevert(payroll.forward(script, { from }), 'PAYROLL_CAN_NOT_FORWARD')
-
-          assert.equal(await executionTarget.counter(), 0, 'should not have received execution calls')
+      context('when it has not been initialized yet', function () {
+        it('reverts', async () => {
+          await assertRevert(payroll.forward(script, { from: employee }), 'PAYROLL_CAN_NOT_FORWARD')
         })
-      })
-    })
-
-    context('when it has not been initialized yet', function () {
-      it('reverts', async () => {
-        await assertRevert(payroll.forward(script, { from: employee }), 'PAYROLL_CAN_NOT_FORWARD')
       })
     })
   })

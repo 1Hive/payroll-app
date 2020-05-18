@@ -1,9 +1,9 @@
 import { events } from '@aragon/api'
 import app from './app'
-import { getEmployeeById, getSalaryAllocation } from './employees'
-import { getDenominationToken, getEquityTokenManager, getToken } from './tokens'
+import { sum } from './utils'
 import { date, payment } from './marshalling'
 import { addressesEqual } from '../utils/web3-utils'
+import { getDenominationToken, getEquityTokenManager, getToken } from './tokens'
 
 export default function initialize(vaultAddress) {
   async function reducer(
@@ -15,8 +15,6 @@ export default function initialize(vaultAddress) {
     }
 
     switch (event) {
-      case events.ACCOUNTS_TRIGGER:
-        return onChangeAccount(nextState, returnValues)
       case events.SYNC_STATUS_SYNCING:
         return { ...nextState, isSyncing: true }
       case events.SYNC_STATUS_SYNCED:
@@ -25,10 +23,12 @@ export default function initialize(vaultAddress) {
         return onAddNewEmployee(nextState, returnValues)
       case 'ChangeAddressByEmployee':
         return onChangeEmployeeAddress(nextState, returnValues)
+      case 'EditEquitySettings':
+        return onEditEquitySettings(nextState, returnValues)
       case 'Payday':
         return onPayday(nextState, returnValues, transactionHash, blockNumber)
       case 'SetEmployeeSalary':
-        return onSetEmployeeSalary(nextState, returnValues)
+        return onSetEmployeeSalary(nextState, returnValues, blockNumber)
       case 'AddEmployeeAccruedSalary':
         return onAddEmployeeAccruedSalary(nextState, returnValues)
       case 'TerminateEmployee':
@@ -55,7 +55,7 @@ function initState({ vaultAddress }) {
     try {
       const [
         denominationToken,
-        equityTokenAddress,
+        equityTokenManager,
         pctBase,
         equityMultiplier,
         vestingLength,
@@ -73,7 +73,7 @@ function initState({ vaultAddress }) {
         ...cachedState,
         denominationToken,
         equityMultiplier,
-        equityTokenAddress,
+        equityTokenManager,
         pctBase,
         vaultAddress,
         vestingLength,
@@ -86,21 +86,23 @@ function initState({ vaultAddress }) {
   }
 }
 
-async function onChangeAccount(state, { account }) {
-  return { ...state }
-}
-
-async function onAddNewEmployee(state, { employeeId, role, startDate }) {
+// Add new employee
+async function onAddNewEmployee(state, { employeeId, ...employeeData }) {
   const { employees = [] } = state
 
   if (!employees.find(e => e.id === employeeId)) {
-    const newEmployee = await getEmployeeById(employeeId)
+    const newEmployee = {
+      ...employeeData,
+      id: employeeId,
+    }
 
     if (newEmployee) {
       employees.push({
         ...newEmployee,
-        role,
-        startDate: date(startDate),
+        salary: newEmployee.initialDenominationSalary,
+        startDate: date(newEmployee.startDate),
+        lastPayroll: date(newEmployee.startDate),
+        accruedSalary: '0',
       })
     }
   }
@@ -108,62 +110,89 @@ async function onAddNewEmployee(state, { employeeId, role, startDate }) {
   return { ...state, employees }
 }
 
-async function onChangeEmployeeAddress(state, { newAddress: accountAddress }) {
-  const { tokens = [], employees = [] } = state
-  let salaryAllocation = []
+// Change employee address
+async function onChangeEmployeeAddress(
+  state,
+  { newAccountAddress, oldAccountAddress }
+) {
+  const { employees = [] } = state
 
   const employee = employees.find(employee =>
-    addressesEqual(employee.accountAddress, accountAddress)
+    addressesEqual(employee.accountAddress, oldAccountAddress)
   )
 
-  if (employee) {
-    salaryAllocation = await getSalaryAllocation(employee.id, tokens)
+  return {
+    ...state,
+    employee: { ...employee, accountAddress: newAccountAddress },
   }
-
-  return { ...state, salaryAllocation }
 }
 
-// TODO: Save amount in equity
+async function onEditEquitySettings(
+  state,
+  { equityMultiplier, vestingLength, vestingCliffLength }
+) {
+  return { ...state, equityMultiplier, vestingLength, vestingCliffLength }
+}
+
 async function onPayday(state, returnValues, transactionHash, blockNumber) {
-  const { token } = returnValues
-  const { denominationToken, payments = [] } = state
+  const { employeeId, token } = returnValues
+  const { denominationToken, employees, payments = [] } = state
   const { timestamp } = await app.web3Eth('getBlock', blockNumber).toPromise()
 
-  const employees = await updateEmployeeById(state, returnValues)
-
-  const paymentExists = payments.some(payment => {
-    const transactionExists = payment.transactionHash === transactionHash
-    const withSameToken = addressesEqual(payment.token.address, token)
-    return transactionExists && withSameToken
+  const employee = getEmployeeById(employees, employeeId)
+  const updatedEmployees = await updateEmployeeById(state, {
+    employeeId,
+    accruedSalary: '0',
+    lastPayroll: employee.endDate || date(timestamp),
   })
 
-  if (!paymentExists) {
-    const currentPayment = payment({
-      ...returnValues,
-      transactionHash,
-      paymentDate: timestamp,
-      token: addressesEqual(token, denominationToken.address)
-        ? denominationToken
-        : getToken(token),
-    })
-    payments.push(currentPayment)
-  }
+  const newPayment = payment({
+    ...returnValues,
+    transactionHash,
+    paymentDate: timestamp,
+    token: addressesEqual(token, denominationToken.address)
+      ? denominationToken
+      : getToken(token),
+  })
+  payments.push(newPayment)
 
-  return { ...state, employees, payments }
+  return { ...state, employees: updatedEmployees, payments }
 }
 
-async function onSetEmployeeSalary(state, returnValues) {
-  const employees = await updateEmployeeById(state, returnValues)
+// Change employee's salary
+async function onSetEmployeeSalary(
+  state,
+  { employeeId, denominationSalary },
+  blockNumber
+) {
+  const { timestamp } = await app.web3Eth('getBlock', blockNumber).toPromise()
+
+  const employees = await updateEmployeeById(state, {
+    employeeId,
+    salary: denominationSalary,
+    lastPayroll: date(timestamp),
+  })
   return { ...state, employees }
 }
 
-async function onAddEmployeeAccruedSalary(state, returnValues) {
-  const employees = await updateEmployeeById(state, returnValues)
+// Add accrued salary to employee (this event fires when changing employee's salary)
+async function onAddEmployeeAccruedSalary(state, { employeeId, amount }) {
+  const employee = await getEmployeeById(state.employees, employeeId)
+
+  const newAccruedSalary = sum(employee.accruedSalary, amount)
+  const employees = await updateEmployeeById(state, {
+    employeeId,
+    accruedSalary: newAccruedSalary,
+  })
   return { ...state, employees }
 }
 
-async function onTerminateEmployee(state, returnValues) {
-  const employees = await updateEmployeeById(state, returnValues)
+// Terminate employee (set endDate)
+async function onTerminateEmployee(state, { employeeId, endDate }) {
+  const employees = await updateEmployeeById(state, {
+    employeeId,
+    endDate: date(endDate),
+  })
   return { ...state, employees }
 }
 
@@ -173,35 +202,32 @@ async function onTerminateEmployee(state, returnValues) {
  *                     *
  ***********************/
 
-async function updateEmployeeById(state, { employeeId }) {
-  const { employees: prevEmployees } = state
-  const employeeData = await getEmployeeById(employeeId)
+async function updateEmployeeById(state, { employeeId, ...newEmployeeData }) {
+  const { employees } = state
+  const employeeData = await getEmployeeById(employees, employeeId)
 
   const byId = employee => employee.id === employeeId
-  return updateEmployeeBy(prevEmployees, employeeData, byId)
+  const updatedEmployeeData = { ...employeeData, ...newEmployeeData }
+  return updateEmployeeBy(employees, updatedEmployeeData, byId)
 }
 
 function updateEmployeeBy(employees, employeeData, by) {
   let nextEmployees = [...employees]
+  const employeeIndex = nextEmployees.findIndex(by)
 
-  if (!nextEmployees.find(by)) {
+  if (employeeIndex < 0) {
     nextEmployees.push(employeeData)
   } else {
-    nextEmployees = nextEmployees.map(employee => {
-      let nextEmployee = {
-        ...employee,
-      }
-
-      if (by(employee)) {
-        nextEmployee = {
-          ...employeeData,
-          role: employee.role,
-          startDate: employee.startDate,
-        }
-      }
-      return nextEmployee
-    })
+    nextEmployees = [
+      ...nextEmployees.slice(0, employeeIndex),
+      employeeData,
+      ...nextEmployees.slice(employeeIndex + 1),
+    ]
   }
 
   return nextEmployees
+}
+
+function getEmployeeById(employees, employeeId) {
+  return employees.find(employee => employee.id === employeeId)
 }
