@@ -5,14 +5,17 @@ function noop() {}
 
 export function useExternalContract(address, abi) {
   const api = useApi()
-  const [contract, setContract] = useState(null)
+  const canInstantiate = Boolean(api && address && abi)
+  const [contract, setContract] = useState(
+    canInstantiate ? api.external(address, abi) : null
+  )
 
   useEffect(() => {
     // We assume there is never any reason to set the contract back to null.
-    if (api && abi && address) {
+    if (canInstantiate && !contract) {
       setContract(api.external(address, abi))
     }
-  }, [api, abi, address])
+  }, [abi, address, api, canInstantiate, contract])
 
   return contract
 }
@@ -32,9 +35,12 @@ export function useNow(updateEvery = 1000) {
 
 export function usePromise(fn, memoParams, defaultValue) {
   const [result, setResult] = useState(defaultValue)
+
   useEffect(() => {
     let cancelled = false
-    fn().then(value => {
+
+    const promise = typeof fn === 'function' ? fn() : fn
+    promise.then(value => {
       if (!cancelled) {
         setResult(value)
       }

@@ -83,7 +83,7 @@ function AddEmployeePanelContent({
     }
 
     return null
-  }, [address, startDate])
+  }, [address, isEmployeeAddressAvailable, startDate])
 
   const handleAddressChange = useCallback(event => {
     setError(null)
@@ -125,7 +125,15 @@ function AddEmployeePanelContent({
 
       onAddEmployee(address, salaryPerSecond, startDateInSeconds, role)
     },
-    [address, onAddEmployee, role, salary, startDate]
+    [
+      address,
+      denominationToken.decimals,
+      onAddEmployee,
+      role,
+      salary,
+      startDate,
+      validate,
+    ]
   )
 
   const errorMsg = useMemo(() => {
