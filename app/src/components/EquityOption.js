@@ -16,7 +16,12 @@ function EquityOption({ readOnly = true }) {
 
   return (
     <div>
-      <Box heading="Equity option">
+      <Box
+        heading="Equity option"
+        css={`
+          height: 100%;
+        `}
+      >
         <div
           css={`
             margin-bottom: ${2 * GU}px;
