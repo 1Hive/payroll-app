@@ -6,7 +6,7 @@ export const employeeType = PropTypes.shape({
   startDate: PropTypes.number,
   endDate: PropTypes.number,
   role: PropTypes.string,
-  salary: PropTypes.number,
+  salary: PropTypes.object,
   accruedValue: PropTypes.number,
 })
 

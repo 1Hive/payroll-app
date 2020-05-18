@@ -22,12 +22,9 @@ export function formatTokenAmount(
   isIncoming,
   decimals = 0,
   displaySign = false,
-  { rounding = 2, multiplier = 1, commas = true, replaceZeroBy = '0' } = {}
+  { rounding = 2, commas = true, replaceZeroBy = '0' } = {}
 ) {
-  const roundedAmount = round(
-    (amount / Math.pow(10, decimals)) * multiplier,
-    rounding
-  )
+  const roundedAmount = round(amount / Math.pow(10, decimals), rounding)
   const formattedAmount = formatDecimals(roundedAmount, 18)
 
   if (formattedAmount === '0') {
