@@ -1,8 +1,10 @@
 import BN from 'bn.js'
 import dayjs from 'dayjs'
-import duration  from 'dayjs/plugin/duration'
+import duration from 'dayjs/plugin/duration'
 import isBetween from 'dayjs/plugin/isBetween'
 import relativeTime from 'dayjs/plugin/relativeTime'
+import quarterOfYear from 'dayjs/plugin/quarterOfYear'
+import advancedFormat from 'dayjs/plugin/advancedFormat'
 
 export const SECOND = 1000
 export const MINUTE = 60 * SECOND
@@ -20,6 +22,8 @@ const KNOWN_FORMATS = {
 dayjs.extend(duration)
 dayjs.extend(isBetween)
 dayjs.extend(relativeTime)
+dayjs.extend(quarterOfYear)
+dayjs.extend(advancedFormat)
 
 function dateFormat(date, format = 'onlyDate') {
   return dayjs(date).format(KNOWN_FORMATS[format] || format)

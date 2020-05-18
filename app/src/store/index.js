@@ -134,8 +134,6 @@ async function onEditEquitySettings(
   return { ...state, equityMultiplier, vestingLength, vestingCliffLength }
 }
 
-// TODO: Save amount in equity
-// Payday
 async function onPayday(state, returnValues, transactionHash, blockNumber) {
   const { employeeId, token } = returnValues
   const { denominationToken, employees, payments = [] } = state
