@@ -1,9 +1,10 @@
 import BN from 'bn.js'
-import { SECONDS_IN_A_YEAR, dayjs } from './date-utils'
+import { dayjs } from './date-utils'
 import {
   totalPaidThisYearByEmployee,
   summation,
   MONTHS_IN_A_YEAR,
+  SECONDS_IN_A_YEAR,
 } from './calculations'
 
 export function getAverageSalary(employees) {

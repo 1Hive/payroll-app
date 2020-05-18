@@ -14,9 +14,10 @@ import {
 } from '@aragon/ui'
 import SingleDatePicker from '../components/SingleDatePicker/SingleDatePicker'
 
+import { dayjs } from '../utils/date-utils'
 import { toDecimals } from '../utils/math-utils'
+import { SECONDS_IN_A_YEAR } from '../utils/calculations'
 import { addressesEqual, isAddress } from '../utils/web3-utils'
-import { SECONDS_IN_A_YEAR, dayjs } from '../utils/date-utils'
 
 const ADDRESS_NOT_AVAILABLE_ERROR = Symbol('ADDRESS_NOT_AVAILABLE_ERROR')
 const ADDRESS_INVALID_FORMAT = Symbol('ADDRESS_INVALID_FORMAT')
