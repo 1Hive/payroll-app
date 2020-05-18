@@ -4,6 +4,7 @@ import {
   getAverageSalary,
   getMonthlyLiability,
   getTotalPaidThisYear,
+  getYearlyIssuance,
 } from '../utils/calculations'
 
 export function useParsedEmployees() {
@@ -14,9 +15,10 @@ export function useParsedEmployees() {
 }
 
 export function usePayrollStats() {
-  const { denominationToken, equityTokenManager } = useAppState()
+  const { denominationToken, equityTokenManager, payments = [] } = useAppState()
   const parsedEmployees = useParsedEmployees()
   const totalPaidThisYear = getTotalPaidThisYear(parsedEmployees)
+  const yearlyIssuance = getYearlyIssuance(payments)
 
   return {
     employeesQty: { value: parsedEmployees.length },
@@ -30,6 +32,6 @@ export function usePayrollStats() {
       negative: true,
     },
     totalPaidThisYear: { value: totalPaidThisYear, token: denominationToken },
-    issuance: { value: 0, token: equityTokenManager?.token }, // TODO: Calculate yearly issuance
+    issuance: { value: yearlyIssuance, token: equityTokenManager.token },
   }
 }

@@ -33,7 +33,7 @@ function useFilteredPayments() {
       payments.filter(({ accountAddress }) =>
         addressesEqual(accountAddress, connectedAccount)
       ),
-    [payments]
+    [connectedAccount, payments]
   )
 
   const tokens = ['All', ...new Set(payments.map(({ token }) => token.symbol))]
