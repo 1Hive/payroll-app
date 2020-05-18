@@ -23,7 +23,7 @@ export function getMonthlyBurnRate(employee) {
     return new BN(0)
   }
 
-  return employee.yearlySalary / MONTHS_IN_A_YEAR
+  return employee.yearlySalary.div(new BN(MONTHS_IN_A_YEAR))
 }
 
 export function getYearlySalary(salary) {

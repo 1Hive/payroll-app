@@ -5,8 +5,8 @@ import {
   useCurrentEmployee,
   useEmployeeCurrentOwedSalary,
 } from '../../hooks/employee-hooks'
-import { getMonthlyBurnRate } from '../../utils/employee'
 import { formatTokenAmount } from '../../utils/formatting'
+import { getMonthlyBurnRate } from '../../utils/employee'
 
 const splitAmount = (amount, decimals) => {
   const [integer, fractional] = formatTokenAmount(
