@@ -1,31 +1,10 @@
 import { useAragonApi } from '@aragon/api-react'
 import {
-  totalPaidThisYear,
-  summation,
-  MONTHS_IN_A_YEAR,
-} from '../utils/calculations'
-
-function parseEmployees(payments, employees) {
-  return employees.map(e => {
-    const totalPaid = totalPaidThisYear(payments, e.accountAddress)
-    return { ...e, totalPaid }
-  })
-}
-
-function getAverageSalary(employees) {
-  const field = 'salary'
-  const sum = summation(employees, field)
-  return sum / employees.length
-}
-
-function getTotalPaidThisYear(employees) {
-  const field = 'totalPaid'
-  return summation(employees, field)
-}
-
-function getMonthlyBurnRate(total) {
-  return total / MONTHS_IN_A_YEAR
-}
+  getAverageSalary,
+  getMonthlyBurnRate,
+  getTotalPaidThisYear,
+  parseEmployees,
+} from '../utils/employee'
 
 export function useTotalPayrollData() {
   const { appState, connectedAccount } = useAragonApi()

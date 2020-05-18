@@ -57,7 +57,7 @@ function initState({ vaultAddress }) {
     try {
       const [
         denominationToken,
-        equityTokenAddress,
+        equityTokenManager,
         pctBase,
         equityMultiplier,
         vestingLength,
@@ -75,7 +75,7 @@ function initState({ vaultAddress }) {
         ...cachedState,
         denominationToken,
         equityMultiplier,
-        equityTokenAddress,
+        equityTokenManager,
         pctBase,
         vaultAddress,
         vestingLength,
