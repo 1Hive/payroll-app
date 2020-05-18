@@ -18,8 +18,12 @@ export function getTotalPaidThisYear(employees) {
   return summation(employees, field)
 }
 
-export function getMonthlyBurnRate(total) {
-  return total / MONTHS_IN_A_YEAR
+export function getMonthlyBurnRate(employee) {
+  if (!employee) {
+    return new BN(0)
+  }
+
+  return employee.yearlySalary / MONTHS_IN_A_YEAR
 }
 
 export function getYearlySalary(salary) {

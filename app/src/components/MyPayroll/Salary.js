@@ -5,8 +5,8 @@ import {
   useCurrentEmployee,
   useEmployeeCurrentOwedSalary,
 } from '../../hooks/employee-hooks'
+import { getMonthlyBurnRate } from '../../utils/employee'
 import { formatTokenAmount } from '../../utils/formatting'
-import { getMonthlyLiability } from '../../utils/calculations'
 
 const splitAmount = (amount, decimals) => {
   const [integer, fractional] = formatTokenAmount(
@@ -36,7 +36,7 @@ function Salary() {
   const { denominationToken } = useAppState()
 
   const employeeOwedSalary = useEmployeeCurrentOwedSalary(employee)
-  const montlyRate = getMonthlyLiability(employee.yearlySalary)
+  const montlyRate = getMonthlyBurnRate(employee)
 
   return (
     <Box heading="Salary">
