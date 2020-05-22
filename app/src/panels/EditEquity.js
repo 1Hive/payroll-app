@@ -13,19 +13,19 @@ import {
 import { monthsToSeconds, secondsToMonths } from '../utils/calculations'
 
 const EditEquityPanel = React.memo(function EditEquity({
-  editEquityOptionPanel,
+  panelState,
   onEditEquityOption,
 }) {
   const { equityMultiplier, vestingLength, vestingCliffLength } = useAppState()
 
   const handleClose = useCallback(() => {
-    editEquityOptionPanel.requestClose()
-  }, [editEquityOptionPanel])
+    panelState.requestClose()
+  }, [panelState])
 
   return (
     <SidePanel
       title="Edit Equity Option"
-      opened={editEquityOptionPanel && editEquityOptionPanel.visible}
+      opened={panelState && panelState.visible}
       onClose={handleClose}
     >
       <EditEquityContent
@@ -84,7 +84,6 @@ function EditEquityContent({
       <Field
         css={`
           margin-top: ${3 * GU}px;
-          max-width: 100%;
         `}
         label="Multiplier"
       >
@@ -94,12 +93,12 @@ function EditEquityContent({
           ref={inputRef}
           required
           wide
+          type="number"
         />
       </Field>
       <Field
         css={`
           margin-top: ${3 * GU}px;
-          max-width: 100%;
         `}
         label="Vesting period (in months)"
       >
@@ -108,12 +107,12 @@ function EditEquityContent({
           onChange={handleVestingLengthChange}
           required
           wide
+          type="number"
         />
       </Field>
       <Field
         css={`
           margin-top: ${3 * GU}px;
-          max-width: 100%;
         `}
         label="Vesting cliff (in months)"
       >
@@ -122,6 +121,7 @@ function EditEquityContent({
           onChange={handleVestingCliffLengthChange}
           required
           wide
+          type="number"
         />
       </Field>
 

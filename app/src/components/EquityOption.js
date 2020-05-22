@@ -4,7 +4,7 @@ import { useAppState } from '@aragon/api-react'
 
 import { durationTime } from '../utils/date-utils'
 
-function EquityOption({ readOnly = true, editEquityOptionPanel }) {
+function EquityOption({ readOnly = true, onRequestEquityOptionPanel }) {
   const theme = useTheme()
   const { equityMultiplier, vestingLength, vestingCliffLength } = useAppState()
   return (
@@ -45,11 +45,9 @@ function EquityOption({ readOnly = true, editEquityOptionPanel }) {
           >
             Vesting period
           </h3>
-          {vestingLength > 0 ? (
-            <div>{durationTime(vestingLength)}</div>
-          ) : (
-            <div>No vesting</div>
-          )}
+          <div>
+            {vestingLength > 0 ? durationTime(vestingLength) : `No vesting`}
+          </div>
         </div>
         <div>
           <h3
@@ -59,11 +57,11 @@ function EquityOption({ readOnly = true, editEquityOptionPanel }) {
           >
             Vesting cliff
           </h3>
-          {vestingCliffLength > 0 ? (
-            <div>{durationTime(vestingCliffLength)}</div>
-          ) : (
-            <div>No vesting</div>
-          )}
+          <div>
+            {vestingCliffLength > 0
+              ? durationTime(vestingCliffLength)
+              : `No vesting`}
+          </div>
         </div>
         {!readOnly && (
           <Button
@@ -72,7 +70,7 @@ function EquityOption({ readOnly = true, editEquityOptionPanel }) {
             `}
             icon={<IconEdit />}
             label="Edit Equity Option"
-            onClick={editEquityOptionPanel.requestOpen}
+            onClick={onRequestEquityOptionPanel}
             display="all"
             wide
           />

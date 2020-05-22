@@ -5,9 +5,9 @@ import KeyStats from '../components/TeamPayroll/KeyStats'
 import SalaryStats from '../components/TeamPayroll/SalaryStats'
 
 function TeamPayroll({
-  panelState,
-  onAddEmployee,
+  addEmployeePanel,
   editEquityOptionPanel,
+  onAddEmployee,
   onEditEquityOption,
 }) {
   return (
@@ -18,7 +18,10 @@ function TeamPayroll({
         onEditEquityOption={onEditEquityOption}
       />
       <EmployeeList />
-      <AddEmployee onAddEmployee={onAddEmployee} panelState={panelState} />
+      <AddEmployee
+        onAddEmployee={onAddEmployee}
+        addEmployeePanel={addEmployeePanel}
+      />
     </div>
   )
 }

@@ -11,10 +11,10 @@ function SalaryStats({ editEquityOptionPanel, onEditEquityOption }) {
       <SalaryBurnRate />
       <EquityOption
         readOnly={false}
-        editEquityOptionPanel={editEquityOptionPanel}
+        onRequestEquityOptionPanel={editEquityOptionPanel.requestOpen}
       />
       <EditEquity
-        editEquityOptionPanel={editEquityOptionPanel}
+        panelState={editEquityOptionPanel}
         onEditEquityOption={onEditEquityOption}
       />
       <PaidSalariesChart />
