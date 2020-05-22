@@ -3,6 +3,7 @@ import { dayjs } from './date-utils'
 import { addressesEqual } from './web3-utils'
 
 export const MONTHS_IN_A_YEAR = 12
+export const SECONDS_IN_A_MONTH = 2628000
 
 export function totalPaidThisYear(payments, accountAddress) {
   const filter = payment => {
@@ -23,17 +24,9 @@ export function summation(list, field) {
 }
 
 export function secondsToMonths(seconds) {
-  const minutes = seconds / 60
-  const hours = minutes / 60
-  const days = hours / 24
-  const months = days / 30
-  return Math.round(months)
+  return Math.round(seconds / SECONDS_IN_A_MONTH)
 }
 
 export function monthsToSeconds(months) {
-  const days = months * 30
-  const hours = days * 24
-  const minutes = hours * 60
-  const seconds = minutes * 60
-  return Math.round(seconds)
+  return Math.round(months * SECONDS_IN_A_MONTH)
 }
