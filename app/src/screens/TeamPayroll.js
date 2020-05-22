@@ -1,5 +1,5 @@
 import React from 'react'
-import { AddEmployee } from '../panels'
+import { AddEmployee, EditEquity } from '../panels'
 import EmployeeList from '../components/TeamPayroll/EmployeeList'
 import KeyStats from '../components/TeamPayroll/KeyStats'
 import SalaryStats from '../components/TeamPayroll/SalaryStats'
@@ -15,6 +15,10 @@ function TeamPayroll({
       <KeyStats />
       <SalaryStats
         editEquityOptionPanel={editEquityOptionPanel}
+        onEditEquityOption={onEditEquityOption}
+      />
+      <EditEquity
+        panelState={editEquityOptionPanel}
         onEditEquityOption={onEditEquityOption}
       />
       <EmployeeList />
