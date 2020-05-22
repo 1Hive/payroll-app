@@ -123,10 +123,10 @@ export function useAppLogic() {
   } = useAppPanels()
 
   const actions = {
+    addEmployee: useAddEmployeeAction(addEmployeePanel.requestClose),
     editEquityOption: useEditEquityOptionAction(
       editEquityOptionPanel.requestClose
     ),
-    addEmployee: useAddEmployeeAction(addEmployeePanel.requestClose),
     payday: usePaydayAction(requestSalaryPanel.requestClose),
   }
 
