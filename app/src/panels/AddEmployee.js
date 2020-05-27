@@ -14,9 +14,10 @@ import {
 } from '@aragon/ui'
 import SingleDatePicker from '../components/SingleDatePicker/SingleDatePicker'
 
+import { dayjs } from '../utils/date-utils'
 import { toDecimals } from '../utils/math-utils'
+import { SECONDS_IN_A_YEAR } from '../utils/calculations'
 import { addressesEqual, isAddress } from '../utils/web3-utils'
-import { SECONDS_IN_A_YEAR, dayjs } from '../utils/date-utils'
 
 const ADDRESS_NOT_AVAILABLE_ERROR = Symbol('ADDRESS_NOT_AVAILABLE_ERROR')
 const ADDRESS_INVALID_FORMAT = Symbol('ADDRESS_INVALID_FORMAT')
@@ -64,7 +65,7 @@ function AddEmployeePanelContent({
   const [address, setAddress] = useState('')
   const [role, setRole] = useState('')
   const [salary, setSalary] = useState('')
-  const [startDate, setStartDate] = useState(dayjs())
+  const [startDate, setStartDate] = useState(null)
   const [error, setError] = useState(null)
 
   const inputRef = useSidePanelFocusOnReady()
@@ -83,7 +84,7 @@ function AddEmployeePanelContent({
     }
 
     return null
-  }, [address, startDate])
+  }, [address, isEmployeeAddressAvailable, startDate])
 
   const handleAddressChange = useCallback(event => {
     setError(null)
@@ -100,9 +101,9 @@ function AddEmployeePanelContent({
     setSalary(event.target.value)
   }, [])
 
-  const handleStartDateChange = useCallback(event => {
+  const handleStartDateChange = useCallback(startDate => {
     setError(null)
-    setStartDate(dayjs(event.target.value))
+    setStartDate(startDate)
   }, [])
 
   const handleSubmit = useCallback(
@@ -125,7 +126,15 @@ function AddEmployeePanelContent({
 
       onAddEmployee(address, salaryPerSecond, startDateInSeconds, role)
     },
-    [address, onAddEmployee, role, salary, startDate]
+    [
+      address,
+      denominationToken.decimals,
+      onAddEmployee,
+      role,
+      salary,
+      startDate,
+      validate,
+    ]
   )
 
   const errorMsg = useMemo(() => {
@@ -166,8 +175,6 @@ function AddEmployeePanelContent({
             type="number"
           />
         </Field>
-
-        {/* TODO: Use better date picker */}
         <Field label="Start Date">
           <SingleDatePicker
             startDate={startDate}

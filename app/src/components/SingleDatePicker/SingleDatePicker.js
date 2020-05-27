@@ -7,11 +7,10 @@ import { SINGLE_DATE } from './consts'
 import { dayjs, dateFormat } from '../../utils/date-utils'
 import handleSingleDateSelect from './utils'
 
-function SingleDatePicker({ format, onChange, startDate: startDateProp }) {
+function SingleDatePicker({ format, onChange, startDate }) {
   const theme = useTheme()
   const labelsRef = useRef()
   const [showPicker, setShowPicker] = useState(false)
-  const [startDate, setStartDate] = useState(startDateProp)
 
   const handlePopoverClose = useCallback(() => setShowPicker(false), [])
 
@@ -21,11 +20,16 @@ function SingleDatePicker({ format, onChange, startDate: startDateProp }) {
 
   const handleDateClick = useCallback(
     date => {
-      const result = handleSingleDateSelect({ date, startDate })
-      setStartDate(result.startDate)
       setShowPicker(false)
+      if (date) {
+        const result = handleSingleDateSelect({
+          date,
+          startDate,
+        })
+        onChange(result.startDate)
+      }
     },
-    [startDate]
+    [onChange, startDate]
   )
 
   const labelProps = useMemo(() => {
@@ -40,7 +44,7 @@ function SingleDatePicker({ format, onChange, startDate: startDateProp }) {
       <Labels
         ref={labelsRef}
         enabled={showPicker}
-        hasSetDates={Boolean(startDateProp)}
+        hasSetDates={Boolean(startDate)}
         onClick={handleLabelsClick}
         {...labelProps}
       />

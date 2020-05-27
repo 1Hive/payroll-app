@@ -1,14 +1,12 @@
 import React from 'react'
-
+import { useAppState } from '@aragon/api-react'
 import EmployeeTable from './EmployeeTable'
-import { useTotalPayrollData } from '../../hooks/payroll-hooks'
+import { useParsedEmployees } from '../../hooks/payroll-hooks'
 import useFilteredEmployees from './useFilteredEmployees'
 
 function EmployeeList() {
-  const {
-    parsedEmployees: employees,
-    denominationToken,
-  } = useTotalPayrollData()
+  const { denominationToken } = useAppState()
+  const employees = useParsedEmployees()
 
   const {
     emptyResultsViaFilters,

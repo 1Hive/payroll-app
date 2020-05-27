@@ -8,9 +8,9 @@ function PreviousSalary() {
     emptyResultsViaFilters,
     filteredPayments,
     handleClearFilters,
-    handleSelectedDateChange,
+    handleSelectedDateRangeChange,
     handleTokenChange,
-    selectedDate,
+    selectedDateRange,
     selectedToken,
     tokens,
   } = useFilteredPayments()
@@ -20,10 +20,10 @@ function PreviousSalary() {
       emptyResultsViaFilters={emptyResultsViaFilters}
       filteredPayments={filteredPayments}
       onClearFilters={handleClearFilters}
-      onSelectDate={handleSelectedDateChange}
+      onSelectDateRange={handleSelectedDateRangeChange}
       onSelectToken={handleTokenChange}
       payments={currentEmployeePayments}
-      selectedDate={selectedDate}
+      selectedDateRange={selectedDateRange}
       selectedToken={selectedToken}
       tokens={tokens}
     />
