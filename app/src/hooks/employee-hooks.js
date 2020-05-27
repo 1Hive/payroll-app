@@ -2,7 +2,7 @@ import BN from 'bn.js'
 import { useAppState, useConnectedAccount } from '@aragon/api-react'
 import { dayjs } from '../utils/date-utils'
 import { addressesEqual } from '../utils/web3-utils'
-import { useNow, useExternalContract, usePromise } from '../utils/hooks'
+import { useNow, useExternalContract, usePromise } from '../hooks/general-hooks'
 import vestingsLengthAbi from '../abi/token_manager_vestings_lengths.json'
 
 export function useEmployeeCurrentOwedSalary(employee) {

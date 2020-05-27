@@ -11,7 +11,7 @@ import EmployeeFilters from './EmployeeFilters'
 
 import { employeeType } from '../../types'
 import { dateFormat } from '../../utils/date-utils'
-import { formatTokenAmount } from '../../utils/formatting'
+import { formatTokenAmount } from '../../utils/formatting-utils'
 
 const columns = [
   'Employee',
