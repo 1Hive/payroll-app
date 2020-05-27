@@ -1,12 +1,19 @@
 import BN from 'bn.js'
-import { getYearlySalary } from './utils/employee'
+import { getYearlySalary } from './utils/employee-utils'
 
 function appStateReducer(state) {
   if (state === null) {
     return { isSyncing: true }
   }
 
-  const { equityMultiplier, employees, payments, pctBase } = state
+  const {
+    equityMultiplier,
+    employees,
+    payments,
+    pctBase,
+    vestingLength,
+    vestingCliffLength,
+  } = state
 
   return {
     ...state,
@@ -23,6 +30,9 @@ function appStateReducer(state) {
       yearlySalary: getYearlySalary(new BN(salary)),
       terminated: Boolean(employee.endDate),
     })),
+
+    vestingLength: parseInt(vestingLength, 10),
+    vestingCliffLength: parseInt(vestingCliffLength, 10),
 
     pctBase: new BN(pctBase.toString()),
     equityMultiplier: new BN(equityMultiplier.toString()),
