@@ -10,10 +10,16 @@ import {
 import EmployeeFilters from './EmployeeFilters'
 
 import { employeeType } from '../../types'
-import { dateFormat, SECONDS_IN_A_YEAR } from '../../utils/date-utils'
+import { dateFormat } from '../../utils/date-utils'
 import { formatTokenAmount } from '../../utils/formatting'
 
-const columns = ['Employee', 'Start Date', 'Role', 'Base asset salary']
+const columns = [
+  'Employee',
+  'Start Date',
+  'Role',
+  'Status',
+  'Base asset salary',
+]
 
 function EmployeeTable({
   emptyResultsViaFilters,
@@ -75,15 +81,20 @@ function EmployeeTable({
       }
       fields={columns}
       entries={filteredEmployees}
-      renderEntry={({ accountAddress, startDate, role, salary }) => {
+      renderEntry={({
+        accountAddress,
+        startDate,
+        role,
+        terminated,
+        yearlySalary,
+      }) => {
         return [
           <IdentityBadge entity={accountAddress} />,
           <span>{dateFormat(startDate)}</span>,
           <span>{role}</span>,
+          <span>{terminated ? 'Inactive' : 'Active'}</span>,
           <span>
-            {formatTokenAmount(salary, true, token.decimals, false, {
-              multiplier: SECONDS_IN_A_YEAR,
-            })}{' '}
+            {formatTokenAmount(yearlySalary, true, token.decimals)}{' '}
             {token.symbol}
           </span>,
         ]

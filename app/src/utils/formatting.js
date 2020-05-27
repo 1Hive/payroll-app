@@ -1,5 +1,5 @@
 import { round } from './math-utils'
-import BN from 'bn.js'
+import { splitAllocation } from './calculations'
 
 export function formatDecimals(value, digits) {
   try {
@@ -22,12 +22,9 @@ export function formatTokenAmount(
   isIncoming,
   decimals = 0,
   displaySign = false,
-  { rounding = 2, multiplier = 1, commas = true, replaceZeroBy = '0' } = {}
+  { rounding = 2, commas = true, replaceZeroBy = '0' } = {}
 ) {
-  const roundedAmount = round(
-    (amount / Math.pow(10, decimals)) * multiplier,
-    rounding
-  )
+  const roundedAmount = round(amount / Math.pow(10, decimals), rounding)
   const formattedAmount = formatDecimals(roundedAmount, 18)
 
   if (formattedAmount === '0') {
@@ -40,14 +37,11 @@ export function formatTokenAmount(
   )
 }
 
-export function splitAllocation(denominationAllocation, pctBase) {
-  const PCT = new BN(100)
-
-  const convertedDenominationAllocation = denominationAllocation.div(
-    pctBase.div(PCT)
-  )
-
-  const convertedEquityAllocation = PCT.sub(convertedDenominationAllocation)
+export function formatAllocationSplit(denominationAllocation, pctBase) {
+  const [
+    convertedDenominationAllocation,
+    convertedEquityAllocation,
+  ] = splitAllocation(denominationAllocation, pctBase)
 
   return `${convertedDenominationAllocation} % / ${convertedEquityAllocation} %`
 }

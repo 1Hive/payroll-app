@@ -7,8 +7,6 @@
     "@aragon/api": "^2.0.0-beta.9",
     "@aragon/api-react": "^2.0.0-beta.8",
     "@aragon/ui": "^1.0.0",
-    "ajv": "^6.5.4",
-    "ajv-keywords": "^3.2.0",
     "bn.js": "^5.1.1",
     "core-js": "^3.1.4",
     "dayjs": "^1.8.26",

@@ -1,24 +1,31 @@
 import { useCallback, useMemo, useState } from 'react'
 import { useAppState, useConnectedAccount } from '@aragon/api-react'
+import { dateIsBetween } from '../../utils/date-utils'
 import { addressesEqual } from '../../utils/web3-utils'
 
-const UNSELECTED_DATE = null
+const UNSELECTED_DATE_RANGE_FILTER = { start: null, end: null }
 const UNSELECTED_TOKEN_FILTER = -1
 
 function useFilteredPayments() {
   const { payments = [] } = useAppState()
   const connectedAccount = useConnectedAccount()
 
-  const [selectedDate, setSelectedDate] = useState(UNSELECTED_DATE)
+  const [selectedDateRange, setSelectedDateRange] = useState(
+    UNSELECTED_DATE_RANGE_FILTER
+  )
   const [selectedToken, setSelectedToken] = useState(UNSELECTED_TOKEN_FILTER)
 
-  const handleSelectedDateChange = useCallback((date) => {
-    setSelectedDate(date)
+  const handleSelectedDateRangeChange = useCallback(range => {
+    setSelectedDateRange(range)
   }, [])
 
-  const handleTokenChange = useCallback((index) => {
+  const handleTokenChange = useCallback(index => {
     const tokenIndex = index === 0 ? UNSELECTED_TOKEN_FILTER : index
     setSelectedToken(tokenIndex)
+  }, [])
+
+  const handleClearFilters = useCallback(() => {
+    setSelectedDateRange(UNSELECTED_DATE_RANGE_FILTER)
   }, [])
 
   const currentEmployeePayments = useMemo(
@@ -34,25 +41,30 @@ function useFilteredPayments() {
   const filteredPayments = useMemo(
     () =>
       currentEmployeePayments.filter(({ date }) => {
-        if (selectedDate) {
+        if (
+          selectedDateRange.start &&
+          selectedDateRange.end &&
+          !dateIsBetween(date, selectedDateRange.start, selectedDateRange.end)
+        ) {
           return false
         }
         return true
       }),
-    [currentEmployeePayments, selectedDate]
+    [currentEmployeePayments, selectedDateRange]
   )
 
   const emptyResultsViaFilters =
     filteredPayments.length === 0 &&
-    (selectedToken > 0 || Boolean(selectedDate))
+    (selectedToken > 0 || Boolean(selectedDateRange.start))
 
   return {
     currentEmployeePayments,
     emptyResultsViaFilters,
     filteredPayments,
-    handleSelectedDateChange,
+    handleClearFilters,
+    handleSelectedDateRangeChange,
     handleTokenChange,
-    selectedDate,
+    selectedDateRange,
     selectedToken,
     tokens,
   }
