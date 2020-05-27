@@ -4,6 +4,26 @@ import { usePanelState } from './utils/hooks'
 import appStateReducer from './app-state-reducer'
 
 // App actions
+export function useEditEquityOptionAction(onDone) {
+  const api = useApi()
+  return useCallback(
+    (equityMultiplier, vestingLength, vestingCliffLength) => {
+      if (api) {
+        api
+          .setEquitySettings(
+            equityMultiplier,
+            vestingLength,
+            vestingCliffLength,
+            true
+          )
+          .toPromise()
+        onDone()
+      }
+    },
+    [api, onDone]
+  )
+}
+
 export function useAddEmployeeAction(onDone) {
   const api = useApi()
   return useCallback(
@@ -46,7 +66,21 @@ export function useAppPanels() {
   const requestSalaryPanel = usePanelState()
 
   return {
-    editEquityOptionPanel,
+    editEquityOptionPanel: useMemo(
+      () => ({
+        ...editEquityOptionPanel,
+        // ensure there is only one panel opened at a time
+        visible:
+          editEquityOptionPanel.visible &&
+          !addEmployeePanel.visible &&
+          !requestSalaryPanel.visible,
+      }),
+      [
+        editEquityOptionPanel,
+        addEmployeePanel.visible,
+        requestSalaryPanel.visible,
+      ]
+    ),
     addEmployeePanel: useMemo(
       () => ({
         ...addEmployeePanel,
@@ -90,6 +124,9 @@ export function useAppLogic() {
 
   const actions = {
     addEmployee: useAddEmployeeAction(addEmployeePanel.requestClose),
+    editEquityOption: useEditEquityOptionAction(
+      editEquityOptionPanel.requestClose
+    ),
     payday: usePaydayAction(requestSalaryPanel.requestClose),
   }
 

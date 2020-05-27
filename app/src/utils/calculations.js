@@ -8,6 +8,7 @@ export const HOUR = 60 * MINUTE
 export const DAY = 24 * HOUR
 
 export const MONTHS_IN_A_YEAR = 12
+export const SECONDS_IN_A_MONTH = 2628000
 export const SECONDS_IN_A_YEAR = new BN((365.25 * DAY) / 1000)
 
 /**
@@ -109,4 +110,12 @@ export function splitAllocation(denominationAllocation, pctBase) {
  */
 export function convertMultiplier(multiplier, pctBase) {
   return parseInt(multiplier.div(pctBase.div(new BN(100)))) / 100
+}
+
+export function secondsToMonths(seconds) {
+  return Math.round(seconds / SECONDS_IN_A_MONTH)
+}
+
+export function monthsToSeconds(months) {
+  return Math.round(months * SECONDS_IN_A_MONTH)
 }

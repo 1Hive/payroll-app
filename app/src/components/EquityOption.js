@@ -3,7 +3,9 @@ import { Box, Button, GU, IconEdit, textStyle, useTheme } from '@aragon/ui'
 import { useAppState } from '@aragon/api-react'
 import { convertMultiplier } from '../utils/calculations'
 
-function EquityOption({ readOnly = true }) {
+import { durationTime } from '../utils/date-utils'
+
+function EquityOption({ readOnly = true, onRequestEquityOptionPanel }) {
   const theme = useTheme()
   const {
     equityMultiplier,
@@ -57,8 +59,9 @@ function EquityOption({ readOnly = true }) {
           >
             Vesting period
           </h3>
-          {/* TODO: Formatt field */}
-          <div>{vestingLength}</div>
+          <div>
+            {vestingLength > 0 ? durationTime(vestingLength) : `No vesting`}
+          </div>
         </div>
         <div>
           <h3
@@ -68,8 +71,11 @@ function EquityOption({ readOnly = true }) {
           >
             Vesting cliff
           </h3>
-          {/* TODO: Formatt field */}
-          <div>{vestingCliffLength}</div>
+          <div>
+            {vestingCliffLength > 0
+              ? durationTime(vestingCliffLength)
+              : `No vesting`}
+          </div>
         </div>
         {!readOnly && (
           <Button
@@ -78,6 +84,7 @@ function EquityOption({ readOnly = true }) {
             `}
             icon={<IconEdit />}
             label="Edit Equity Option"
+            onClick={onRequestEquityOptionPanel}
             display="all"
             wide
           />

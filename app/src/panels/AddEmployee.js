@@ -24,14 +24,14 @@ const ADDRESS_INVALID_FORMAT = Symbol('ADDRESS_INVALID_FORMAT')
 const DATE_INVALID_FORMAT = Symbol('DATE_INVALID_FORMAT')
 
 const AddEmployeePanel = React.memo(function AddEmployeePanel({
-  panelState,
+  addEmployeePanel,
   onAddEmployee,
 }) {
   const { denominationToken, employees } = useAppState()
 
   const handleClose = useCallback(() => {
-    panelState.requestClose()
-  }, [panelState])
+    addEmployeePanel.requestClose()
+  }, [addEmployeePanel])
 
   const isEmployeeAddressAvailable = useCallback(
     address =>
@@ -45,7 +45,7 @@ const AddEmployeePanel = React.memo(function AddEmployeePanel({
   return (
     <SidePanel
       title="Add new employee"
-      opened={panelState && panelState.visible}
+      opened={addEmployeePanel && addEmployeePanel.visible}
       onClose={handleClose}
     >
       <AddEmployeePanelContent

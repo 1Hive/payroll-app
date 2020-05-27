@@ -74,8 +74,10 @@ function App() {
         {screen === TEAM_PAYROLL.id && (
           <TeamPayroll
             isSyncing={isSyncing}
-            panelState={panels.addEmployeePanel}
+            addEmployeePanel={panels.addEmployeePanel}
             onAddEmployee={actions.addEmployee}
+            editEquityOptionPanel={panels.editEquityOptionPanel}
+            onEditEquityOption={actions.editEquityOption}
           />
         )}
       </>

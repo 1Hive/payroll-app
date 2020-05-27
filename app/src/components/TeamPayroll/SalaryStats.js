@@ -3,7 +3,7 @@ import { GU, useLayout } from '@aragon/ui'
 import EquityOption from '../EquityOption'
 import PaidSalariesChart from './PaidSalariesChart'
 
-function SalaryStats() {
+function SalaryStats({ editEquityOptionPanel }) {
   const { layoutName } = useLayout()
   const compactMode = layoutName === 'small' || layoutName === 'medium'
   return (
@@ -16,7 +16,10 @@ function SalaryStats() {
       `}
     >
       <PaidSalariesChart />
-      <EquityOption readOnly={false} />
+      <EquityOption
+        readOnly={false}
+        onRequestEquityOptionPanel={editEquityOptionPanel.requestOpen}
+      />
     </div>
   )
 }
