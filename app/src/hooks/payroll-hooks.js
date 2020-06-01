@@ -1,11 +1,11 @@
 import { useAppState } from '@aragon/api-react'
-import { parseEmployees } from '../utils/employee'
+import { parseEmployees } from '../utils/employee-utils'
 import {
   getAverageSalary,
   getMonthlyLiability,
   getTotalPaidThisYear,
   getYearlyIssuance,
-} from '../utils/calculations'
+} from '../utils/calculations-utils'
 
 export function useParsedEmployees() {
   const { employees = [], payments = [] } = useAppState()

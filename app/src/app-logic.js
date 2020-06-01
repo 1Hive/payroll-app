@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo } from 'react'
 import { AragonApi, useApi, useAppState } from '@aragon/api-react'
-import { usePanelState } from './utils/hooks'
 import appStateReducer from './app-state-reducer'
+import { usePanelState } from './hooks/general-hooks'
 
 // App actions
 export function useEditEquityOptionAction(onDone) {

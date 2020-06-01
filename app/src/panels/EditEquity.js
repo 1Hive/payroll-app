@@ -10,13 +10,23 @@ import {
   useSidePanelFocusOnReady,
 } from '@aragon/ui'
 
-import { monthsToSeconds, secondsToMonths } from '../utils/calculations'
+import {
+  monthsToSeconds,
+  multiplierToBase,
+  secondsToMonths,
+  multiplierFromBase,
+} from '../utils/calculations-utils'
 
 const EditEquityPanel = React.memo(function EditEquity({
   panelState,
   onEditEquityOption,
 }) {
-  const { equityMultiplier, vestingLength, vestingCliffLength } = useAppState()
+  const {
+    equityMultiplier,
+    pctBase,
+    vestingLength,
+    vestingCliffLength,
+  } = useAppState()
 
   const handleClose = useCallback(() => {
     panelState.requestClose()
@@ -30,6 +40,7 @@ const EditEquityPanel = React.memo(function EditEquity({
     >
       <EditEquityContent
         equityMultiplier={equityMultiplier}
+        pctBase={pctBase}
         vestingLength={vestingLength}
         vestingCliffLength={vestingCliffLength}
         onEditEquityOption={onEditEquityOption}
@@ -40,13 +51,16 @@ const EditEquityPanel = React.memo(function EditEquity({
 
 function EditEquityContent({
   equityMultiplier: equityMultiplierProp,
+  pctBase,
   vestingLength: vestingLengthProp,
   vestingCliffLength: vestingCliffLengthProp,
   onEditEquityOption,
 }) {
   const inputRef = useSidePanelFocusOnReady()
 
-  const [equityMultiplier, setEquityMultiplier] = useState(equityMultiplierProp)
+  const [equityMultiplier, setEquityMultiplier] = useState(
+    multiplierFromBase(equityMultiplierProp, pctBase)
+  )
   const [vestingLength, setVestingLength] = useState(
     secondsToMonths(vestingLengthProp)
   )
@@ -70,13 +84,21 @@ function EditEquityContent({
     event => {
       event.preventDefault()
 
+      const convertedMultiplier = multiplierToBase(equityMultiplier, pctBase)
+
       onEditEquityOption(
-        equityMultiplier,
+        convertedMultiplier.toString(),
         monthsToSeconds(vestingLength),
         monthsToSeconds(vestingCliffLength)
       )
     },
-    [equityMultiplier, onEditEquityOption, vestingCliffLength, vestingLength]
+    [
+      equityMultiplier,
+      onEditEquityOption,
+      pctBase,
+      vestingCliffLength,
+      vestingLength,
+    ]
   )
 
   return (
@@ -94,6 +116,7 @@ function EditEquityContent({
           required
           wide
           type="number"
+          min={0}
         />
       </Field>
       <Field
@@ -108,6 +131,7 @@ function EditEquityContent({
           required
           wide
           type="number"
+          min={0}
         />
       </Field>
       <Field
@@ -122,6 +146,7 @@ function EditEquityContent({
           required
           wide
           type="number"
+          min={0}
         />
       </Field>
 
@@ -139,7 +164,8 @@ function EditEquityContent({
 }
 
 EditEquityContent.propTypes = {
-  equityMultiplier: PropTypes.number,
+  equityMultiplier: PropTypes.object,
+  pctBase: PropTypes.object,
   vestingLength: PropTypes.number,
   vestingCliffLength: PropTypes.number,
 }

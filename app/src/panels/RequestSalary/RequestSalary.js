@@ -17,8 +17,8 @@ import AllocationFields from './AllocationFields'
 
 import { toDecimals } from '../../utils/math-utils'
 import { durationTime } from '../../utils/date-utils'
-import { formatTokenAmount } from '../../utils/formatting'
-import { convertMultiplier } from '../../utils/calculations'
+import { formatTokenAmount } from '../../utils/formatting-utils'
+import { multiplierFromBase } from '../../utils/calculations-utils'
 import { useEmployeeTotalVestings } from '../../hooks/employee-hooks'
 
 const RequestSalary = React.memo(function RequestSalary({
@@ -264,7 +264,7 @@ const AllocationInfo = ({
   vestingCliffLength,
   vestingLength,
 }) => {
-  const formattedMultiplier = convertMultiplier(equityMultiplier, pctBase)
+  const formattedMultiplier = multiplierFromBase(equityMultiplier, pctBase)
 
   return (
     <Info

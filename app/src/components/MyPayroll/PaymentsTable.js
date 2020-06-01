@@ -17,7 +17,7 @@ import { dateFormat } from '../../utils/date-utils'
 import {
   formatTokenAmount,
   formatAllocationSplit,
-} from '../../utils/formatting'
+} from '../../utils/formatting-utils'
 
 const columns = ['Date', 'Base asset', 'Split percentage (Base/Equity)']
 

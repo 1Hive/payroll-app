@@ -1,5 +1,5 @@
 import { round } from './math-utils'
-import { splitAllocation } from './calculations'
+import { splitAllocation } from './calculations-utils'
 
 export function formatDecimals(value, digits) {
   try {

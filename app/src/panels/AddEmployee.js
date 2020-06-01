@@ -16,7 +16,7 @@ import SingleDatePicker from '../components/SingleDatePicker/SingleDatePicker'
 
 import { dayjs } from '../utils/date-utils'
 import { toDecimals } from '../utils/math-utils'
-import { SECONDS_IN_A_YEAR } from '../utils/calculations'
+import { SECONDS_IN_A_YEAR } from '../utils/calculations-utils'
 import { addressesEqual, isAddress } from '../utils/web3-utils'
 
 const ADDRESS_NOT_AVAILABLE_ERROR = Symbol('ADDRESS_NOT_AVAILABLE_ERROR')

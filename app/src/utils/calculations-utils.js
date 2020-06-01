@@ -103,13 +103,23 @@ export function splitAllocation(denominationAllocation, pctBase) {
 }
 
 /**
- * Converts the equity multiplier from `pctBase`
+ * Converts the equity multiplier from pctBase
  * @param {BigNum} multiplier The equity multiplier
  * @param {BigNum} pctBase The base percentage
  * @returns {Number} The multiplier converted from pct base
  */
-export function convertMultiplier(multiplier, pctBase) {
+export function multiplierFromBase(multiplier, pctBase) {
   return parseInt(multiplier.div(pctBase.div(new BN(100)))) / 100
+}
+
+/**
+ * Converts the equity multiplier to `pctBase`
+ * @param {Number} multiplier The equity multiplier
+ * @param {BigNum} pctBase The base percentage
+ * @returns {BigNum} The multiplier converted to pct base
+ */
+export function multiplierToBase(multiplier, pctBase) {
+  return new BN(multiplier * 100).mul(pctBase.div(new BN(100)))
 }
 
 export function secondsToMonths(seconds) {

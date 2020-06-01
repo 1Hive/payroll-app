@@ -1,7 +1,7 @@
 import React from 'react'
 import { Box, Button, GU, IconEdit, textStyle, useTheme } from '@aragon/ui'
 import { useAppState } from '@aragon/api-react'
-import { convertMultiplier } from '../utils/calculations'
+import { multiplierFromBase } from '../utils/calculations-utils'
 
 import { durationTime } from '../utils/date-utils'
 
@@ -14,16 +14,11 @@ function EquityOption({ readOnly = true, onRequestEquityOptionPanel }) {
     vestingCliffLength,
   } = useAppState()
 
-  const formattedMultiplier = convertMultiplier(equityMultiplier, pctBase)
+  const convertedMultiplier = multiplierFromBase(equityMultiplier, pctBase)
 
   return (
     <div>
-      <Box
-        heading="Equity option"
-        css={`
-          height: 100%;
-        `}
-      >
+      <Box heading="Equity option" css="height: 100%;">
         <div
           css={`
             margin-bottom: ${2 * GU}px;
@@ -42,7 +37,7 @@ function EquityOption({ readOnly = true, onRequestEquityOptionPanel }) {
                 ${textStyle('title2')}
               `}
             >
-              {formattedMultiplier}
+              {convertedMultiplier}
             </span>{' '}
             X
           </div>

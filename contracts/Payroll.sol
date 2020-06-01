@@ -183,7 +183,7 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
     }
 
     /**
-     * @notice Set the equity settings to multiplier: `_equityMultiplier`, length: `@transformTime(_vestingLength)`, cliff: `@transformTime(_vestingCliff)`, revokable: `_vestingRevokable`
+     * @notice Set the equity settings to multiplier: %`@formatPct(_equityMultiplier)`, length: `@transformTime(_vestingLength)`, cliff: `@transformTime(_vestingCliffLength)`, revokable: `_vestingRevokable`
      * @param _equityMultiplier The new equity multiplier represented as a multiple of 10^18. 0.5x = 5^18; 1x = 10^18; 2x = 20^18
      * @param _vestingLength The length of vestings in seconds, the time when vestings can be completely claimed. Set to 0 to disable vestings
      * @param _vestingCliffLength The vesting cliff in seconds, the time until which vestings cannot be claimed

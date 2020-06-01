@@ -2,13 +2,13 @@ import React from 'react'
 import styled from 'styled-components'
 import { CardLayout, GU, textStyle, useTheme } from '@aragon/ui'
 import { usePayrollStats } from '../../hooks/payroll-hooks'
+import { formatTokenAmount } from '../../utils/formatting-utils'
 
 import userGroupSvg from '../../assets/user-group.svg'
 import chartSvg from '../../assets/chart.svg'
 import coinSvg from '../../assets/coin.svg'
 import coinsSvg from '../../assets/coins.svg'
 import coinClockSvg from '../../assets/coin-clock.svg'
-import { formatTokenAmount } from '../../utils/formatting'
 
 const statsMetadata = [
   { label: 'Employees', icon: userGroupSvg },

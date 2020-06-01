@@ -5,7 +5,7 @@ import {
   summation,
   MONTHS_IN_A_YEAR,
   SECONDS_IN_A_YEAR,
-} from './calculations'
+} from './calculations-utils'
 
 export function getAverageSalary(employees) {
   const field = 'salary'
