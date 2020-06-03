@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import BN from 'bn.js'
 import { useAppState, useConnectedAccount } from '@aragon/api-react'
 import { dayjs } from '../utils/date-utils'
@@ -40,11 +41,12 @@ export function useEmployeeTotalVestings(employeeAddress) {
     vestingsLengthAbi
   )
 
-  const totalVestings = usePromise(
-    tokenManagerContract.vestingsLengths(employeeAddress).toPromise(),
-    [employeeAddress],
-    0
+  const promise = useMemo(
+    () => tokenManagerContract.vestingsLengths(employeeAddress).toPromise(),
+    [employeeAddress, tokenManagerContract]
   )
+
+  const totalVestings = usePromise(promise, [employeeAddress], 0)
 
   return totalVestings
 }

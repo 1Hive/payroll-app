@@ -15,11 +15,11 @@ import BN from 'bn.js'
 import { useAppState, useConnectedAccount } from '@aragon/api-react'
 import AllocationFields from './AllocationFields'
 
+import { useEmployeeTotalVestings } from '../../hooks/employee-hooks'
 import { toDecimals } from '../../utils/math-utils'
 import { durationTime } from '../../utils/date-utils'
 import { formatTokenAmount } from '../../utils/formatting-utils'
 import { multiplierFromBase } from '../../utils/calculations-utils'
-import { useEmployeeTotalVestings } from '../../hooks/employee-hooks'
 
 const RequestSalary = React.memo(function RequestSalary({
   employeeOwedSalary,
@@ -142,10 +142,6 @@ function RequestSalaryContent({
     }))
   }, [baseAsset.decimals, totalAccruedBalance])
 
-  const handleAllocationChange = useCallback(newAllocation => {
-    setAllocation(newAllocation)
-  }, [])
-
   const handleSubmit = useCallback(() => {
     event.preventDefault()
 
@@ -224,7 +220,7 @@ function RequestSalaryContent({
           baseAssetAllocation={allocation}
           equityAsset={equityTokenManager.token}
           equityMultiplier={equityMultiplier}
-          onAllocationChange={handleAllocationChange}
+          onAllocationChange={setAllocation}
           pctBase={pctBase}
         />
       )}
