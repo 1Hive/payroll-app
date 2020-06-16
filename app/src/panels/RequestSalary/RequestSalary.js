@@ -226,18 +226,18 @@ function RequestSalaryContent({
       )}
       {vestingLength > 0 && (
         <Info
+          title="Equity Payments Limit"
+          mode="warning"
           css={`
             margin-top: ${6 * GU}px;
           `}
-          mode="warning"
         >
           {totalVestings === maxEmployeeVestings
             ? `You don’t have available vestings to do with this
           address, if you want to get paid with Equity again, you need to change
           your adress.`
-            : `You have ${maxEmployeeVestings -
-                totalVestings} remaining vestings available to do with
-          this address.`}
+            : `This address can request equity up to ${maxEmployeeVestings -
+                totalVestings} more times while vesting is enabled for equity payments`}
         </Info>
       )}
       <Button
@@ -264,38 +264,40 @@ const AllocationInfo = ({
 
   return (
     <Info
+      title="Salary allocation"
       css={`
         margin-top: ${3 * GU}px;
       `}
     >
-      <span
+      <div
         css={`
-          ${textStyle('label2')};
-          margin-bottom: ${2 * GU}px;
-          display: block;
+          margin-bottom: ${1 * GU}px;
         `}
       >
-        Sallary allocation
-      </span>
-      You have the option to receive your salary in a combination of Base Asset
-      and/or Equity asset. The Equity asset allocation is subject to a{' '}
-      <span
-        css={`
-          ${textStyle('body2')}
-        `}
-      >
-        {formattedMultiplier}
-      </span>
-      X multiplier{' '}
-      {vestingCliffLength > 0 ? (
-        <span>
-          and {durationTime(vestingLength)} vesting period with{' '}
-          {durationTime(vestingCliffLength)} cliff
+        You have the option to receive your salary in a combination of Base
+        Asset and/or Equity asset. The Equity asset allocation is subject to a{' '}
+        <span
+          css={`
+            ${textStyle('body2')}
+          `}
+        >
+          {formattedMultiplier}
         </span>
-      ) : (
-        `with no vesting`
-      )}
-      .
+        X multiplier{' '}
+        {vestingCliffLength > 0 ? (
+          <span>
+            and {durationTime(vestingLength)} vesting period with{' '}
+            {durationTime(vestingCliffLength)} cliff
+          </span>
+        ) : (
+          `with no vesting`
+        )}
+        .
+      </div>
+      <strong>
+        Requesting any salary under the total available will forfeit the
+        remainder.
+      </strong>
     </Info>
   )
 }
