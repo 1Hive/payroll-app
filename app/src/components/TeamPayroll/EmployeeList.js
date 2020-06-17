@@ -4,7 +4,7 @@ import EmployeeTable from './EmployeeTable'
 import { useParsedEmployees } from '../../hooks/payroll-hooks'
 import useFilteredEmployees from './useFilteredEmployees'
 
-function EmployeeList() {
+function EmployeeList({ onRequestTerminateEmployee }) {
   const { denominationToken } = useAppState()
   const employees = useParsedEmployees()
 
@@ -26,6 +26,7 @@ function EmployeeList() {
       filteredEmployees={filteredEmployees}
       filters={filters}
       onClearFilters={handleClearFilters}
+      onRequestTerminateEmployee={onRequestTerminateEmployee}
       onRoleChange={handleRoleChange}
       onStatusChange={handleStatusChange}
       selectedRole={selectedRole}

@@ -6,12 +6,14 @@ import EditEquity from './EditEquity'
 import RequestSalary from './RequestSalary/RequestSalary'
 import TerminateEmployee from './TerminateEmployee'
 
-const Panel = React.memo(function Panel({ actions, mode, panelState }) {
+const Panel = React.memo(function Panel({ actions, requestMode, panelState }) {
   const handleClose = useCallback(() => {
     panelState.requestClose()
   }, [panelState])
 
-  const { action, title, PanelContent } = useMemo(() => {
+  const { action, data, title, PanelContent } = useMemo(() => {
+    const { data, mode } = requestMode
+
     if (mode === MODE.ADD_EMPLOYEE) {
       return {
         action: actions.addEmployee,
@@ -40,12 +42,13 @@ const Panel = React.memo(function Panel({ actions, mode, panelState }) {
       action: actions.terminateEmployee,
       title: 'Terminate employee',
       PanelContent: TerminateEmployee,
+      data: { employeeId: data.employeeId },
     }
-  }, [actions, mode])
+  }, [actions, requestMode])
 
   return (
     <SidePanel title={title} opened={panelState?.visible} onClose={handleClose}>
-      <PanelContent onAction={action} />
+      <PanelContent onAction={action} {...data} />
     </SidePanel>
   )
 })

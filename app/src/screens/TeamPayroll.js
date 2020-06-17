@@ -14,7 +14,7 @@ function TeamPayroll({
     <div>
       <KeyStats />
       <SalaryStats onRequestEditEquityOption={onRequestEditEquityOption} />
-      <EmployeeList />
+      <EmployeeList onRequestTerminateEmployee={onRequestTerminateEmployee} />
     </div>
   )
 }

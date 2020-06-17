@@ -20,7 +20,13 @@ const SCREENS = [MY_PAYROLL, TEAM_PAYROLL]
 
 function App() {
   const [screen, setScreen] = useState(MY_PAYROLL.id)
-  const { actions, isSyncing, mode, panelState, requests } = useAppLogic()
+  const {
+    actions,
+    isSyncing,
+    requestMode,
+    panelState,
+    requests,
+  } = useAppLogic()
   const { appearance } = useGuiStyle()
   const { layoutName } = useLayout()
   const compactMode = layoutName === 'small'
@@ -72,7 +78,11 @@ function App() {
           onRequestTerminateEmployee={requests.terminateEmployee}
         />
       )}
-      <Panel mode={mode} panelState={panelState} actions={actions} />
+      <Panel
+        requestMode={requestMode}
+        panelState={panelState}
+        actions={actions}
+      />
     </Main>
   )
 }

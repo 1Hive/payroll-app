@@ -14,7 +14,12 @@ export function useEmployeeCurrentOwedSalary(employee) {
   }
   const { accruedSalary, endDate, lastPayroll, salary } = employee
 
-  const accruedTime = dayjs(endDate || now).diff(lastPayroll, 'seconds')
+  const terminated = endDate && dayjs(endDate).isBefore(now)
+
+  const accruedTime = dayjs(terminated ? endDate : now).diff(
+    lastPayroll,
+    'seconds'
+  )
 
   const currentOwedSalary = salary.mul(new BN(accruedTime))
   return accruedSalary.add(currentOwedSalary)

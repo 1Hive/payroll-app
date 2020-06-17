@@ -5,7 +5,10 @@ import { usePanelState } from './hooks/general-hooks'
 import { MODE } from './types'
 
 export function useRequestMode(requestPanelOpen) {
-  const [requestMode, setRequestMode] = useState(MODE.ADD_EMPLOYEE)
+  const [requestMode, setRequestMode] = useState({
+    mode: MODE.ADD_EMPLOYEE,
+    data: null,
+  })
 
   const updateMode = useCallback(
     newMode => {
@@ -91,20 +94,23 @@ export function useTerminateEmployeeAction(onDone) {
 // Requests to set new mode and open side panel
 export function useRequestActions(request) {
   const addEmployee = useCallback(() => {
-    request(MODE.ADD_EMPLOYEE)
+    request({ mode: MODE.ADD_EMPLOYEE })
   }, [request])
 
   const editEquityOption = useCallback(() => {
-    request(MODE.EDIT_EQUITY)
+    request({ mode: MODE.EDIT_EQUITY })
   }, [request])
 
   const payday = useCallback(() => {
-    request(MODE.PAYDAY)
+    request({ mode: MODE.PAYDAY })
   }, [request])
 
-  const terminateEmployee = useCallback(() => {
-    request(MODE.TERMINATE_EMPLOYEE)
-  }, [request])
+  const terminateEmployee = useCallback(
+    employeeId => {
+      request({ mode: MODE.TERMINATE_EMPLOYEE, data: { employeeId } })
+    },
+    [request]
+  )
 
   return { addEmployee, editEquityOption, payday, terminateEmployee }
 }
@@ -113,7 +119,7 @@ export function useAppLogic() {
   const { isSyncing } = useAppState()
   const panelState = usePanelState()
 
-  const [mode, setMode] = useRequestMode(panelState.requestOpen)
+  const [requestMode, setRequestMode] = useRequestMode(panelState.requestOpen)
 
   const actions = {
     addEmployee: useAddEmployeeAction(panelState.requestClose),
@@ -122,12 +128,12 @@ export function useAppLogic() {
     terminateEmployee: useTerminateEmployeeAction(panelState.requestClose),
   }
 
-  const requests = useRequestActions(setMode)
+  const requests = useRequestActions(setRequestMode)
 
   return {
     actions,
     isSyncing: isSyncing,
-    mode,
+    requestMode,
     panelState,
     requests,
   }

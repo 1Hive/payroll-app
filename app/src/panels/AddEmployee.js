@@ -150,8 +150,8 @@ const AddEmployee = React.memo(function AddEmployee({
         </Field>
         <Field label="Start Date">
           <SingleDatePicker
-            startDate={startDate}
             format="iso"
+            initialDate={startDate}
             onChange={handleStartDateChange}
           />
         </Field>
