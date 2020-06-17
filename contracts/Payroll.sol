@@ -243,7 +243,7 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
     }
 
     /**
-     * @notice Terminate employee #`_employeeId` on `@formatDate(_endDate)`
+     * @notice Terminate employee #`_employeeId` with address `self.getEmployee(_employeeId): (<address>)` on `@formatDate(_endDate)`
      * @param _employeeId Employee's identifier
      * @param _endDate Termination timestamp in seconds
      */
@@ -546,7 +546,6 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
     function _isEmployeeIdActive(uint256 _employeeId) internal view returns (bool) {
         return _isEmployeeActive(employees[_employeeId]);
     }
-
 
     /**
      * @dev Get owed salary since last payroll for an employee
