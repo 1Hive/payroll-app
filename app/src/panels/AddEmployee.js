@@ -1,6 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react'
 import styled from 'styled-components'
-import PropTypes from 'prop-types'
 import BN from 'bn.js'
 import { useAppState } from '@aragon/api-react'
 import {
@@ -8,7 +7,6 @@ import {
   Field,
   GU,
   Info,
-  SidePanel,
   TextInput,
   useSidePanelFocusOnReady,
 } from '@aragon/ui'
@@ -23,15 +21,10 @@ const ADDRESS_NOT_AVAILABLE_ERROR = Symbol('ADDRESS_NOT_AVAILABLE_ERROR')
 const ADDRESS_INVALID_FORMAT = Symbol('ADDRESS_INVALID_FORMAT')
 const DATE_INVALID_FORMAT = Symbol('DATE_INVALID_FORMAT')
 
-const AddEmployeePanel = React.memo(function AddEmployeePanel({
-  addEmployeePanel,
-  onAddEmployee,
+const AddEmployee = React.memo(function AddEmployee({
+  onAction: onAddEmployee,
 }) {
   const { denominationToken, employees } = useAppState()
-
-  const handleClose = useCallback(() => {
-    addEmployeePanel.requestClose()
-  }, [addEmployeePanel])
 
   const isEmployeeAddressAvailable = useCallback(
     address =>
@@ -42,26 +35,6 @@ const AddEmployeePanel = React.memo(function AddEmployeePanel({
     [employees]
   )
 
-  return (
-    <SidePanel
-      title="Add new employee"
-      opened={addEmployeePanel && addEmployeePanel.visible}
-      onClose={handleClose}
-    >
-      <AddEmployeePanelContent
-        denominationToken={denominationToken}
-        isEmployeeAddressAvailable={isEmployeeAddressAvailable}
-        onAddEmployee={onAddEmployee}
-      />
-    </SidePanel>
-  )
-})
-
-function AddEmployeePanelContent({
-  denominationToken,
-  isEmployeeAddressAvailable,
-  onAddEmployee,
-}) {
   const [address, setAddress] = useState('')
   const [role, setRole] = useState('')
   const [salary, setSalary] = useState('')
@@ -201,7 +174,7 @@ function AddEmployeePanelContent({
       )}
     </form>
   )
-}
+})
 
 const Fields = styled.div`
   margin-top: ${3 * GU}px;
@@ -214,14 +187,4 @@ const Fields = styled.div`
   }
 `
 
-AddEmployeePanelContent.propTypes = {
-  denominationToken: PropTypes.object,
-  isEmployeeAddressAvailable: PropTypes.func,
-  onAddEmployee: PropTypes.func,
-}
-
-AddEmployeePanelContent.defaultProps = {
-  onAddEmployee: () => {},
-}
-
-export default AddEmployeePanel
+export default AddEmployee
