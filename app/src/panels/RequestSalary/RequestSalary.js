@@ -289,9 +289,9 @@ const AllocationInfo = ({
             and {durationTime(vestingLength)} vesting period with{' '}
             {durationTime(vestingCliffLength)} cliff
           </span>
-        ) : (
-          `with no vesting`
-        )}
+        ) : 
+          'with no vesting'
+        }
         .
       </div>
       <strong>
