@@ -156,6 +156,13 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
     }
 
     /**
+    * Helper function for doc strings
+    */
+    function getEquityToken() external returns (address) {
+        return equityTokenManager.token();
+    }
+
+    /**
      * @notice Set the Finance app to `_finance`
      * @param _finance The new finance app address
      */
@@ -183,7 +190,7 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
     }
 
     /**
-     * @notice Set the equity settings to multiplier: %`@formatPct(_equityMultiplier)`, length: `@transformTime(_vestingLength)`, cliff: `@transformTime(_vestingCliffLength)`, revokable: `_vestingRevokable`
+     * @notice Set the equity settings to multiplier: `@formatPct(_equityMultiplier)`%, length: `@transformTime(_vestingLength)`, cliff: `@transformTime(_vestingCliffLength)`, revokable: `_vestingRevokable`
      * @param _equityMultiplier The new equity multiplier represented as a multiple of 10^18. 0.5x = 5^18; 1x = 10^18; 2x = 20^18
      * @param _vestingLength The length of vestings in seconds, the time when vestings can be completely claimed. Set to 0 to disable vestings
      * @param _vestingCliffLength The vesting cliff in seconds, the time until which vestings cannot be claimed
@@ -204,7 +211,7 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
     }
 
     /**
-     * @notice Add employee with address `_accountAddress` to payroll with a salary of `@tokenAmount(self.denominationToken(): address, _initialDenominationSalary)` per second, starting on `@formatDate(_startDate)`
+     * @notice Add employee with address `_accountAddress` to payroll with a yearly salary of `@tokenAmount(self.denominationToken(): address, _initialDenominationSalary * 31557601, true, 2)`, starting on `@formatDate(_startDate)`
      * @param _accountAddress Employee's address to receive payroll
      * @param _initialDenominationSalary Employee's salary, per second in denomination token
      * @param _startDate Employee's starting timestamp in seconds (it actually sets their initial lastPayroll value)
@@ -274,8 +281,9 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
         emit ChangeAddressByEmployee(employeeId, _newAccountAddress, oldAddress);
     }
 
+
     /**
-     * @notice Request `@formatPct(_denominationTokenAllocation)`% of `@tokenAmount(self.denominationToken(): address, _requestedAmount)` of your salary and the rest as equity
+     * @notice Request `@tokenAmount(self.denominationToken(): address, _requestedAmount * _denominationTokenAllocation / self.PCT_BASE(): uint256)` and `@tokenAmount(self.getEquityToken(): address, (_requestedAmount - (_requestedAmount * _denominationTokenAllocation / self.PCT_BASE(): uint256)) * self.equityMultiplier(): uint256 / self.PCT_BASE(): uint256)` from your salary and forfeit `@tokenAmount(self.denominationToken(): address, self.getTotalOwedSalary(self.getEmployeeIdByAddress(msg.sender): uint256): uint256 - _requestedAmount, true, 2)` unclaimed
      * @dev Initialization check is implicitly provided by `employeeMatches` as new employees can
      *      only be added via `addEmployee(),` which requires initialization.
      *      As the employee is allowed to call this, we enforce non-reentrancy.
@@ -318,6 +326,58 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
         emit Payday(employeeId, employee.accountAddress, denominationToken, _denominationTokenAllocation, denominationTokenAmount, equityTokenAmount, _metaData);
     }
 
+    // Getter fns
+
+    /**
+     * @dev Return employee's identifier by their account address
+     * @param _accountAddress Employee's address to receive payments
+     * @return Employee's identifier
+     */
+    function getEmployeeIdByAddress(address _accountAddress) external view returns (uint256) {
+        require(employeeIds[_accountAddress] != uint256(0), ERROR_EMPLOYEE_DOESNT_EXIST);
+        return employeeIds[_accountAddress];
+    }
+
+    /**
+     * @dev Return all information for employee by their ID
+     * @param _employeeId Employee's identifier
+     * @return Employee's address to receive payments
+     * @return Employee's salary, per second in denomination token
+     * @return Employee's accrued salary
+     * @return Employee's last payment date
+     * @return Employee's termination date (max uint64 if none)
+     * @return Employee's allowed payment tokens
+     */
+    function getEmployee(uint256 _employeeId)
+        external
+        view
+        employeeIdExists(_employeeId)
+        returns (
+            address accountAddress,
+            uint256 denominationSalary,
+            uint256 accruedSalary,
+            uint64 lastPayroll,
+            uint64 endDate
+        )
+    {
+        Employee storage employee = employees[_employeeId];
+
+        accountAddress = employee.accountAddress;
+        denominationSalary = employee.denominationTokenSalary;
+        accruedSalary = employee.accruedSalary;
+        lastPayroll = employee.lastPayroll;
+        endDate = employee.endDate;
+    }
+
+    /**
+     * @dev Get owed salary since last payroll for an employee. It will take into account the accrued salary as well.
+     *      The result will be capped to max uint256 to avoid having an overflow.
+     * @return Employee's total owed salary: current owed payroll since the last payroll date, plus the accrued salary.
+     */
+    function getTotalOwedSalary(uint256 _employeeId) external view employeeIdExists(_employeeId) returns (uint256) {
+        return _getTotalOwedCappedSalary(employees[_employeeId]);
+    }
+
     // Forwarding fns
     /**
      * @dev IForwarder interface conformance. Tells whether the Payroll app is a forwarder or not.
@@ -354,60 +414,8 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
         return _isEmployeeIdActive(employeeIds[_sender]);
     }
 
-    // Getter fns
-
-    /**
-     * @dev Return employee's identifier by their account address
-     * @param _accountAddress Employee's address to receive payments
-     * @return Employee's identifier
-     */
-    function getEmployeeIdByAddress(address _accountAddress) public view returns (uint256) {
-        require(employeeIds[_accountAddress] != uint256(0), ERROR_EMPLOYEE_DOESNT_EXIST);
-        return employeeIds[_accountAddress];
-    }
-
-    /**
-     * @dev Return all information for employee by their ID
-     * @param _employeeId Employee's identifier
-     * @return Employee's address to receive payments
-     * @return Employee's salary, per second in denomination token
-     * @return Employee's accrued salary
-     * @return Employee's last payment date
-     * @return Employee's termination date (max uint64 if none)
-     * @return Employee's allowed payment tokens
-     */
-    function getEmployee(uint256 _employeeId)
-        public
-        view
-        employeeIdExists(_employeeId)
-        returns (
-            address accountAddress,
-            uint256 denominationSalary,
-            uint256 accruedSalary,
-            uint64 lastPayroll,
-            uint64 endDate
-        )
-    {
-        Employee storage employee = employees[_employeeId];
-
-        accountAddress = employee.accountAddress;
-        denominationSalary = employee.denominationTokenSalary;
-        accruedSalary = employee.accruedSalary;
-        lastPayroll = employee.lastPayroll;
-        endDate = employee.endDate;
-    }
-
-    /**
-     * @dev Get owed salary since last payroll for an employee. It will take into account the accrued salary as well.
-     *      The result will be capped to max uint256 to avoid having an overflow.
-     * @return Employee's total owed salary: current owed payroll since the last payroll date, plus the accrued salary.
-     */
-    function getTotalOwedSalary(uint256 _employeeId) public view employeeIdExists(_employeeId) returns (uint256) {
-        return _getTotalOwedCappedSalary(employees[_employeeId]);
-    }
 
     // Internal fns
-
     /**
      * @dev Add a new employee to Payroll
      * @param _accountAddress Employee's address to receive payroll

@@ -3,8 +3,9 @@ import { useAppState } from '@aragon/api-react'
 import {
   Button,
   Field,
-  TextInput,
   GU,
+  Info,
+  TextInput,
   useSidePanelFocusOnReady,
 } from '@aragon/ui'
 
@@ -72,12 +73,16 @@ const EditEquity = React.memo(function EditEquity({
 
   return (
     <form onSubmit={handleSubmit}>
-      <Field
+      <Info
+        title="Action"
         css={`
-          margin-top: ${3 * GU}px;
+          margin: ${3 * GU}px 0;
         `}
-        label="Multiplier"
       >
+        Update the equity options which are applied for each equity request.
+        Including the multiplier which is against the base asset.
+      </Info>
+      <Field label="Multiplier">
         <TextInput
           value={equityMultiplier}
           onChange={handleEquityMultiplierChange}
