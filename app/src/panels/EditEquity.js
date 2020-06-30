@@ -1,12 +1,10 @@
 import React, { useCallback, useState } from 'react'
 import { useAppState } from '@aragon/api-react'
-import PropTypes from 'prop-types'
 import {
   Button,
   Field,
   GU,
   Info,
-  SidePanel,
   TextInput,
   useSidePanelFocusOnReady,
 } from '@aragon/ui'
@@ -18,55 +16,26 @@ import {
   multiplierFromBase,
 } from '../utils/calculations-utils'
 
-const EditEquityPanel = React.memo(function EditEquity({
-  panelState,
-  onEditEquityOption,
+const EditEquity = React.memo(function EditEquity({
+  onAction: onEditEquityOption,
 }) {
   const {
-    equityMultiplier,
+    equityMultiplier: initialEquityMultiplier,
     pctBase,
-    vestingLength,
-    vestingCliffLength,
+    vestingLength: initialVestingLength,
+    vestingCliffLength: initialVestingCliffLength,
   } = useAppState()
 
-  const handleClose = useCallback(() => {
-    panelState.requestClose()
-  }, [panelState])
-
-  return (
-    <SidePanel
-      title="Edit Equity Option"
-      opened={panelState && panelState.visible}
-      onClose={handleClose}
-    >
-      <EditEquityContent
-        equityMultiplier={equityMultiplier}
-        pctBase={pctBase}
-        vestingLength={vestingLength}
-        vestingCliffLength={vestingCliffLength}
-        onEditEquityOption={onEditEquityOption}
-      />
-    </SidePanel>
-  )
-})
-
-function EditEquityContent({
-  equityMultiplier: equityMultiplierProp,
-  pctBase,
-  vestingLength: vestingLengthProp,
-  vestingCliffLength: vestingCliffLengthProp,
-  onEditEquityOption,
-}) {
   const inputRef = useSidePanelFocusOnReady()
 
   const [equityMultiplier, setEquityMultiplier] = useState(
-    multiplierFromBase(equityMultiplierProp, pctBase)
+    multiplierFromBase(initialEquityMultiplier, pctBase)
   )
   const [vestingLength, setVestingLength] = useState(
-    secondsToMonths(vestingLengthProp)
+    secondsToMonths(initialVestingLength)
   )
   const [vestingCliffLength, setVestingCliffLength] = useState(
-    secondsToMonths(vestingCliffLengthProp)
+    secondsToMonths(initialVestingCliffLength)
   )
 
   const handleEquityMultiplierChange = useCallback(event => {
@@ -166,17 +135,6 @@ function EditEquityContent({
       />
     </form>
   )
-}
+})
 
-EditEquityContent.propTypes = {
-  equityMultiplier: PropTypes.object,
-  pctBase: PropTypes.object,
-  vestingLength: PropTypes.number,
-  vestingCliffLength: PropTypes.number,
-}
-
-EditEquityContent.defaultProps = {
-  onEditEquityOption: () => {},
-}
-
-export default EditEquityPanel
+export default EditEquity

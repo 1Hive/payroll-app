@@ -143,7 +143,8 @@ async function onPayday(state, returnValues, transactionHash, blockNumber) {
   const updatedEmployees = await updateEmployeeById(state, {
     employeeId,
     accruedSalary: '0',
-    lastPayroll: employee.endDate || date(timestamp),
+    lastPayroll:
+      Date.now() < employee.endDate ? date(timestamp) : employee.endDate,
   })
 
   const newPayment = payment({

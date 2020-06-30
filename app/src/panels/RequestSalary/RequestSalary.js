@@ -5,7 +5,6 @@ import {
   Field,
   GU,
   Info,
-  SidePanel,
   TextInput,
   textStyle,
   useSidePanelFocusOnReady,
@@ -15,16 +14,18 @@ import BN from 'bn.js'
 import { useAppState, useConnectedAccount } from '@aragon/api-react'
 import AllocationFields from './AllocationFields'
 
-import { useEmployeeTotalVestings } from '../../hooks/employee-hooks'
+import {
+  useCurrentEmployee,
+  useEmployeeTotalVestings,
+  useEmployeeCurrentOwedSalary,
+} from '../../hooks/employee-hooks'
 import { toDecimals } from '../../utils/math-utils'
 import { durationTime } from '../../utils/date-utils'
 import { formatTokenAmount } from '../../utils/formatting-utils'
 import { multiplierFromBase } from '../../utils/calculations-utils'
 
 const RequestSalary = React.memo(function RequestSalary({
-  employeeOwedSalary,
-  panelState,
-  onRequestSalary,
+  onAction: onRequestSalary,
 }) {
   const {
     denominationToken,
@@ -35,27 +36,20 @@ const RequestSalary = React.memo(function RequestSalary({
     vestingCliffLength,
   } = useAppState()
 
-  const handleClose = useCallback(() => {
-    panelState.requestClose()
-  }, [panelState])
+  const employee = useCurrentEmployee()
+  const employeeOwedSalary = useEmployeeCurrentOwedSalary(employee)
 
   return (
-    <SidePanel
-      title="Request salary"
-      opened={panelState && panelState.visible}
-      onClose={handleClose}
-    >
-      <RequestSalaryContent
-        baseAsset={denominationToken}
-        equityMultiplier={equityMultiplier}
-        equityTokenManager={equityTokenManager}
-        onRequestSalary={onRequestSalary}
-        pctBase={pctBase}
-        totalAccruedBalance={employeeOwedSalary}
-        vestingLength={vestingLength}
-        vestingCliffLength={vestingCliffLength}
-      />
-    </SidePanel>
+    <RequestSalaryContent
+      baseAsset={denominationToken}
+      equityMultiplier={equityMultiplier}
+      equityTokenManager={equityTokenManager}
+      onRequestSalary={onRequestSalary}
+      pctBase={pctBase}
+      totalAccruedBalance={employeeOwedSalary}
+      vestingLength={vestingLength}
+      vestingCliffLength={vestingCliffLength}
+    />
   )
 })
 
