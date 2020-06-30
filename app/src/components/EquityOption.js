@@ -5,7 +5,7 @@ import { multiplierFromBase } from '../utils/calculations-utils'
 
 import { durationTime } from '../utils/date-utils'
 
-function EquityOption({ readOnly = true, onRequestEquityOption }) {
+function EquityOption({ readOnly = true, onRequestEditEquityOption }) {
   const theme = useTheme()
   const {
     equityMultiplier,
@@ -79,7 +79,7 @@ function EquityOption({ readOnly = true, onRequestEquityOption }) {
             `}
             icon={<IconEdit />}
             label="Edit Equity Option"
-            onClick={onRequestEquityOption}
+            onClick={onRequestEditEquityOption}
             display="all"
             wide
           />

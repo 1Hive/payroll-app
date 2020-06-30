@@ -18,7 +18,7 @@ function SalaryStats({ onRequestEditEquityOption }) {
       <PaidSalariesChart />
       <EquityOption
         readOnly={false}
-        onRequestEquityOption={onRequestEditEquityOption}
+        onRequestEditEquityOption={onRequestEditEquityOption}
       />
     </div>
   )
