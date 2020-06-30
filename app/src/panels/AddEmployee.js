@@ -11,6 +11,7 @@ import {
   SidePanel,
   TextInput,
   useSidePanelFocusOnReady,
+  useTheme,
 } from '@aragon/ui'
 import SingleDatePicker from '../components/SingleDatePicker/SingleDatePicker'
 
@@ -68,6 +69,7 @@ function AddEmployeePanelContent({
   const [startDate, setStartDate] = useState(null)
   const [error, setError] = useState(null)
 
+  const theme = useTheme()
   const inputRef = useSidePanelFocusOnReady()
 
   const validate = useCallback(() => {
@@ -166,13 +168,26 @@ function AddEmployeePanelContent({
           />
         </Field>
 
-        <Field label="Salary">
+        <Field label="Yearly Salary">
           <TextInput
             value={salary}
             onChange={handleSalaryChange}
             required
             wide
             type="number"
+            adornment={
+              <span
+                css={`
+                  background: ${theme.background};
+                  border-left: 1px solid ${theme.border};
+                  padding: 7px ${1.5 * GU}px;
+                `}
+              >
+                {denominationToken.symbol}
+              </span>
+            }
+            adornmentPosition="end"
+            adornmentSettings={{ padding: 1 }}
           />
         </Field>
         <Field label="Start Date">

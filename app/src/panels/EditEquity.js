@@ -4,9 +4,10 @@ import PropTypes from 'prop-types'
 import {
   Button,
   Field,
-  TextInput,
   GU,
+  Info,
   SidePanel,
+  TextInput,
   useSidePanelFocusOnReady,
 } from '@aragon/ui'
 
@@ -103,12 +104,16 @@ function EditEquityContent({
 
   return (
     <form onSubmit={handleSubmit}>
-      <Field
+      <Info
+        title="Action"
         css={`
-          margin-top: ${3 * GU}px;
+          margin: ${3 * GU}px 0;
         `}
-        label="Multiplier"
       >
+        Update the equity options which are applied for each equity request.
+        Including the multiplier which is against the base asset.
+      </Info>
+      <Field label="Multiplier">
         <TextInput
           value={equityMultiplier}
           onChange={handleEquityMultiplierChange}
