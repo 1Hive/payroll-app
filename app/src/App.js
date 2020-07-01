@@ -41,26 +41,28 @@ function App() {
       <Header
         primary="Payroll"
         secondary={
-          <>
-            {screen === MY_PAYROLL.id && (
-              <Button
-                mode="strong"
-                onClick={requests.payday}
-                label="Request salary"
-                icon={<IconPlus />}
-                display={compactMode ? 'icon' : 'label'}
-              />
-            )}
-            {screen === TEAM_PAYROLL.id && (
-              <Button
-                mode="strong"
-                onClick={requests.addEmployee}
-                label="New employee"
-                icon={<IconPlus />}
-                display={compactMode ? 'icon' : 'label'}
-              />
-            )}
-          </>
+          !isSyncing && (
+            <>
+              {screen === MY_PAYROLL.id && (
+                <Button
+                  mode="strong"
+                  onClick={requests.payday}
+                  label="Request salary"
+                  icon={<IconPlus />}
+                  display={compactMode ? 'icon' : 'label'}
+                />
+              )}
+              {screen === TEAM_PAYROLL.id && (
+                <Button
+                  mode="strong"
+                  onClick={requests.addEmployee}
+                  label="New employee"
+                  icon={<IconPlus />}
+                  display={compactMode ? 'icon' : 'label'}
+                />
+              )}
+            </>
+          )
         }
       />
       {
