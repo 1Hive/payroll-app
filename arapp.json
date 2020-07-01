@@ -39,7 +39,31 @@
   "environments": {
     "default": {
       "network": "rpc",
-      "appName": "payroll.aragonpm.eth"
+      "appName": "payroll.open.aragonpm.eth"
+    }, 
+    "staging": {
+      "registry": "0xfe03625ea880a8cba336f9b5ad6e15b0a3b5a939",
+      "wsRPC": "wss://rinkeby.eth.aragon.network/ws",
+      "network": "rinkeby",
+      "appName": "payroll.open.aragonpm.eth"
+    },
+    "frame": {
+      "registry": "0x98df287b6c145399aaa709692c8d308357bc085d",
+      "wsRPC": "wss://rinkeby.eth.aragon.network/ws",
+      "network": "rinkeby",
+      "appName": "better-payroll.open.aragonpm.eth"
+    },
+    "rinkeby": {
+      "registry": "0x98df287b6c145399aaa709692c8d308357bc085d",
+      "wsRPC": "wss://rinkeby.eth.aragon.network/ws",
+      "network": "rinkeby",
+      "appName": "better-payroll.open.aragonpm.eth"
+    },
+    "mainnet": {
+      "registry": "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e",
+      "wsRPC": "wss://mainnet.eth.aragon.network/ws",
+      "network": "mainnet",
+      "appName": "payroll.open.aragonpm.eth"
     }
   },
   "path": "contracts/Payroll.sol"
