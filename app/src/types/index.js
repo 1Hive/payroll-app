@@ -6,7 +6,7 @@ export const employeeType = PropTypes.shape({
   startDate: PropTypes.number,
   endDate: PropTypes.number,
   role: PropTypes.string,
-  salary: PropTypes.number,
+  salary: PropTypes.object,
   accruedValue: PropTypes.number,
 })
 
@@ -18,3 +18,10 @@ export const salaryType = PropTypes.shape({
   status: PropTypes.string,
   transactionAddress: PropTypes.string,
 })
+
+export const MODE = {
+  ADD_EMPLOYEE: Symbol('ADD_EMPLOYEE'),
+  EDIT_EQUITY: Symbol('EDIT_EQUITY'),
+  PAYDAY: Symbol('PAYDAY'),
+  TERMINATE_EMPLOYEE: Symbol('TERMINATE_EMPLOYEE'),
+}

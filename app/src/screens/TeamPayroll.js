@@ -1,24 +1,22 @@
 import React from 'react'
+import EmployeeList from '../components/TeamPayroll/EmployeeList'
+import KeyStats from '../components/TeamPayroll/KeyStats'
+import SalaryStats from '../components/TeamPayroll/SalaryStats'
 
-import { Split } from '@aragon/ui'
-import EmployeeList from './components/EmployeeList'
-import KeyStats from './components/KeyStats'
-import TotalPayroll from './components/TotalPayroll'
+function TeamPayroll({
+  isSyncing,
+  onRequestEditEquityOption,
+  onRequestTerminateEmployee,
+}) {
+  if (isSyncing) return null
 
-const TeamPayroll = () => (
-  <Split
-    primary={
-      <>
-        <TotalPayroll />
-        <EmployeeList />
-      </>
-    }
-    secondary={
-      <>
-        <KeyStats />
-      </>
-    }
-  />
-)
+  return (
+    <div>
+      <KeyStats />
+      <SalaryStats onRequestEditEquityOption={onRequestEditEquityOption} />
+      <EmployeeList onRequestTerminateEmployee={onRequestTerminateEmployee} />
+    </div>
+  )
+}
 
-export default TeamPayroll
+export default React.memo(TeamPayroll)
