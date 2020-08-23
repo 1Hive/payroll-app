@@ -7,7 +7,12 @@ import { SINGLE_DATE } from './consts'
 import { dayjs, dateFormat } from '../../utils/date-utils'
 import handleSingleDateSelect from './utils'
 
-function SingleDatePicker({ format, onChange, startDate }) {
+function SingleDatePicker({
+  format,
+  initialDate,
+  onChange,
+  validFromToday = false,
+}) {
   const theme = useTheme()
   const labelsRef = useRef()
   const [showPicker, setShowPicker] = useState(false)
@@ -24,27 +29,27 @@ function SingleDatePicker({ format, onChange, startDate }) {
       if (date) {
         const result = handleSingleDateSelect({
           date,
-          startDate,
+          initialDate,
         })
-        onChange(result.startDate)
+        onChange(result.initialDate)
       }
     },
-    [onChange, startDate]
+    [onChange, initialDate]
   )
 
   const labelProps = useMemo(() => {
-    const _startDate = startDate
+    const _initialDate = initialDate
     return {
-      startText: _startDate ? dateFormat(_startDate, format) : SINGLE_DATE,
+      startText: _initialDate ? dateFormat(_initialDate, format) : SINGLE_DATE,
     }
-  }, [format, startDate])
+  }, [format, initialDate])
 
   return (
     <div>
       <Labels
         ref={labelsRef}
         enabled={showPicker}
-        hasSetDates={Boolean(startDate)}
+        hasSetDates={Boolean(initialDate)}
         onClick={handleLabelsClick}
         {...labelProps}
       />
@@ -60,6 +65,7 @@ function SingleDatePicker({ format, onChange, startDate }) {
           filter: none;
           background: none;
           margin: 2px 0 0 0;
+          width: 100%;
         `}
       >
         <div
@@ -78,10 +84,11 @@ function SingleDatePicker({ format, onChange, startDate }) {
             `}
           >
             <DatePicker
-              initialDate={dayjs(startDate || undefined)
+              initialDate={dayjs(initialDate || undefined)
                 .subtract(0, 'month')
                 .toDate()}
               onSelect={handleDateClick}
+              validFromToday={validFromToday}
             />
           </div>
 
@@ -101,8 +108,8 @@ function SingleDatePicker({ format, onChange, startDate }) {
 
 SingleDatePicker.propTypes = {
   format: PropTypes.string,
+  initialDate: PropTypes.instanceOf(Date),
   onChange: PropTypes.func,
-  startDate: PropTypes.instanceOf(Date),
 }
 
 SingleDatePicker.defaultProps = {

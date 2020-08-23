@@ -1,7 +1,11 @@
-import React, { useMemo } from 'react'
+import React, { useCallback, useMemo } from 'react'
 import PropTypes from 'prop-types'
 import {
+  ContextMenu,
+  ContextMenuItem,
   DataView,
+  GU,
+  IconCircleMinus,
   IdentityBadge,
   textStyle,
   useLayout,
@@ -27,6 +31,7 @@ function EmployeeTable({
   filteredEmployees,
   filters,
   onClearFilters,
+  onRequestTerminateEmployee,
   onRoleChange,
   onStatusChange,
   selectedRole,
@@ -100,7 +105,42 @@ function EmployeeTable({
         ]
       }}
       onStatusEmptyClear={onClearFilters}
+      renderEntryActions={({ id, terminated }) =>
+        !terminated ? (
+          <ContextMenu zIndex={1}>
+            <ContextMenuTerminateEmployee
+              employeeId={id}
+              onTerminateEmployee={onRequestTerminateEmployee}
+            />
+          </ContextMenu>
+        ) : null
+      }
     />
+  )
+}
+
+const ContextMenuTerminateEmployee = ({ employeeId, onTerminateEmployee }) => {
+  const theme = useTheme()
+
+  const handleTerminateEmployee = useCallback(() => {
+    onTerminateEmployee(employeeId)
+  }, [employeeId, onTerminateEmployee])
+
+  return (
+    <ContextMenuItem onClick={handleTerminateEmployee}>
+      <IconCircleMinus
+        css={`
+          color: ${theme.negative};
+        `}
+      />
+      <span
+        css={`
+          margin-left: ${1 * GU}px;
+        `}
+      >
+        Terminate
+      </span>
+    </ContextMenuItem>
   )
 }
 

@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import BN from 'bn.js'
 import { useAppState, useConnectedAccount } from '@aragon/api-react'
 import { dayjs } from '../utils/date-utils'
@@ -13,7 +14,12 @@ export function useEmployeeCurrentOwedSalary(employee) {
   }
   const { accruedSalary, endDate, lastPayroll, salary } = employee
 
-  const accruedTime = dayjs(endDate || now).diff(lastPayroll, 'seconds')
+  const terminated = endDate && dayjs(endDate).isBefore(now)
+
+  const accruedTime = dayjs(terminated ? endDate : now).diff(
+    lastPayroll,
+    'seconds'
+  )
 
   const currentOwedSalary = salary.mul(new BN(accruedTime))
   return accruedSalary.add(currentOwedSalary)
@@ -40,11 +46,12 @@ export function useEmployeeTotalVestings(employeeAddress) {
     vestingsLengthAbi
   )
 
-  const totalVestings = usePromise(
-    tokenManagerContract.vestingsLengths(employeeAddress).toPromise(),
-    [employeeAddress],
-    0
+  const promise = useMemo(
+    () => tokenManagerContract.vestingsLengths(employeeAddress).toPromise(),
+    [employeeAddress, tokenManagerContract]
   )
+
+  const totalVestings = usePromise(promise, [employeeAddress], 0)
 
   return totalVestings
 }

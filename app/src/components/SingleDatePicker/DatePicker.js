@@ -15,6 +15,7 @@ function DatePicker({
   monthYearFormat,
   hideWeekDays,
   weekDayFormat,
+  validFromToday,
   ...props
 }) {
   const [selectedDate, setSelectedDate] = useState(initialDate)
@@ -97,7 +98,10 @@ function DatePicker({
           return (
             <MonthDay
               key={dayJs.valueOf()}
-              disabled={!selectedDayjs.isSame(dayJs, 'month')}
+              disabled={
+                !selectedDayjs.isSame(dayJs, 'month') ||
+                (validFromToday && dayJs.isBefore(today))
+              }
               selected={isSelected(dayJs)}
               today={dayJs.isSame(today, 'day')}
               onClick={() => onSelect(dayJs.toDate())}
@@ -131,6 +135,8 @@ DatePicker.propTypes = {
   monthYearFormat: PropTypes.string,
   weekDayFormat: PropTypes.string,
   yearFormat: PropTypes.string,
+
+  validFromToday: PropTypes.bool,
 }
 
 DatePicker.defaultProps = {

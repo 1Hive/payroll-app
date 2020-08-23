@@ -19,7 +19,12 @@ import {
   formatAllocationSplit,
 } from '../../utils/formatting-utils'
 
-const columns = ['Date', 'Base asset', 'Split percentage (Base/Equity)']
+const columns = [
+  'Date',
+  'Base asset',
+  'Equity asset',
+  'Split percentage (Base/Equity)',
+]
 
 function PaymentsTable({
   emptyResultsViaFilters,
@@ -34,7 +39,10 @@ function PaymentsTable({
 }) {
   const theme = useTheme()
   const { layoutName } = useLayout()
-  const { pctBase } = useAppState()
+  const {
+    pctBase,
+    equityTokenManager: { token: equityToken },
+  } = useAppState()
   const compactMode = layoutName === 'small'
 
   const dataViewStatus = useMemo(() => {
@@ -85,12 +93,20 @@ function PaymentsTable({
         date,
         token,
         denominationAmount,
+        equityAmount,
         denominationAllocation,
       }) => {
-        const formattedAmount = formatTokenAmount(
+        const formattedDenominationAmount = formatTokenAmount(
           denominationAmount,
           true,
           token.decimals,
+          true
+        )
+
+        const formattedEquityAmount = formatTokenAmount(
+          equityAmount,
+          true,
+          equityToken.decimals,
           true
         )
         return [
@@ -100,7 +116,14 @@ function PaymentsTable({
               color: ${theme.positive};
             `}
           >
-            {formattedAmount} {token.symbol}
+            {formattedDenominationAmount} {token.symbol}
+          </Amount>,
+          <Amount
+            css={`
+              color: ${theme.positive};
+            `}
+          >
+            {formattedEquityAmount} {equityToken.symbol}
           </Amount>,
           <span>{formatAllocationSplit(denominationAllocation, pctBase)}</span>,
         ]

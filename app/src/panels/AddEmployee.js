@@ -1,6 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react'
 import styled from 'styled-components'
-import PropTypes from 'prop-types'
 import BN from 'bn.js'
 import { useAppState } from '@aragon/api-react'
 import {
@@ -8,9 +7,9 @@ import {
   Field,
   GU,
   Info,
-  SidePanel,
   TextInput,
   useSidePanelFocusOnReady,
+  useTheme,
 } from '@aragon/ui'
 import SingleDatePicker from '../components/SingleDatePicker/SingleDatePicker'
 
@@ -23,15 +22,10 @@ const ADDRESS_NOT_AVAILABLE_ERROR = Symbol('ADDRESS_NOT_AVAILABLE_ERROR')
 const ADDRESS_INVALID_FORMAT = Symbol('ADDRESS_INVALID_FORMAT')
 const DATE_INVALID_FORMAT = Symbol('DATE_INVALID_FORMAT')
 
-const AddEmployeePanel = React.memo(function AddEmployeePanel({
-  addEmployeePanel,
-  onAddEmployee,
+const AddEmployee = React.memo(function AddEmployee({
+  onAction: onAddEmployee,
 }) {
   const { denominationToken, employees } = useAppState()
-
-  const handleClose = useCallback(() => {
-    addEmployeePanel.requestClose()
-  }, [addEmployeePanel])
 
   const isEmployeeAddressAvailable = useCallback(
     address =>
@@ -42,32 +36,13 @@ const AddEmployeePanel = React.memo(function AddEmployeePanel({
     [employees]
   )
 
-  return (
-    <SidePanel
-      title="Add new employee"
-      opened={addEmployeePanel && addEmployeePanel.visible}
-      onClose={handleClose}
-    >
-      <AddEmployeePanelContent
-        denominationToken={denominationToken}
-        isEmployeeAddressAvailable={isEmployeeAddressAvailable}
-        onAddEmployee={onAddEmployee}
-      />
-    </SidePanel>
-  )
-})
-
-function AddEmployeePanelContent({
-  denominationToken,
-  isEmployeeAddressAvailable,
-  onAddEmployee,
-}) {
   const [address, setAddress] = useState('')
   const [role, setRole] = useState('')
   const [salary, setSalary] = useState('')
   const [startDate, setStartDate] = useState(null)
   const [error, setError] = useState(null)
 
+  const theme = useTheme()
   const inputRef = useSidePanelFocusOnReady()
 
   const validate = useCallback(() => {
@@ -166,19 +141,32 @@ function AddEmployeePanelContent({
           />
         </Field>
 
-        <Field label="Salary">
+        <Field label="Yearly Salary">
           <TextInput
             value={salary}
             onChange={handleSalaryChange}
             required
             wide
             type="number"
+            adornment={
+              <span
+                css={`
+                  background: ${theme.background};
+                  border-left: 1px solid ${theme.border};
+                  padding: 7px ${1.5 * GU}px;
+                `}
+              >
+                {denominationToken.symbol}
+              </span>
+            }
+            adornmentPosition="end"
+            adornmentSettings={{ padding: 1 }}
           />
         </Field>
         <Field label="Start Date">
           <SingleDatePicker
-            startDate={startDate}
             format="iso"
+            initialDate={startDate}
             onChange={handleStartDateChange}
           />
         </Field>
@@ -201,7 +189,7 @@ function AddEmployeePanelContent({
       )}
     </form>
   )
-}
+})
 
 const Fields = styled.div`
   margin-top: ${3 * GU}px;
@@ -214,14 +202,4 @@ const Fields = styled.div`
   }
 `
 
-AddEmployeePanelContent.propTypes = {
-  denominationToken: PropTypes.object,
-  isEmployeeAddressAvailable: PropTypes.func,
-  onAddEmployee: PropTypes.func,
-}
-
-AddEmployeePanelContent.defaultProps = {
-  onAddEmployee: () => {},
-}
-
-export default AddEmployeePanel
+export default AddEmployee
