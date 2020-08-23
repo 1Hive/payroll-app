@@ -25,7 +25,6 @@ function PaymentFilters({
         onChange={onTokenChange}
         width="140px"
       />
-
       <DateRangePicker
         startDate={dateRangeFilter.start}
         endDate={dateRangeFilter.end}

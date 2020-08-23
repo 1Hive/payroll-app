@@ -1,14 +1,24 @@
 import React from 'react'
 import { Box, Button, GU, IconEdit, textStyle, useTheme } from '@aragon/ui'
 import { useAppState } from '@aragon/api-react'
+import { multiplierFromBase } from '../utils/calculations-utils'
 
-function EquityOption({ readOnly = true }) {
+import { durationTime } from '../utils/date-utils'
+
+function EquityOption({ readOnly = true, onRequestEditEquityOption }) {
   const theme = useTheme()
-  const { equityMultiplier, vestingLength, vestingCliffLength } = useAppState()
+  const {
+    equityMultiplier,
+    pctBase,
+    vestingLength,
+    vestingCliffLength,
+  } = useAppState()
+
+  const convertedMultiplier = multiplierFromBase(equityMultiplier, pctBase)
 
   return (
     <div>
-      <Box heading="Equity option">
+      <Box heading="Equity option" css="height: 100%;">
         <div
           css={`
             margin-bottom: ${2 * GU}px;
@@ -27,7 +37,7 @@ function EquityOption({ readOnly = true }) {
                 ${textStyle('title2')}
               `}
             >
-              {equityMultiplier}
+              {convertedMultiplier}
             </span>{' '}
             X
           </div>
@@ -44,8 +54,9 @@ function EquityOption({ readOnly = true }) {
           >
             Vesting period
           </h3>
-          {/* TODO: Formatt field */}
-          <div>{vestingLength}</div>
+          <div>
+            {vestingLength > 0 ? durationTime(vestingLength) : `No vesting`}
+          </div>
         </div>
         <div>
           <h3
@@ -55,8 +66,11 @@ function EquityOption({ readOnly = true }) {
           >
             Vesting cliff
           </h3>
-          {/* TODO: Formatt field */}
-          <div>{vestingCliffLength}</div>
+          <div>
+            {vestingCliffLength > 0
+              ? durationTime(vestingCliffLength)
+              : `No vesting`}
+          </div>
         </div>
         {!readOnly && (
           <Button
@@ -65,6 +79,7 @@ function EquityOption({ readOnly = true }) {
             `}
             icon={<IconEdit />}
             label="Edit Equity Option"
+            onClick={onRequestEditEquityOption}
             display="all"
             wide
           />

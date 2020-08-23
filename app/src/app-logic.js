@@ -1,9 +1,47 @@
-import React, { useCallback, useMemo } from 'react'
+import React, { useCallback, useState } from 'react'
 import { AragonApi, useApi, useAppState } from '@aragon/api-react'
-import { usePanelState } from './utils/hooks'
 import appStateReducer from './app-state-reducer'
+import { usePanelState } from './hooks/general-hooks'
+import { MODE } from './types'
+
+export function useRequestMode(requestPanelOpen) {
+  const [requestMode, setRequestMode] = useState({
+    mode: MODE.ADD_EMPLOYEE,
+    data: null,
+  })
+
+  const updateMode = useCallback(
+    newMode => {
+      setRequestMode(newMode)
+      requestPanelOpen()
+    },
+    [requestPanelOpen]
+  )
+
+  return [requestMode, updateMode]
+}
 
 // App actions
+export function useEditEquityOptionAction(onDone) {
+  const api = useApi()
+  return useCallback(
+    (equityMultiplier, vestingLength, vestingCliffLength) => {
+      if (api) {
+        api
+          .setEquitySettings(
+            equityMultiplier,
+            vestingLength,
+            vestingCliffLength,
+            true
+          )
+          .toPromise()
+        onDone()
+      }
+    },
+    [api, onDone]
+  )
+}
+
 export function useAddEmployeeAction(onDone) {
   const api = useApi()
   return useCallback(
@@ -39,64 +77,65 @@ export function usePaydayAction(onDone) {
   )
 }
 
-// App panels
-export function useAppPanels() {
-  const addEmployeePanel = usePanelState()
-  const editEquityOptionPanel = usePanelState()
-  const requestSalaryPanel = usePanelState()
+export function useTerminateEmployeeAction(onDone) {
+  const api = useApi()
 
-  return {
-    editEquityOptionPanel,
-    addEmployeePanel: useMemo(
-      () => ({
-        ...addEmployeePanel,
-        // ensure there is only one panel opened at a time
-        visible:
-          addEmployeePanel.visible &&
-          !editEquityOptionPanel.visible &&
-          !requestSalaryPanel.visible,
-      }),
-      [
-        addEmployeePanel,
-        editEquityOptionPanel.visible,
-        requestSalaryPanel.visible,
-      ]
-    ),
-    requestSalaryPanel: useMemo(
-      () => ({
-        ...requestSalaryPanel,
-        // ensure there is only one panel opened at a time
-        visible:
-          requestSalaryPanel.visible &&
-          !editEquityOptionPanel.visible &&
-          !addEmployeePanel.visible,
-      }),
-      [
-        requestSalaryPanel,
-        editEquityOptionPanel.visible,
-        addEmployeePanel.visible,
-      ]
-    ),
-  }
+  return useCallback(
+    (employeeId, endDate) => {
+      if (api) {
+        api.terminateEmployee(employeeId, endDate).toPromise()
+        onDone()
+      }
+    },
+    [api, onDone]
+  )
+}
+
+// Requests to set new mode and open side panel
+export function useRequestActions(request) {
+  const addEmployee = useCallback(() => {
+    request({ mode: MODE.ADD_EMPLOYEE })
+  }, [request])
+
+  const editEquityOption = useCallback(() => {
+    request({ mode: MODE.EDIT_EQUITY })
+  }, [request])
+
+  const payday = useCallback(() => {
+    request({ mode: MODE.PAYDAY })
+  }, [request])
+
+  const terminateEmployee = useCallback(
+    employeeId => {
+      request({ mode: MODE.TERMINATE_EMPLOYEE, data: { employeeId } })
+    },
+    [request]
+  )
+
+  return { addEmployee, editEquityOption, payday, terminateEmployee }
 }
 
 export function useAppLogic() {
   const { isSyncing } = useAppState()
-  const {
-    addEmployeePanel,
-    editEquityOptionPanel,
-    requestSalaryPanel,
-  } = useAppPanels()
+  const panelState = usePanelState()
+
+  const [requestMode, setRequestMode] = useRequestMode(panelState.requestOpen)
 
   const actions = {
-    addEmployee: useAddEmployeeAction(addEmployeePanel.requestClose),
-    payday: usePaydayAction(requestSalaryPanel.requestClose),
+    addEmployee: useAddEmployeeAction(panelState.requestClose),
+    editEquityOption: useEditEquityOptionAction(panelState.requestClose),
+    payday: usePaydayAction(panelState.requestClose),
+    terminateEmployee: useTerminateEmployeeAction(panelState.requestClose),
   }
+
+  const requests = useRequestActions(setRequestMode)
 
   return {
     actions,
-    panels: { addEmployeePanel, editEquityOptionPanel, requestSalaryPanel },
     isSyncing: isSyncing,
+    requestMode,
+    panelState,
+    requests,
   }
 }
 

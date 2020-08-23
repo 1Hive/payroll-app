@@ -1,14 +1,12 @@
 import React from 'react'
-
+import { useAppState } from '@aragon/api-react'
 import EmployeeTable from './EmployeeTable'
-import { useTotalPayrollData } from '../../hooks/payroll-hooks'
+import { useParsedEmployees } from '../../hooks/payroll-hooks'
 import useFilteredEmployees from './useFilteredEmployees'
 
-function EmployeeList() {
-  const {
-    parsedEmployees: employees,
-    denominationToken,
-  } = useTotalPayrollData()
+function EmployeeList({ onRequestTerminateEmployee }) {
+  const { denominationToken } = useAppState()
+  const employees = useParsedEmployees()
 
   const {
     emptyResultsViaFilters,
@@ -28,6 +26,7 @@ function EmployeeList() {
       filteredEmployees={filteredEmployees}
       filters={filters}
       onClearFilters={handleClearFilters}
+      onRequestTerminateEmployee={onRequestTerminateEmployee}
       onRoleChange={handleRoleChange}
       onStatusChange={handleStatusChange}
       selectedRole={selectedRole}
