@@ -93,6 +93,7 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
         uint256 equityAmount,
         string metaData
     );
+    event EditEquitySettings(uint64 equityMultiplier, uint64 vestingLength, uint64 vestingCliffLength, bool vestingRevokable);
 
     // Check employee exists by ID
     modifier employeeIdExists(uint256 _employeeId) {
@@ -155,6 +156,13 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
     }
 
     /**
+    * Helper function for doc strings
+    */
+    function getEquityToken() external returns (address) {
+        return equityTokenManager.token();
+    }
+
+    /**
      * @notice Set the Finance app to `_finance`
      * @param _finance The new finance app address
      */
@@ -182,7 +190,7 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
     }
 
     /**
-     * @notice Set the equity settings to multiplier: `_equityMultiplier`, length: `@transformTime(_vestingLength)`, cliff: `@transformTime(_vestingCliff)`, revokable: `_vestingRevokable`
+     * @notice Set the equity settings to multiplier: `@formatPct(_equityMultiplier)`%, length: `@transformTime(_vestingLength)`, cliff: `@transformTime(_vestingCliffLength)`, revokable: `_vestingRevokable`
      * @param _equityMultiplier The new equity multiplier represented as a multiple of 10^18. 0.5x = 5^18; 1x = 10^18; 2x = 20^18
      * @param _vestingLength The length of vestings in seconds, the time when vestings can be completely claimed. Set to 0 to disable vestings
      * @param _vestingCliffLength The vesting cliff in seconds, the time until which vestings cannot be claimed
@@ -198,10 +206,12 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
         vestingLength = _vestingLength;
         vestingCliffLength = _vestingCliffLength;
         vestingRevokable = _vestingRevokable;
+
+        emit EditEquitySettings(_equityMultiplier, _vestingLength, _vestingCliffLength, _vestingRevokable);
     }
 
     /**
-     * @notice Add employee with address `_accountAddress` to payroll with a salary of `@tokenAmount(self.denominationToken(): address, _initialDenominationSalary)` per second, starting on `@formatDate(_startDate)`
+     * @notice Add employee with address `_accountAddress` to payroll with a yearly salary of `@tokenAmount(self.denominationToken(): address, _initialDenominationSalary * 31557601, true, 2)`, starting on `@formatDate(_startDate)`
      * @param _accountAddress Employee's address to receive payroll
      * @param _initialDenominationSalary Employee's salary, per second in denomination token
      * @param _startDate Employee's starting timestamp in seconds (it actually sets their initial lastPayroll value)
@@ -240,7 +250,7 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
     }
 
     /**
-     * @notice Terminate employee #`_employeeId` on `@formatDate(_endDate)`
+     * @notice Terminate employee #`_employeeId` with address `self.getEmployee(_employeeId): (<address>)` on `@formatDate(_endDate)`
      * @param _employeeId Employee's identifier
      * @param _endDate Termination timestamp in seconds
      */
@@ -271,8 +281,9 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
         emit ChangeAddressByEmployee(employeeId, _newAccountAddress, oldAddress);
     }
 
+
     /**
-     * @notice Request `@formatPct(_denominationTokenAllocation)`% of `@tokenAmount(self.denominationToken(): address, _requestedAmount)` of your salary and the rest as equity
+     * @notice Request `@tokenAmount(self.denominationToken(): address, _requestedAmount * _denominationTokenAllocation / self.PCT_BASE(): uint256)` and `@tokenAmount(self.getEquityToken(): address, (_requestedAmount - (_requestedAmount * _denominationTokenAllocation / self.PCT_BASE(): uint256)) * self.equityMultiplier(): uint256 / self.PCT_BASE(): uint256)` from your salary and forfeit `@tokenAmount(self.denominationToken(): address, self.getTotalOwedSalary(self.getEmployeeIdByAddress(msg.sender): uint256): uint256 - _requestedAmount, true, 2)` unclaimed
      * @dev Initialization check is implicitly provided by `employeeMatches` as new employees can
      *      only be added via `addEmployee(),` which requires initialization.
      *      As the employee is allowed to call this, we enforce non-reentrancy.
@@ -315,41 +326,6 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
         emit Payday(employeeId, employee.accountAddress, denominationToken, _denominationTokenAllocation, denominationTokenAmount, equityTokenAmount, _metaData);
     }
 
-    // Forwarding fns
-    /**
-     * @dev IForwarder interface conformance. Tells whether the Payroll app is a forwarder or not.
-     * @return Always true
-     */
-    function isForwarder() external pure returns (bool) {
-        return true;
-    }
-
-    /**
-     * @notice Execute desired action as an active employee
-     * @dev IForwarder interface conformance. Allows active employees to run EVMScripts in the context of the Payroll app.
-     * @param _evmScript Script being executed
-     */
-    function forward(bytes _evmScript) public {
-        require(canForward(msg.sender, _evmScript), ERROR_CAN_NOT_FORWARD);
-        bytes memory input = new bytes(0);
-
-        // Add the Finance app to the blacklist to disallow employees from executing actions on the
-        // Finance app from Payroll's context (since Payroll requires permissions on Finance)
-        address[] memory blacklist = new address[](1);
-        blacklist[0] = address(finance);
-
-        runScript(_evmScript, input, blacklist);
-    }
-
-    /**
-     * @dev IForwarder interface conformance. Tells whether a given address can forward actions or not.
-     * @param _sender Address of the account intending to forward an action
-     * @return True if the given address is an active employee, false otherwise
-     */
-    function canForward(address _sender, bytes) public view returns (bool) {
-        return _isEmployeeIdActive(employeeIds[_sender]);
-    }
-
     // Getter fns
 
     /**
@@ -357,7 +333,7 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
      * @param _accountAddress Employee's address to receive payments
      * @return Employee's identifier
      */
-    function getEmployeeIdByAddress(address _accountAddress) public view returns (uint256) {
+    function getEmployeeIdByAddress(address _accountAddress) external view returns (uint256) {
         require(employeeIds[_accountAddress] != uint256(0), ERROR_EMPLOYEE_DOESNT_EXIST);
         return employeeIds[_accountAddress];
     }
@@ -373,7 +349,7 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
      * @return Employee's allowed payment tokens
      */
     function getEmployee(uint256 _employeeId)
-        public
+        external
         view
         employeeIdExists(_employeeId)
         returns (
@@ -398,12 +374,48 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
      *      The result will be capped to max uint256 to avoid having an overflow.
      * @return Employee's total owed salary: current owed payroll since the last payroll date, plus the accrued salary.
      */
-    function getTotalOwedSalary(uint256 _employeeId) public view employeeIdExists(_employeeId) returns (uint256) {
+    function getTotalOwedSalary(uint256 _employeeId) external view employeeIdExists(_employeeId) returns (uint256) {
         return _getTotalOwedCappedSalary(employees[_employeeId]);
     }
 
-    // Internal fns
+    // Forwarding fns
+    /**
+     * @dev IForwarder interface conformance. Tells whether the Payroll app is a forwarder or not.
+     * @return Always true
+     */
+    function isForwarder() external pure returns (bool) {
+        return true;
+    }
 
+    /**
+     * @notice Execute desired action as an active employee
+     * @dev IForwarder interface conformance. Allows active employees to run EVMScripts in the context of the Payroll app.
+     * @param _evmScript Script being executed
+     */
+    function forward(bytes _evmScript) public {
+        require(canForward(msg.sender, _evmScript), ERROR_CAN_NOT_FORWARD);
+        bytes memory input = new bytes(0);
+
+        // Add the Finance and Token Manager apps to the blacklist to disallow employees from executing actions on
+        // the apps from Payroll's context (since Payroll requires permissions on both apps)
+        address[] memory blacklist = new address[](2);
+        blacklist[0] = address(finance);
+        blacklist[1] = address(equityTokenManager);
+
+        runScript(_evmScript, input, blacklist);
+    }
+
+    /**
+     * @dev IForwarder interface conformance. Tells whether a given address can forward actions or not.
+     * @param _sender Address of the account intending to forward an action
+     * @return True if the given address is an active employee, false otherwise
+     */
+    function canForward(address _sender, bytes) public view returns (bool) {
+        return _isEmployeeIdActive(employeeIds[_sender]);
+    }
+
+
+    // Internal fns
     /**
      * @dev Add a new employee to Payroll
      * @param _accountAddress Employee's address to receive payroll
@@ -542,7 +554,6 @@ contract Payroll is EtherTokenConstant, IForwarder, IsContract, AragonApp {
     function _isEmployeeIdActive(uint256 _employeeId) internal view returns (bool) {
         return _isEmployeeActive(employees[_employeeId]);
     }
-
 
     /**
      * @dev Get owed salary since last payroll for an employee

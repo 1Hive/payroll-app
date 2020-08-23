@@ -1,0 +1,16 @@
+[
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "MAX_VESTINGS_PER_ADDRESS",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  }
+]
