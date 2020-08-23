@@ -1,7 +1,9 @@
 import app from './app'
-import tokenDecimalsAbi from '../abi/token-decimals'
-import tokenSymbolAbi from '../abi/token-symbol'
 import { first, map } from 'rxjs/operators'
+import tokenSymbolAbi from '../abi/token-symbol'
+import tokenDecimalsAbi from '../abi/token-decimals'
+import tokenManagerTokenAbi from '../abi/token_manager_token.json'
+import tokenManagerMaxVestingsAbi from '../abi/token_manager_max_vestings.json'
 
 const tokenCache = new Map()
 
@@ -11,6 +13,29 @@ export function getDenominationToken() {
     .pipe(first())
     .pipe(map(getToken))
     .toPromise()
+}
+
+export async function getEquityTokenManager() {
+  const tokenManagerAddress = await app
+    .call('equityTokenManager')
+    .pipe(first())
+    .toPromise()
+
+  const tokenManagerContract = await app.external(tokenManagerAddress, [
+    ...tokenManagerTokenAbi,
+    ...tokenManagerMaxVestingsAbi,
+  ])
+
+  const tokenAddress = await tokenManagerContract.token().toPromise()
+  const maxVestings = await tokenManagerContract
+    .MAX_VESTINGS_PER_ADDRESS()
+    .toPromise()
+
+  return {
+    address: tokenManagerAddress,
+    token: await getToken(tokenAddress),
+    maxVestings,
+  }
 }
 
 export async function getToken(address) {

@@ -1,4 +1,5 @@
-import React, { useState } from 'react'
+import React, { useCallback, useState } from 'react'
+import { useGuiStyle } from '@aragon/api-react'
 import {
   Button,
   Header,
@@ -8,24 +9,24 @@ import {
   SyncIndicator,
   useLayout,
 } from '@aragon/ui'
-import { useGuiStyle } from '@aragon/api-react'
+import { MyPayroll, TeamPayroll } from './screens'
 import { AppLogicProvider, useAppLogic } from './app-logic'
 import { IdentityProvider } from './identity-manager'
 
-import { MyPayroll, TeamPayroll } from './screens'
-import { AddEmployee } from './panels'
+const MY_PAYROLL = { id: 'my-payroll', label: 'My payroll' }
+const TEAM_PAYROLL = { id: 'team-payroll', label: 'Team payroll' }
+const SCREENS = [MY_PAYROLL, TEAM_PAYROLL]
 
-const SCREENS = [
-  { id: 'my-payroll', label: 'My payroll' },
-  { id: 'team-payroll', label: 'Team payroll' },
-]
-
-const App = React.memo(function App() {
-  const { actions, isSyncing, addEmployeePanel } = useAppLogic()
+function App() {
+  const [screen, setScreen] = useState(MY_PAYROLL.id)
+  const { actions, isSyncing, panels } = useAppLogic()
   const { appearance } = useGuiStyle()
   const { layoutName } = useLayout()
   const compactMode = layoutName === 'small'
-  const [screen, changeScreen] = useState('my-payroll')
+
+  const handleScreenChange = useCallback(screenId => {
+    setScreen(SCREENS[screenId].id)
+  }, [])
 
   return (
     <Main theme={appearance} assetsUrl="./aragon-ui">
@@ -34,43 +35,53 @@ const App = React.memo(function App() {
         <Header
           primary="Payroll"
           secondary={
-            (screen === 'my-payroll' && (
-              <Button
-                mode="strong"
-                onClick={actions.requestSalary}
-                label="Request salary"
-                icon={<IconPlus />}
-                display={compactMode ? 'icon' : 'label'}
-              />
-            )) ||
-            (screen === 'team-payroll' && (
-              <Button
-                mode="strong"
-                onClick={addEmployeePanel.requestOpen}
-                label="Add new employee"
-                icon={<IconPlus />}
-                display={compactMode ? 'icon' : 'label'}
-              />
-            ))
+            <>
+              {screen === MY_PAYROLL.id && (
+                <Button
+                  mode="strong"
+                  onClick={panels.requestSalaryPanel.requestOpen}
+                  label="Request salary"
+                  icon={<IconPlus />}
+                  display={compactMode ? 'icon' : 'label'}
+                />
+              )}
+              {screen === TEAM_PAYROLL.id && (
+                <Button
+                  mode="strong"
+                  onClick={panels.addEmployeePanel.requestOpen}
+                  label="New employee"
+                  icon={<IconPlus />}
+                  display={compactMode ? 'icon' : 'label'}
+                />
+              )}
+            </>
           }
         />
         {
           <Tabs
             items={SCREENS.map(screen => screen.label)}
             selected={SCREENS.findIndex(s => s.id === screen)}
-            onChange={i => changeScreen(SCREENS[i].id)}
+            onChange={handleScreenChange}
           />
         }
-        {screen === 'my-payroll' && <MyPayroll />}
-        {screen === 'team-payroll' && <TeamPayroll />}
+        {screen === MY_PAYROLL.id && (
+          <MyPayroll
+            isSyncing={isSyncing}
+            panelState={panels.requestSalaryPanel}
+            onRequestSalary={actions.payday}
+          />
+        )}
+        {screen === TEAM_PAYROLL.id && (
+          <TeamPayroll
+            isSyncing={isSyncing}
+            panelState={panels.addEmployeePanel}
+            onAddEmployee={actions.addEmployee}
+          />
+        )}
       </>
-      <AddEmployee
-        onAddEmployee={actions.addEmployee}
-        panelState={addEmployeePanel}
-      />
     </Main>
   )
-})
+}
 
 export default function Payroll() {
   return (

@@ -3,6 +3,7 @@ module.exports = (artifacts, web3) => {
   const { SECONDS_IN_A_YEAR } = require('./time')
   const { getEventArgument, getNewProxyAddress } = require('@aragon/test-helpers/events')
 
+  const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
   const getContract = name => artifacts.require(name)
 
   const ACL = getContract('ACL')
@@ -15,7 +16,7 @@ module.exports = (artifacts, web3) => {
   const EVMScriptRegistryFactory = getContract('EVMScriptRegistryFactory')
 
   async function deployErc20TokenAndDeposit(sender, finance, name = 'ERC20Token', decimals = 18) {
-    const token = await getContract('MiniMeToken').new('0x0', '0x0', 0, name, decimals, 'E20', true) // dummy parameters for minime
+    const token = await getContract('MiniMeToken').new(ZERO_ADDRESS, ZERO_ADDRESS, 0, name, decimals, 'E20', true) // dummy parameters for minime
     const amount = bigExp(1e18, decimals)
     await token.generateTokens(sender, amount)
     await token.approve(finance.address, amount, { from: sender })
@@ -44,18 +45,18 @@ module.exports = (artifacts, web3) => {
     const ASSIGN_ROLE = await tokenManagerBase.ASSIGN_ROLE()
 
     const kernelReceipt = await daoFact.newDAO(owner)
-    const dao = Kernel.at(getEventArgument(kernelReceipt, 'DeployDAO', 'dao'))
-    const acl = ACL.at(await dao.acl())
+    const dao = await Kernel.at(getEventArgument(kernelReceipt, 'DeployDAO', 'dao'))
+    const acl = await ACL.at(await dao.acl())
 
     await acl.createPermission(owner, dao.address, APP_MANAGER_ROLE, owner, { from: owner })
 
     // finance
     const financeReceipt = await dao.newAppInstance('0x5678', financeBase.address, '0x', false, { from: owner })
-    const finance = Finance.at(getNewProxyAddress(financeReceipt))
+    const finance = await Finance.at(getNewProxyAddress(financeReceipt))
 
     // tokenManager
     const tokenManagerReceipt = await dao.newAppInstance('0x9101', tokenManagerBase.address, '0x', false, { from: owner })
-    const equityTokenManager = TokenManager.at(getNewProxyAddress(tokenManagerReceipt))
+    const equityTokenManager = await TokenManager.at(getNewProxyAddress(tokenManagerReceipt))
 
     await acl.createPermission(ANY_ENTITY, finance.address, CREATE_PAYMENTS_ROLE, owner, { from: owner })
     await acl.createPermission(ANY_ENTITY, finance.address, CHANGE_PERIOD_ROLE, owner, { from: owner })
@@ -66,7 +67,7 @@ module.exports = (artifacts, web3) => {
     await acl.createPermission(ANY_ENTITY, equityTokenManager.address, ASSIGN_ROLE, owner, { from: owner })
 
     const vaultReceipt = await dao.newAppInstance('0x1234', vaultBase.address, '0x', false, { from: owner })
-    const vault = Vault.at(getNewProxyAddress(vaultReceipt))
+    const vault = await Vault.at(getNewProxyAddress(vaultReceipt))
     await acl.createPermission(finance.address, vault.address, TRANSFER_ROLE, owner, { from: owner })
     await vault.initialize()
 
@@ -87,9 +88,9 @@ module.exports = (artifacts, web3) => {
 
   async function createPayroll(dao, payrollBase, owner, currentTimestamp) {
     const receipt = await dao.newAppInstance('0x4321', payrollBase.address, '0x', false, { from: owner })
-    const payroll = Payroll.at(getNewProxyAddress(receipt))
+    const payroll = await Payroll.at(getNewProxyAddress(receipt))
 
-    const acl = ACL.at(await dao.acl())
+    const acl = await ACL.at(await dao.acl())
 
     const ADD_EMPLOYEE_ROLE = await payroll.ADD_EMPLOYEE_ROLE()
     const TERMINATE_EMPLOYEE_ROLE = await payroll.TERMINATE_EMPLOYEE_ROLE()
@@ -97,8 +98,7 @@ module.exports = (artifacts, web3) => {
     const SET_FINANCE_ROLE = await payroll.SET_FINANCE_ROLE()
     const SET_DENOMINATION_TOKEN_ROLE = await payroll.SET_DENOMINATION_TOKEN_ROLE()
     const SET_TOKEN_MANAGER_ROLE = await payroll.SET_TOKEN_MANAGER_ROLE()
-    const SET_EQUITY_MULTIPLIER_ROLE = await payroll.SET_EQUITY_MULTIPLIER_ROLE()
-    const SET_VESTING_SETTINGS_ROLE = await payroll.SET_VESTING_SETTINGS_ROLE()
+    const SET_EQUITY_SETTINGS_ROLE = await payroll.SET_EQUITY_SETTINGS_ROLE()
 
     await acl.createPermission(owner, payroll.address, ADD_EMPLOYEE_ROLE, owner, { from: owner })
     await acl.createPermission(owner, payroll.address, TERMINATE_EMPLOYEE_ROLE, owner, { from: owner })
@@ -106,8 +106,7 @@ module.exports = (artifacts, web3) => {
     await acl.createPermission(owner, payroll.address, SET_FINANCE_ROLE, owner, { from: owner })
     await acl.createPermission(owner, payroll.address, SET_DENOMINATION_TOKEN_ROLE, owner, { from: owner })
     await acl.createPermission(owner, payroll.address, SET_TOKEN_MANAGER_ROLE, owner, { from: owner })
-    await acl.createPermission(owner, payroll.address, SET_EQUITY_MULTIPLIER_ROLE, owner, { from: owner })
-    await acl.createPermission(owner, payroll.address, SET_VESTING_SETTINGS_ROLE, owner, { from: owner })
+    await acl.createPermission(owner, payroll.address, SET_EQUITY_SETTINGS_ROLE, owner, { from: owner })
 
     await payroll.mockSetTimestamp(currentTimestamp)
 
