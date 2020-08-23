@@ -1,67 +1,141 @@
-import React, { useCallback } from 'react'
-import { AragonApi, useAppState, useApi, useAragonApi } from '@aragon/api-react'
-import { toDecimals } from './utils/math-utils'
-import { SECONDS_IN_A_YEAR } from './utils/formatting'
+import React, { useCallback, useState } from 'react'
+import { AragonApi, useApi, useAppState } from '@aragon/api-react'
+import appStateReducer from './app-state-reducer'
+import { usePanelState } from './hooks/general-hooks'
+import { MODE } from './types'
 
-import usePanelState from './hooks/usePanelState'
+export function useRequestMode(requestPanelOpen) {
+  const [requestMode, setRequestMode] = useState({
+    mode: MODE.ADD_EMPLOYEE,
+    data: null,
+  })
 
-const appStateReducer = state => {
-  if (state === null) {
-    return { isSyncing: true }
-  }
-  return state
+  const updateMode = useCallback(
+    newMode => {
+      setRequestMode(newMode)
+      requestPanelOpen()
+    },
+    [requestPanelOpen]
+  )
+
+  return [requestMode, updateMode]
 }
 
-export function useAddEmployeeAction(onDone = f => f) {
-  const { api, appState } = useAragonApi()
-  const { denominationToken } = appState
+// App actions
+export function useEditEquityOptionAction(onDone) {
+  const api = useApi()
   return useCallback(
-    (address, salary, name, role, startDate) => {
-      const initialDenominationSalary = salary / SECONDS_IN_A_YEAR
-
-      const adjustedAmount = toDecimals(
-        initialDenominationSalary.toString(),
-        denominationToken.decimals,
-        {
-          truncate: true,
-        }
-      )
-      const _startDate = Math.floor(startDate.getTime() / 1000).toString()
-      // Don't care about response
-      console.log(address, adjustedAmount, _startDate, role)
-      api.addEmployee(address, adjustedAmount, _startDate, role).toPromise()
-      onDone()
+    (equityMultiplier, vestingLength, vestingCliffLength) => {
+      if (api) {
+        api
+          .setEquitySettings(
+            equityMultiplier,
+            vestingLength,
+            vestingCliffLength,
+            true
+          )
+          .toPromise()
+        onDone()
+      }
     },
-    [api, onDone, denominationToken]
+    [api, onDone]
   )
 }
 
-export function useRequestSalaryAction(onDone = f => f) {
+export function useAddEmployeeAction(onDone) {
   const api = useApi()
-  return useCallback(() => {
-    // Don't care about response
-    api.payday(0, 0, []).toPromise()
-    onDone()
-  }, [api, onDone])
+  return useCallback(
+    (accountAddress, initialSalaryPerSecond, startDateInSeconds, role) => {
+      if (api) {
+        api
+          .addEmployee(
+            accountAddress,
+            initialSalaryPerSecond,
+            startDateInSeconds,
+            role
+          )
+          .toPromise()
+        onDone()
+      }
+    },
+    [api, onDone]
+  )
 }
 
-// Handles the main logic of the app.
+export function usePaydayAction(onDone) {
+  const api = useApi()
+  return useCallback(
+    (denominationTokenAllocation, requestedAmount, metadata) => {
+      if (api) {
+        api
+          .payday(denominationTokenAllocation, requestedAmount, metadata)
+          .toPromise()
+        onDone()
+      }
+    },
+    [api, onDone]
+  )
+}
+
+export function useTerminateEmployeeAction(onDone) {
+  const api = useApi()
+
+  return useCallback(
+    (employeeId, endDate) => {
+      if (api) {
+        api.terminateEmployee(employeeId, endDate).toPromise()
+        onDone()
+      }
+    },
+    [api, onDone]
+  )
+}
+
+// Requests to set new mode and open side panel
+export function useRequestActions(request) {
+  const addEmployee = useCallback(() => {
+    request({ mode: MODE.ADD_EMPLOYEE })
+  }, [request])
+
+  const editEquityOption = useCallback(() => {
+    request({ mode: MODE.EDIT_EQUITY })
+  }, [request])
+
+  const payday = useCallback(() => {
+    request({ mode: MODE.PAYDAY })
+  }, [request])
+
+  const terminateEmployee = useCallback(
+    employeeId => {
+      request({ mode: MODE.TERMINATE_EMPLOYEE, data: { employeeId } })
+    },
+    [request]
+  )
+
+  return { addEmployee, editEquityOption, payday, terminateEmployee }
+}
+
 export function useAppLogic() {
   const { isSyncing } = useAppState()
+  const panelState = usePanelState()
 
-  const addEmployeePanel = usePanelState()
-  // const requestSalaryPanel = usePanelState()
+  const [requestMode, setRequestMode] = useRequestMode(panelState.requestOpen)
 
   const actions = {
-    addEmployee: useAddEmployeeAction(addEmployeePanel.requestClose),
-    requestSalary: useRequestSalaryAction(),
+    addEmployee: useAddEmployeeAction(panelState.requestClose),
+    editEquityOption: useEditEquityOptionAction(panelState.requestClose),
+    payday: usePaydayAction(panelState.requestClose),
+    terminateEmployee: useTerminateEmployeeAction(panelState.requestClose),
   }
+
+  const requests = useRequestActions(setRequestMode)
 
   return {
     actions,
     isSyncing: isSyncing,
-    addEmployeePanel,
-    // requestSalaryPanel,
+    requestMode,
+    panelState,
+    requests,
   }
 }
 

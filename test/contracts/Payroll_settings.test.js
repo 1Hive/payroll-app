@@ -1,133 +1,87 @@
-const { USD } = require('../helpers/tokens')(artifacts, web3)
-const { getEvents } = require('@aragon/test-helpers/events')
-const { assertRevert } = require('@aragon/test-helpers/assertThrow')
-const { NOW, ONE_MINUTE, RATE_EXPIRATION_TIME } = require('../helpers/time')
-const { deployContracts, createPayrollAndPriceFeed } = require('../helpers/deploy')(artifacts, web3)
+const { deployDAI } = require('../helpers/tokens')(artifacts, web3)
+const { assertRevert } = require('../helpers/assertRevert')
+const { NOW } = require('../helpers/time')
+const { deployContracts, createPayroll } = require('../helpers/deploy')(artifacts, web3)
+const { ONE, bn } = require('../helpers/numbers')(web3)
 
-const PriceFeed = artifacts.require('PriceFeedMock')
-const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
-
-contract('Payroll settings', ([owner, anyone]) => {
-  let dao, payroll, payrollBase, finance, vault, priceFeed
-
+contract('Payroll settings', ([owner, nonContractAddress]) => {
+  let dao, payroll, payrollBase, finance, vault, equityTokenManager, DAI, contract
 
   before('deploy base apps and tokens', async () => {
-    ({ dao, finance, vault, payrollBase } = await deployContracts(owner))
+    ({ dao, finance, vault, payrollBase, equityTokenManager } = await deployContracts(owner))
+    DAI = await deployDAI(owner, finance)
+    contract = DAI
   })
 
-  beforeEach('create payroll and price feed instance', async () => {
-    ({ payroll, priceFeed } = await createPayrollAndPriceFeed(dao, payrollBase, owner, NOW))
+  beforeEach('create payroll', async () => {
+    payroll = await createPayroll(dao, payrollBase, owner, NOW)
+    await payroll.initialize(finance.address, DAI.address, equityTokenManager.address, ONE, 0, 0, false, { from: owner })
   })
 
-  describe('setPriceFeed', () => {
-    let newFeedAddress
+  describe('setFinance', () => {
 
-    beforeEach('deploy new feed', async () => {
-      newFeedAddress = (await PriceFeed.new()).address
+    it('sets correctly', async () => {
+      await payroll.setFinance(contract.address)
+      const newFinance = await payroll.finance()
+      assert.equal(newFinance, contract.address)
     })
 
-    context('when it has already been initialized', function () {
-      beforeEach('initialize payroll app using USD as denomination token', async () => {
-        await payroll.initialize(finance.address, USD, priceFeed.address, RATE_EXPIRATION_TIME, { from: owner })
-      })
-
-      context('when the sender has permissions', async () => {
-        const from = owner
-
-        context('when the given address is a contract', async () => {
-          it('updates the feed address', async () => {
-            await payroll.setPriceFeed(newFeedAddress, { from })
-
-            assert.equal(await payroll.feed(), newFeedAddress, 'feed address does not match')
-          })
-
-          it('emits an event', async () => {
-            const receipt = await payroll.setPriceFeed(newFeedAddress, { from })
-
-            const events = getEvents(receipt, 'SetPriceFeed')
-            assert.equal(events.length, 1, 'number of SetPriceFeed emitted events does not match')
-            assert.equal(events[0].args.feed, newFeedAddress, 'feed address does not match')
-          })
-        })
-
-        context('when the given address is not a contract', async () => {
-          it('reverts', async () => {
-            await assertRevert(payroll.setPriceFeed(anyone, { from }), 'PAYROLL_FEED_NOT_CONTRACT')
-          })
-        })
-
-        context('when the given address is the zero address', async () => {
-          it('reverts', async () => {
-            await assertRevert(payroll.setPriceFeed(ZERO_ADDRESS, { from }), 'PAYROLL_FEED_NOT_CONTRACT')
-          })
-        })
-      })
-
-      context('when the sender does not have permissions', async () => {
-        const from = anyone
-
-        it('reverts', async () => {
-          await assertRevert(payroll.setPriceFeed(newFeedAddress, { from }), 'APP_AUTH_FAILED')
-        })
-      })
-    })
-
-    context('when it has not been initialized yet', function () {
-      it('reverts', async () => {
-        await assertRevert(payroll.setPriceFeed(newFeedAddress, { from: owner }), 'APP_AUTH_FAILED')
-      })
+    it('reverts when not contract', async () => {
+      await assertRevert(payroll.setFinance(nonContractAddress), "PAYROLL_FINANCE_NOT_CONTRACT")
     })
   })
 
-  describe('setRateExpiryTime', () => {
-    context('when it has already been initialized', function () {
-      beforeEach('initialize payroll app using USD as denomination token', async () => {
-        await payroll.initialize(finance.address, USD, priceFeed.address, RATE_EXPIRATION_TIME, { from: owner })
-      })
+  describe('setDenominationToken', () => {
 
-      context('when the sender has permissions', async () => {
-        const from = owner
-
-        for (const expirationTime of [ONE_MINUTE, ONE_MINUTE + 1]) {
-          context(`when the given expiration time is ${expirationTime === ONE_MINUTE ? 'one minute' : 'greater than one minute'}`, async () => {
-            it('updates the expiration time', async () => {
-              await payroll.setRateExpiryTime(expirationTime, { from })
-
-              assert.equal((await payroll.rateExpiryTime()).toString(), expirationTime, 'rate expiration time does not match')
-            })
-
-            it('emits an event', async () => {
-              const receipt = await payroll.setRateExpiryTime(expirationTime, { from })
-
-              const events = getEvents(receipt, 'SetRateExpiryTime')
-              assert.equal(events.length, 1, 'number of SetRateExpiryTime emitted events does not match')
-              assert.equal(events[0].args.time.toString(), expirationTime, 'rate expiration time does not match')
-            })
-          })
-        }
-
-        context('when the given expiration time is less than one minute', async () => {
-          const expirationTime = ONE_MINUTE - 1
-
-          it('reverts', async () => {
-            await assertRevert(payroll.setRateExpiryTime(expirationTime, { from }), 'PAYROLL_EXPIRY_TIME_TOO_SHORT')
-          })
-        })
-      })
-
-      context('when the sender does not have permissions', async () => {
-        const from = anyone
-
-        it('reverts', async () => {
-          await assertRevert(payroll.setRateExpiryTime(1000, { from }), 'APP_AUTH_FAILED')
-        })
-      })
+    it('sets correctly', async () => {
+      const DAINew = await deployDAI(owner, finance)
+      await payroll.setDenominationToken(DAINew.address)
+      const newDenominationToken = await payroll.denominationToken()
+      assert.equal(newDenominationToken, DAINew.address)
     })
 
-    context('when it has not been initialized yet', function () {
-      it('reverts', async () => {
-        await assertRevert(payroll.setRateExpiryTime(1000, { from: owner }), 'APP_AUTH_FAILED')
-      })
+    it('reverts when not contract', async () => {
+      await assertRevert(payroll.setDenominationToken(nonContractAddress), "PAYROLL_DENOMINATION_TOKEN_NOT_CONTRACT")
     })
   })
+
+  describe('setEquityTokenManager', () => {
+
+    it('sets correctly', async () => {
+      await payroll.setEquityTokenManager(contract.address)
+      const newEquityTokenManager = await payroll.equityTokenManager()
+      assert.equal(newEquityTokenManager, contract.address)
+    })
+
+    it('reverts when not contract', async () => {
+      await assertRevert(payroll.setEquityTokenManager(nonContractAddress), "PAYROLL_TOKEN_MANAGER_NOT_CONTRACT")
+    })
+  })
+
+  describe('setEquitySettings', () => {
+
+    it('sets correctly', async () => {
+      const expectedEquityMultiplier = bn(2000)
+      const expectedVestingLength = 1000
+      const expectedVestingCliff = 10
+      const expectedVestingRevokable = true
+
+      await payroll.setEquitySettings(expectedEquityMultiplier, expectedVestingLength, expectedVestingCliff, expectedVestingRevokable)
+
+      const newEquityMultiplier = await payroll.equityMultiplier()
+      const vestingLength = await payroll.vestingLength()
+      const vestingCliffLength = await payroll.vestingCliffLength()
+      const vestingRevokable = await payroll.vestingRevokable()
+
+      assert.equal(newEquityMultiplier.toString(), expectedEquityMultiplier.toString())
+      assert.equal(vestingLength, expectedVestingLength)
+      assert.equal(vestingCliffLength, expectedVestingCliff)
+      assert.equal(vestingRevokable, expectedVestingRevokable)
+    })
+
+    it('reverts when cliff is greater than length', async () => {
+      await assertRevert(payroll.setEquitySettings(ONE, 100, 101, false), 'PAYROLL_CLIFF_PERIOD_TOO_HIGH')
+    })
+  })
+
 })
