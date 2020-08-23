@@ -1,38 +1,34 @@
-const { assertRevert } = require('@aragon/test-helpers/assertThrow')
-const { bigExp, annualSalaryPerSecond } = require('../helpers/numbers')(web3)
-const { NOW, ONE_MONTH, RATE_EXPIRATION_TIME } = require('../helpers/time')
-const { deployContracts, createPayrollAndPriceFeed } = require('../helpers/deploy')(artifacts, web3)
+const { assertRevert } = require('../helpers/assertRevert')
+const { bigExp, annualSalaryPerSecond, ONE } = require('../helpers/numbers')(web3)
+const { NOW, ONE_MONTH } = require('../helpers/time')
+const { deployContracts, createPayroll } = require('../helpers/deploy')(artifacts, web3)
 
 const MaliciousERC20 = artifacts.require('MaliciousERC20')
 const MaliciousEmployee = artifacts.require('MaliciousEmployee')
 
 contract('Payroll reentrancy guards', ([owner]) => {
-  let dao, payroll, payrollBase, finance, vault, priceFeed, maliciousToken, employee
+  let dao, payroll, payrollBase, finance, vault, maliciousToken, employee, equityTokenManager
 
   const REENTRANCY_ACTIONS = { PAYDAY: 0, CHANGE_ADDRESS: 1, SET_ALLOCATION: 2 }
 
   const increaseTime = async seconds => {
     await payroll.mockIncreaseTime(seconds)
-    await priceFeed.mockIncreaseTime(seconds)
   }
-
+ 
   before('deploy base apps', async () => {
-    ({ dao, finance, vault, payrollBase } = await deployContracts(owner))
+    ({ dao, finance, vault, payrollBase, equityTokenManager } = await deployContracts(owner))
   })
 
-  before('allow malicious employee and token', async () => {
+  beforeEach(async () => {
     employee = await MaliciousEmployee.new()
 
     const amount = bigExp(10000, 18)
     maliciousToken = await MaliciousERC20.new(employee.address, amount, { from: owner })
     await maliciousToken.approve(finance.address, amount, { from: owner })
     await finance.deposit(maliciousToken.address, amount, 'Initial deployment', { from: owner })
-  })
 
-  beforeEach('create payroll and price feed instances', async () => {
-    ({ payroll, priceFeed } = await createPayrollAndPriceFeed(dao, payrollBase, owner, NOW))
-    await payroll.initialize(finance.address, maliciousToken.address, priceFeed.address, RATE_EXPIRATION_TIME, { from: owner })
-    await payroll.setAllowedToken(maliciousToken.address, true, { from: owner })
+    payroll = await createPayroll(dao, payrollBase, owner, NOW)
+    await payroll.initialize(finance.address, maliciousToken.address, equityTokenManager.address, 1, 0, 0, false, { from: owner })
   })
 
   describe('reentrancy guards', () => {
@@ -40,19 +36,7 @@ contract('Payroll reentrancy guards', ([owner]) => {
     beforeEach('add malicious employee, set tokens allocations, and accrue some salary', async () => {
       await employee.setPayroll(payroll.address)
       await payroll.addEmployee(employee.address, annualSalaryPerSecond(100000), await payroll.getTimestampPublic(), 'Malicious Boss', { from: owner })
-
-      await employee.determineAllocation([maliciousToken.address], [100])
       await increaseTime(ONE_MONTH)
-    })
-
-    describe('determineAllocation', function () {
-      beforeEach('set reentrancy action', async () => {
-        await employee.setAction(REENTRANCY_ACTIONS.SET_ALLOCATION)
-      })
-
-      it('reverts', async () => {
-        await assertRevert(employee.payday(), 'REENTRANCY_REENTRANT_CALL')
-      })
     })
 
     describe('changeAddressByEmployee', function () {
@@ -61,7 +45,9 @@ contract('Payroll reentrancy guards', ([owner]) => {
       })
 
       it('reverts', async () => {
-        await assertRevert(employee.payday(), 'REENTRANCY_REENTRANT_CALL')
+        // If reentered directly the error would be REENTRANCY_REENTRANT_CALL. However, the error message received
+        // is that which occurs the highest in the call stack, which in this case is in a call from the Vault.
+        await assertRevert(employee.payday(), 'VAULT_TOKEN_TRANSFER_REVERTED')
       })
     })
 
@@ -71,7 +57,9 @@ contract('Payroll reentrancy guards', ([owner]) => {
       })
 
       it('reverts', async () => {
-        await assertRevert(employee.payday(), 'REENTRANCY_REENTRANT_CALL')
+        // If reentered directly the error would be REENTRANCY_REENTRANT_CALL. However, the error message received
+        // is that which occurs the highest in the call stack, which in this case is in a call from the Vault.
+        await assertRevert(employee.payday(), 'VAULT_TOKEN_TRANSFER_REVERTED')
       })
     })
   })

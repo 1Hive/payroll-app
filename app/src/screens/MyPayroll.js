@@ -1,24 +1,18 @@
 import React from 'react'
+import MySalary from '../components/MyPayroll/MySalary'
+import PreviousSalary from '../components/MyPayroll/PreviousSalary'
 
-import { Split } from '@aragon/ui'
-import SalaryAllocation from './components/SalaryAllocation'
-import PreviousSalary from './components/PreviousSalary'
-import AvailableSalary from './components/AvailableSalary'
+function MyPayroll({ isSyncing }) {
+  return (
+    <div>
+      {!isSyncing && (
+        <>
+          <MySalary />
+          <PreviousSalary />
+        </>
+      )}
+    </div>
+  )
+}
 
-const MyPayroll = () => (
-  <Split
-    primary={
-      <>
-        <AvailableSalary />
-        <PreviousSalary />
-      </>
-    }
-    secondary={
-      <>
-        <SalaryAllocation />
-      </>
-    }
-  />
-)
-
-export default MyPayroll
+export default React.memo(MyPayroll)
