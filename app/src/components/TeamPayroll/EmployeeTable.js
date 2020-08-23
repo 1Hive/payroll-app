@@ -1,7 +1,11 @@
-import React, { useMemo } from 'react'
+import React, { useCallback, useMemo } from 'react'
 import PropTypes from 'prop-types'
 import {
+  ContextMenu,
+  ContextMenuItem,
   DataView,
+  GU,
+  IconCircleMinus,
   IdentityBadge,
   textStyle,
   useLayout,
@@ -10,10 +14,16 @@ import {
 import EmployeeFilters from './EmployeeFilters'
 
 import { employeeType } from '../../types'
-import { dateFormat, SECONDS_IN_A_YEAR } from '../../utils/date-utils'
-import { formatTokenAmount } from '../../utils/formatting'
+import { dateFormat } from '../../utils/date-utils'
+import { formatTokenAmount } from '../../utils/formatting-utils'
 
-const columns = ['Employee', 'Start Date', 'Role', 'Base asset salary']
+const columns = [
+  'Employee',
+  'Start Date',
+  'Role',
+  'Status',
+  'Base asset salary',
+]
 
 function EmployeeTable({
   emptyResultsViaFilters,
@@ -21,6 +31,7 @@ function EmployeeTable({
   filteredEmployees,
   filters,
   onClearFilters,
+  onRequestTerminateEmployee,
   onRoleChange,
   onStatusChange,
   selectedRole,
@@ -75,21 +86,61 @@ function EmployeeTable({
       }
       fields={columns}
       entries={filteredEmployees}
-      renderEntry={({ accountAddress, startDate, role, salary }) => {
+      renderEntry={({
+        accountAddress,
+        startDate,
+        role,
+        terminated,
+        yearlySalary,
+      }) => {
         return [
           <IdentityBadge entity={accountAddress} />,
           <span>{dateFormat(startDate)}</span>,
           <span>{role}</span>,
+          <span>{terminated ? 'Inactive' : 'Active'}</span>,
           <span>
-            {formatTokenAmount(salary, true, token.decimals, false, {
-              multiplier: SECONDS_IN_A_YEAR,
-            })}{' '}
+            {formatTokenAmount(yearlySalary, true, token.decimals)}{' '}
             {token.symbol}
           </span>,
         ]
       }}
       onStatusEmptyClear={onClearFilters}
+      renderEntryActions={({ id, terminated }) =>
+        !terminated ? (
+          <ContextMenu zIndex={1}>
+            <ContextMenuTerminateEmployee
+              employeeId={id}
+              onTerminateEmployee={onRequestTerminateEmployee}
+            />
+          </ContextMenu>
+        ) : null
+      }
     />
+  )
+}
+
+const ContextMenuTerminateEmployee = ({ employeeId, onTerminateEmployee }) => {
+  const theme = useTheme()
+
+  const handleTerminateEmployee = useCallback(() => {
+    onTerminateEmployee(employeeId)
+  }, [employeeId, onTerminateEmployee])
+
+  return (
+    <ContextMenuItem onClick={handleTerminateEmployee}>
+      <IconCircleMinus
+        css={`
+          color: ${theme.negative};
+        `}
+      />
+      <span
+        css={`
+          margin-left: ${1 * GU}px;
+        `}
+      >
+        Terminate
+      </span>
+    </ContextMenuItem>
   )
 }
 
