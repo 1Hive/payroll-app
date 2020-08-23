@@ -1,8 +1,6 @@
 node_modules
 app/node_modules
 build
-cache
-app/.cache
+.cache
 dist
 coverage
-test

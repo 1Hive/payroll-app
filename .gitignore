@@ -1,8 +1,8 @@
 node_modules
-artifacts
+build
 .cache
-cache
 dist
 ipfs.cmd
 package-lock.json
-yarn.lock
+coverage.json
+coverage
