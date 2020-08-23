@@ -3,13 +3,14 @@ let finance, tokens, vault
 let denominationToken
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 
+const bigExp = (bre, x, y = 18) =>
+  bre.web3.utils
+    .toBN(x)
+    .mul(bre.web3.utils.toBN(10).pow(bre.web3.utils.toBN(y)))
+
 module.exports = {
   postDao: async function({ _experimentalAppInstaller, log }, bre) {
-    const bigExp = (x, y = 18) =>
-      bre.web3.utils
-        .toBN(x)
-        .mul(bre.web3.utils.toBN(10).pow(bre.web3.utils.toBN(y)))
-    const pct16 = x => bigExp(x, 16)
+    const pct16 = x => bigExp(bre, x, 16)
 
     // Retrieve accounts.
     accounts = await bre.web3.eth.getAccounts()
@@ -39,8 +40,8 @@ module.exports = {
     await tokens.initialize([minime.address, true, 0])
     log(`> Tokens app installed: ${tokens.address}`)
 
-    await deployDenominationToken(bre.artifacts, 18, bigExp(4500))
-    await depositDenominationToken(bre.artifacts, bigExp(2000))
+    await deployDenominationToken(bre.artifacts, 18, bigExp(bre, 45000))
+    await depositDenominationToken(bre.artifacts, bigExp(bre, 20000))
   },
 
   postInit: async function({ proxy, log }, bre) {
@@ -50,12 +51,18 @@ module.exports = {
     log(`> CREATE_PAYMENTS_ROLE assigned to ${proxy.address}`)
     await tokens.createPermission('MINT_ROLE', proxy.address)
     log(`> MINT_ROLE assigned to ${proxy.address}`)
+    await tokens.createPermission('ASSIGN_ROLE', proxy.address)
+    log(`> ASSIGN_ROLE assigned to ${proxy.address}`)
+    await tokens.createPermission('ISSUE_ROLE', accounts[0])
+    log(`> ISSUE_ROLE assigned to ${accounts[0]}`)
+    await issueTokens(bre.artifacts, bigExp(bre, 100000))
+    log(`> Issued 100k tokens`)
   },
 
   getInitParams: async function(_, bre) {
-    const equityMultiplier = 4
-    const vestingLength = 0
-    const vestingCliffLength = 0
+    const equityMultiplier = bigExp(bre, 4) // 4x
+    const vestingLength = 31540000 // a year
+    const vestingCliffLength = 5256000 // 2 month
     const vestingRevokable = true
 
     return [
@@ -124,4 +131,11 @@ async function deployMinimeToken(bre) {
     true
   )
   return token
+}
+
+async function issueTokens(artifacts, amount) {
+  // Experimental app installer doesn't expose the issue functionality for tokens
+  const TokenManager = artifacts.require('TokenManager')
+  const tokenManager = await TokenManager.at(tokens.address)
+  return tokenManager.issue(amount)
 }
