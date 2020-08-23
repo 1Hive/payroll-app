@@ -11,8 +11,8 @@ import {
 } from '@aragon/ui'
 
 import { toDecimals } from '../../utils/math-utils'
-import { formatTokenAmount } from '../../utils/formatting'
-import { splitAllocation } from '../../utils/calculations'
+import { formatTokenAmount } from '../../utils/formatting-utils'
+import { splitAllocation } from '../../utils/calculations-utils'
 
 const ONE_PCT = new BN(toDecimals('1', 16))
 
@@ -99,7 +99,7 @@ function AllocationFields({
           css="text-align:right"
         />
       </div>
-      <CostumSlider
+      <CustomSlider
         value={convertedBaseAllocation / 100}
         onUpdate={handleSliderChange}
         colors={{
@@ -197,7 +197,7 @@ const AssetLabel = ({ color, label }) => {
           border-radius: 4px;
         `}
       >
-        <img src={tokenIconUrl(label)} alt="" height={16} width={16} />
+        <img src={tokenIconUrl(label)} alt="" height="16" width="16" />
         {label}
       </div>
     </div>
@@ -205,7 +205,7 @@ const AssetLabel = ({ color, label }) => {
 }
 
 // Little hack to override default slider colors
-const CostumSlider = styled(Slider)`
+const CustomSlider = styled(Slider)`
   padding: 0;
 
   & > div > div:first-child {

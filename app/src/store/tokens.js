@@ -16,10 +16,7 @@ export function getDenominationToken() {
 }
 
 export async function getEquityTokenManager() {
-  const tokenManagerAddress = await app
-    .call('equityTokenManager')
-    .pipe(first())
-    .toPromise()
+  const tokenManagerAddress = await app.call('equityTokenManager').toPromise()
 
   const tokenManagerContract = await app.external(tokenManagerAddress, [
     ...tokenManagerTokenAbi,

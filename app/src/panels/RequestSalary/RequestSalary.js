@@ -5,7 +5,6 @@ import {
   Field,
   GU,
   Info,
-  SidePanel,
   TextInput,
   textStyle,
   useSidePanelFocusOnReady,
@@ -15,16 +14,18 @@ import BN from 'bn.js'
 import { useAppState, useConnectedAccount } from '@aragon/api-react'
 import AllocationFields from './AllocationFields'
 
+import {
+  useCurrentEmployee,
+  useEmployeeTotalVestings,
+  useEmployeeCurrentOwedSalary,
+} from '../../hooks/employee-hooks'
 import { toDecimals } from '../../utils/math-utils'
 import { durationTime } from '../../utils/date-utils'
-import { formatTokenAmount } from '../../utils/formatting'
-import { convertMultiplier } from '../../utils/calculations'
-import { useEmployeeTotalVestings } from '../../hooks/employee-hooks'
+import { formatTokenAmount } from '../../utils/formatting-utils'
+import { multiplierFromBase } from '../../utils/calculations-utils'
 
 const RequestSalary = React.memo(function RequestSalary({
-  employeeOwedSalary,
-  panelState,
-  onRequestSalary,
+  onAction: onRequestSalary,
 }) {
   const {
     denominationToken,
@@ -35,27 +36,20 @@ const RequestSalary = React.memo(function RequestSalary({
     vestingCliffLength,
   } = useAppState()
 
-  const handleClose = useCallback(() => {
-    panelState.requestClose()
-  }, [panelState])
+  const employee = useCurrentEmployee()
+  const employeeOwedSalary = useEmployeeCurrentOwedSalary(employee)
 
   return (
-    <SidePanel
-      title="Request salary"
-      opened={panelState && panelState.visible}
-      onClose={handleClose}
-    >
-      <RequestSalaryContent
-        baseAsset={denominationToken}
-        equityMultiplier={equityMultiplier}
-        equityTokenManager={equityTokenManager}
-        onRequestSalary={onRequestSalary}
-        pctBase={pctBase}
-        totalAccruedBalance={employeeOwedSalary}
-        vestingLength={vestingLength}
-        vestingCliffLength={vestingCliffLength}
-      />
-    </SidePanel>
+    <RequestSalaryContent
+      baseAsset={denominationToken}
+      equityMultiplier={equityMultiplier}
+      equityTokenManager={equityTokenManager}
+      onRequestSalary={onRequestSalary}
+      pctBase={pctBase}
+      totalAccruedBalance={employeeOwedSalary}
+      vestingLength={vestingLength}
+      vestingCliffLength={vestingCliffLength}
+    />
   )
 })
 
@@ -142,10 +136,6 @@ function RequestSalaryContent({
     }))
   }, [baseAsset.decimals, totalAccruedBalance])
 
-  const handleAllocationChange = useCallback(newAllocation => {
-    setAllocation(newAllocation)
-  }, [])
-
   const handleSubmit = useCallback(() => {
     event.preventDefault()
 
@@ -224,24 +214,24 @@ function RequestSalaryContent({
           baseAssetAllocation={allocation}
           equityAsset={equityTokenManager.token}
           equityMultiplier={equityMultiplier}
-          onAllocationChange={handleAllocationChange}
+          onAllocationChange={setAllocation}
           pctBase={pctBase}
         />
       )}
       {vestingLength > 0 && (
         <Info
+          title="Equity Payments Limit"
+          mode="warning"
           css={`
             margin-top: ${6 * GU}px;
           `}
-          mode="warning"
         >
           {totalVestings === maxEmployeeVestings
             ? `You don’t have available vestings to do with this
           address, if you want to get paid with Equity again, you need to change
           your adress.`
-            : `You have ${maxEmployeeVestings -
-                totalVestings} remaining vestings available to do with
-          this address.`}
+            : `This address can request equity up to ${maxEmployeeVestings -
+                totalVestings} more times while vesting is enabled for equity payments`}
         </Info>
       )}
       <Button
@@ -264,42 +254,44 @@ const AllocationInfo = ({
   vestingCliffLength,
   vestingLength,
 }) => {
-  const formattedMultiplier = convertMultiplier(equityMultiplier, pctBase)
+  const formattedMultiplier = multiplierFromBase(equityMultiplier, pctBase)
 
   return (
     <Info
+      title="Salary allocation"
       css={`
         margin-top: ${3 * GU}px;
       `}
     >
-      <span
+      <div
         css={`
-          ${textStyle('label2')};
-          margin-bottom: ${2 * GU}px;
-          display: block;
+          margin-bottom: ${1 * GU}px;
         `}
       >
-        Sallary allocation
-      </span>
-      You have the option to receive your salary in a combination of Base Asset
-      and/or Equity asset. The Equity asset allocation is subject to a{' '}
-      <span
-        css={`
-          ${textStyle('body2')}
-        `}
-      >
-        {formattedMultiplier}
-      </span>
-      X multiplier{' '}
-      {vestingCliffLength > 0 ? (
-        <span>
-          and {durationTime(vestingLength)} vesting period with{' '}
-          {durationTime(vestingCliffLength)} cliff
+        You have the option to receive your salary in a combination of Base
+        Asset and/or Equity asset. The Equity asset allocation is subject to a{' '}
+        <span
+          css={`
+            ${textStyle('body2')}
+          `}
+        >
+          {formattedMultiplier}
         </span>
-      ) : (
-        `with no vesting`
-      )}
-      .
+        X multiplier{' '}
+        {vestingCliffLength > 0 ? (
+          <span>
+            and {durationTime(vestingLength)} vesting period with{' '}
+            {durationTime(vestingCliffLength)} cliff
+          </span>
+        ) : 
+          'with no vesting'
+        }
+        .
+      </div>
+      <strong>
+        Requesting any salary under the total available will forfeit the
+        remainder.
+      </strong>
     </Info>
   )
 }

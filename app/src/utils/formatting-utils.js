@@ -1,5 +1,5 @@
 import { round } from './math-utils'
-import { splitAllocation } from './calculations'
+import { splitAllocation } from './calculations-utils'
 
 export function formatDecimals(value, digits) {
   try {
@@ -22,12 +22,9 @@ export function formatTokenAmount(
   isIncoming,
   decimals = 0,
   displaySign = false,
-  { rounding = 2, multiplier = 1, commas = true, replaceZeroBy = '0' } = {}
+  { rounding = 2, commas = true, replaceZeroBy = '0' } = {}
 ) {
-  const roundedAmount = round(
-    (amount / Math.pow(10, decimals)) * multiplier,
-    rounding
-  )
+  const roundedAmount = round(amount / Math.pow(10, decimals), rounding)
   const formattedAmount = formatDecimals(roundedAmount, 18)
 
   if (formattedAmount === '0') {
